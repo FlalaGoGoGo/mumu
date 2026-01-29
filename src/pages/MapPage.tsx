@@ -12,6 +12,7 @@ import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { CategoryFilter, type MuseumCategory } from '@/components/map/CategoryFilter';
 import { StateFilter } from '@/components/map/StateFilter';
+import { DistanceFilter } from '@/components/map/DistanceFilter';
 import { calculateDistance, formatDistance } from '@/lib/distance';
 import type { Museum } from '@/types/museum';
 
@@ -27,6 +28,7 @@ export default function MapPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<MuseumCategory>('all');
   const [stateFilter, setStateFilter] = useState<string[]>([]);
+  const [maxDistanceFilter, setMaxDistanceFilter] = useState<number | null>(null);
 
   const visitedIds = new Set(visits.map(v => v.museum_id));
 
@@ -63,13 +65,14 @@ export default function MapPage() {
     return [...new Set(states)].sort();
   }, [museumsWithData]);
 
-  // Filter by search query, category, and state
-  const filteredMuseums = museumsWithData.filter(({ museum }) => {
+  // Filter by search query, category, state, and distance
+  const filteredMuseums = museumsWithData.filter(({ museum, distance }) => {
     const matchesSearch = museum.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       museum.city.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || museum.tags === categoryFilter;
     const matchesState = stateFilter.length === 0 || (museum.state && stateFilter.includes(museum.state));
-    return matchesSearch && matchesCategory && matchesState;
+    const matchesDistance = maxDistanceFilter === null || (distance !== null && distance <= maxDistanceFilter);
+    return matchesSearch && matchesCategory && matchesState && matchesDistance;
   });
 
   // Sort by distance (nearest first), null distances go to end
@@ -126,6 +129,11 @@ export default function MapPage() {
             availableStates={availableStates}
             selectedStates={stateFilter}
             onSelectionChange={setStateFilter}
+          />
+          <DistanceFilter
+            maxDistance={maxDistanceFilter}
+            onMaxDistanceChange={setMaxDistanceFilter}
+            hasLocation={latitude !== null}
           />
         </div>
 
