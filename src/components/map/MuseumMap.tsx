@@ -164,7 +164,7 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
           size="icon"
           onClick={handleZoomToLocation}
           disabled={!userLocation}
-          className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-accent"
+          className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-primary hover:text-primary-foreground hover:border-primary"
           title="Zoom to my location"
         >
           <Locate className="h-4 w-4" />
@@ -173,7 +173,7 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
           variant="outline"
           size="icon"
           onClick={handleZoomToGlobal}
-          className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-accent"
+          className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-primary hover:text-primary-foreground hover:border-primary"
           title="Show all museums"
         >
           <Globe className="h-4 w-4" />
