@@ -1,96 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* MuMu Design System - European Classical Museum Aesthetic */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Warm parchment-inspired palette */
+    --background: 39 33% 96%;
+    --foreground: 24 10% 18%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 40 30% 94%;
+    --card-foreground: 24 10% 18%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 40 33% 97%;
+    --popover-foreground: 24 10% 18%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Deep burgundy primary - classical gallery accent */
+    --primary: 348 45% 32%;
+    --primary-foreground: 40 33% 97%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Warm stone secondary */
+    --secondary: 35 20% 88%;
+    --secondary-foreground: 24 10% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted gallery tones */
+    --muted: 38 18% 90%;
+    --muted-foreground: 24 8% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Antique gold accent */
+    --accent: 43 60% 45%;
+    --accent-foreground: 40 33% 97%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 40 33% 97%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Elegant thin borders */
+    --border: 35 15% 82%;
+    --input: 35 15% 85%;
+    --ring: 348 45% 32%;
 
-    --radius: 0.5rem;
+    --radius: 0.25rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Museum label chip styling */
+    --label-bg: 40 25% 92%;
+    --label-border: 35 12% 75%;
+    --label-text: 24 10% 30%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Map marker */
+    --marker: 348 45% 32%;
+    --marker-aic: 43 70% 48%;
 
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar - warm gallery */
+    --sidebar-background: 39 28% 94%;
+    --sidebar-foreground: 24 10% 25%;
+    --sidebar-primary: 348 45% 32%;
+    --sidebar-primary-foreground: 40 33% 97%;
+    --sidebar-accent: 35 25% 88%;
+    --sidebar-accent-foreground: 24 10% 20%;
+    --sidebar-border: 35 15% 82%;
+    --sidebar-ring: 348 45% 32%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 24 15% 10%;
+    --foreground: 38 25% 90%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 24 12% 14%;
+    --card-foreground: 38 25% 90%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 24 12% 12%;
+    --popover-foreground: 38 25% 90%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 348 50% 55%;
+    --primary-foreground: 24 15% 10%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 24 10% 22%;
+    --secondary-foreground: 38 25% 85%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 24 10% 20%;
+    --muted-foreground: 38 15% 60%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 43 55% 50%;
+    --accent-foreground: 24 15% 10%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 55% 50%;
+    --destructive-foreground: 38 25% 95%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 24 10% 25%;
+    --input: 24 10% 25%;
+    --ring: 348 50% 55%;
+
+    --label-bg: 24 12% 18%;
+    --label-border: 24 10% 30%;
+    --label-text: 38 20% 75%;
+
+    --marker: 348 50% 55%;
+    --marker-aic: 43 65% 55%;
+
+    --sidebar-background: 24 12% 12%;
+    --sidebar-foreground: 38 20% 85%;
+    --sidebar-primary: 348 50% 55%;
+    --sidebar-primary-foreground: 24 15% 10%;
+    --sidebar-accent: 24 10% 18%;
+    --sidebar-accent-foreground: 38 20% 85%;
+    --sidebar-border: 24 10% 22%;
+    --sidebar-ring: 348 50% 55%;
   }
 }
 
@@ -100,6 +117,146 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-body antialiased;
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  /* Museum label chip - gallery style */
+  .museum-chip {
+    @apply inline-flex items-center px-3 py-1 text-xs font-medium uppercase tracking-wider
+           bg-[hsl(var(--label-bg))] text-[hsl(var(--label-text))]
+           border border-[hsl(var(--label-border))] rounded-sm;
+  }
+
+  /* Gallery card - thin borders, refined */
+  .gallery-card {
+    @apply bg-card border border-border rounded-sm p-4
+           shadow-[0_1px_3px_hsl(var(--foreground)/0.04)]
+           transition-shadow duration-200
+           hover:shadow-[0_4px_12px_hsl(var(--foreground)/0.08)];
+  }
+
+  /* Bottom sheet styling for mobile */
+  .bottom-sheet {
+    @apply bg-background rounded-t-2xl shadow-[0_-4px_24px_hsl(var(--foreground)/0.12)];
+  }
+
+  .bottom-sheet-handle {
+    @apply w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto my-3;
+  }
+
+  /* Map marker styling */
+  .map-marker {
+    @apply w-8 h-8 rounded-full bg-primary border-2 border-background
+           shadow-[0_2px_8px_hsl(var(--foreground)/0.2)]
+           flex items-center justify-center;
+  }
+
+  .map-marker-aic {
+    @apply bg-accent;
+  }
+
+  /* Route step number */
+  .route-step {
+    @apply w-7 h-7 rounded-full bg-primary text-primary-foreground
+           flex items-center justify-center text-sm font-semibold font-display;
+  }
+
+  /* Artwork frame styling */
+  .artwork-frame {
+    @apply border-4 border-[hsl(35_15%_75%)] shadow-[inset_0_0_0_1px_hsl(35_10%_85%),0_4px_12px_hsl(var(--foreground)/0.1)];
+  }
+
+  /* Navigation tab - elegant underline style */
+  .nav-tab {
+    @apply relative px-4 py-3 text-sm font-medium text-muted-foreground
+           transition-colors duration-200
+           hover:text-foreground;
+  }
+
+  .nav-tab.active {
+    @apply text-foreground;
+  }
+
+  .nav-tab.active::after {
+    content: '';
+    @apply absolute bottom-0 left-4 right-4 h-0.5 bg-primary;
+  }
+
+  /* Passport stamp effect */
+  .passport-stamp {
+    @apply relative inline-flex items-center justify-center w-16 h-16
+           rounded-full border-2 border-dashed border-primary/40
+           text-primary/60 font-display text-xs uppercase tracking-wider
+           rotate-[-8deg];
+  }
+
+  .passport-stamp.completed {
+    @apply border-solid border-primary text-primary bg-primary/5;
+  }
+}
+
+@layer utilities {
+  /* Parchment texture overlay */
+  .parchment-texture {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+
+  /* Fade in animation */
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Slide up animation for bottom sheet */
+  .slide-up {
+    animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+}
+
+/* Leaflet map custom styling */
+.leaflet-container {
+  font-family: 'Source Sans 3', sans-serif;
+  background: hsl(39 33% 96%);
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 4px;
+  box-shadow: 0 4px 16px hsl(24 10% 18% / 0.12);
+  border: 1px solid hsl(35 15% 82%);
+}
+
+.leaflet-popup-content {
+  margin: 12px 16px;
+  font-family: 'Source Sans 3', sans-serif;
+}
+
+.leaflet-popup-tip {
+  background: hsl(40 33% 97%);
+  border: 1px solid hsl(35 15% 82%);
+}
+
+.custom-marker {
+  background: hsl(348 45% 32%);
+  border: 2px solid hsl(40 33% 97%);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px hsl(24 10% 18% / 0.2);
+}
+
+.custom-marker.aic {
+  background: hsl(43 60% 45%);
 }
