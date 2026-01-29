@@ -34,7 +34,7 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
             <img 
               src={museum.hero_image_url} 
               alt={museum.name}
-              className="w-12 h-12 rounded-sm object-cover flex-shrink-0"
+              className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
             />
           )}
           <div className="min-w-0 flex-1">
