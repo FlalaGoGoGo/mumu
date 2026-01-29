@@ -66,6 +66,7 @@ export type Database = {
           museum_id: string
           name: string
           opening_hours: string | null
+          state: string | null
           tags: string | null
           website_url: string | null
         }
@@ -81,6 +82,7 @@ export type Database = {
           museum_id: string
           name: string
           opening_hours?: string | null
+          state?: string | null
           tags?: string | null
           website_url?: string | null
         }
@@ -96,6 +98,7 @@ export type Database = {
           museum_id?: string
           name?: string
           opening_hours?: string | null
+          state?: string | null
           tags?: string | null
           website_url?: string | null
         }
