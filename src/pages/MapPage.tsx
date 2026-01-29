@@ -209,6 +209,7 @@ export default function MapPage() {
           museums={sortedMuseums.map(m => m.museum)}
           selectedMuseum={selectedMuseum}
           onSelectMuseum={setSelectedMuseum}
+          userLocation={latitude !== null && longitude !== null ? { latitude, longitude } : null}
           className="w-full h-full"
         />
 

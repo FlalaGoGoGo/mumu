@@ -1,12 +1,15 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Locate, Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import type { Museum } from '@/types/museum';
 
 interface MuseumMapProps {
   museums: Museum[];
   selectedMuseum: Museum | null;
   onSelectMuseum: (museum: Museum) => void;
+  userLocation?: { latitude: number; longitude: number } | null;
   className?: string;
 }
 
@@ -73,7 +76,7 @@ const createSelectedMarkerIcon = (isAic: boolean) => {
   });
 };
 
-export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, className = '' }: MuseumMapProps) {
+export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocation, className = '' }: MuseumMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
@@ -134,11 +137,48 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, className =
     });
   }, [selectedMuseum]);
 
+  const handleZoomToLocation = () => {
+    if (!mapRef.current || !userLocation) return;
+    mapRef.current.setView([userLocation.latitude, userLocation.longitude], 10, {
+      animate: true,
+      duration: 0.5,
+    });
+  };
+
+  const handleZoomToGlobal = () => {
+    if (!mapRef.current) return;
+    mapRef.current.setView([39.8283, -98.5795], 4, {
+      animate: true,
+      duration: 0.5,
+    });
+  };
+
   return (
-    <div 
-      ref={containerRef} 
-      className={`w-full h-full ${className}`}
-      style={{ minHeight: '300px' }}
-    />
+    <div className={`relative w-full h-full ${className}`} style={{ minHeight: '300px' }}>
+      <div ref={containerRef} className="w-full h-full" />
+      
+      {/* Map Controls */}
+      <div className="absolute bottom-6 right-4 flex flex-col gap-2 z-[1000]">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleZoomToLocation}
+          disabled={!userLocation}
+          className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-accent"
+          title="Zoom to my location"
+        >
+          <Locate className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleZoomToGlobal}
+          className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-accent"
+          title="Show all museums"
+        >
+          <Globe className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
   );
 }
