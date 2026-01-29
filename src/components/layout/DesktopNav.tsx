@@ -1,4 +1,5 @@
 import { Map, Route, Stamp, Settings } from 'lucide-react';
+import mumuLogo from '@/assets/mumu-logo.png';
 import { NavLink } from 'react-router-dom';
 
 const navItems = [
@@ -13,9 +14,11 @@ export function DesktopNav() {
     <header className="hidden md:flex items-center justify-between px-6 py-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       {/* Logo */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-          <span className="font-display text-lg font-bold text-primary-foreground">M</span>
-        </div>
+        <img 
+          src={mumuLogo} 
+          alt="MuMu" 
+          className="w-10 h-10 rounded-full object-cover"
+        />
         <div>
           <h1 className="font-display text-xl font-bold text-foreground">MuMu</h1>
           <p className="text-xs text-muted-foreground">Museum Guide</p>
