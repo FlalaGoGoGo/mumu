@@ -38,24 +38,29 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
             />
           )}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="font-display text-base font-semibold text-foreground truncate">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-display text-base font-semibold text-foreground leading-snug">
                 {museum.name}
               </h3>
-              {museum.opening_hours && (
-                <Badge 
-                  variant="outline" 
-                  className={`flex-shrink-0 text-[10px] px-1.5 py-0 h-5 ${
-                    isOpen 
-                      ? 'bg-green-50 text-green-700 border-green-200' 
-                      : 'bg-red-50 text-red-700 border-red-200'
-                  }`}
-                >
-                  {isOpen ? 'Open Today' : 'Closed Today'}
-                </Badge>
-              )}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {museum.opening_hours && (
+                  <Badge 
+                    variant="outline" 
+                    className={`text-[10px] px-1.5 py-0 h-5 whitespace-nowrap ${
+                      isOpen 
+                        ? 'bg-green-50 text-green-700 border-green-200' 
+                        : 'bg-red-50 text-red-700 border-red-200'
+                    }`}
+                  >
+                    {isOpen ? 'Open Today' : 'Closed Today'}
+                  </Badge>
+                )}
+                {museum.has_full_content && (
+                  <span className="museum-chip whitespace-nowrap">Full Guide</span>
+                )}
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground mt-0.5">
               {locationString}
             </p>
             {distance && (
@@ -65,9 +70,6 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
               </p>
             )}
           </div>
-          {museum.has_full_content && (
-            <span className="museum-chip flex-shrink-0">Full Guide</span>
-          )}
         </div>
       </div>
     );
