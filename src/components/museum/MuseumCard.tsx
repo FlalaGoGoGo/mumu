@@ -51,7 +51,7 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
                       : 'bg-red-50 text-red-700 border-red-200'
                   }`}
                 >
-                  {isOpen ? 'Open' : 'Closed'}
+                  {isOpen ? 'Open Today' : 'Closed Today'}
                 </Badge>
               )}
             </div>
@@ -102,7 +102,7 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
                     : 'bg-red-50 text-red-700 border-red-200'
                 }`}
               >
-                {isOpen ? 'Open' : 'Closed'}
+                {isOpen ? 'Open Today' : 'Closed Today'}
               </Badge>
             )}
           </div>
