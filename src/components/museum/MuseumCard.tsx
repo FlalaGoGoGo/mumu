@@ -1,4 +1,4 @@
-import { ExternalLink, Clock, MapPin, Star } from 'lucide-react';
+import { ExternalLink, Clock, MapPin, Star, Navigation } from 'lucide-react';
 import type { Museum } from '@/types/museum';
 import { Button } from '@/components/ui/button';
 
@@ -8,9 +8,19 @@ interface MuseumCardProps {
   onMarkVisited?: () => void;
   onViewPlan?: () => void;
   compact?: boolean;
+  stateCode?: string | null;
+  distance?: string | null;
 }
 
-export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compact = false }: MuseumCardProps) {
+export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compact = false, stateCode, distance }: MuseumCardProps) {
+  // Build location string: "City, STATE, Country" for US or "City, Country" for others
+  const locationParts = [museum.city];
+  if (stateCode) {
+    locationParts.push(stateCode);
+  }
+  locationParts.push(museum.country);
+  const locationString = locationParts.join(', ');
+
   if (compact) {
     return (
       <div className="gallery-card cursor-pointer hover:border-primary/30 transition-colors">
@@ -27,8 +37,14 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
               {museum.name}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {museum.city}, {museum.country}
+              {locationString}
             </p>
+            {distance && (
+              <p className="text-xs text-muted-foreground/70 flex items-center gap-1 mt-0.5">
+                <Navigation className="w-3 h-3" />
+                {distance}
+              </p>
+            )}
           </div>
           {museum.has_full_content && (
             <span className="museum-chip flex-shrink-0">Full Guide</span>
@@ -63,8 +79,14 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
         </div>
         <div className="flex items-center gap-1 text-muted-foreground text-sm">
           <MapPin className="w-4 h-4" />
-          <span>{museum.city}, {museum.country}</span>
+          <span>{locationString}</span>
         </div>
+        {distance && (
+          <div className="flex items-center gap-1 text-muted-foreground/70 text-xs mt-1">
+            <Navigation className="w-3 h-3" />
+            <span>{distance} away</span>
+          </div>
+        )}
       </div>
 
       {/* Address */}
