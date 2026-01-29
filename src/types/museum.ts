@@ -2,6 +2,7 @@ export interface Museum {
   museum_id: string;
   name: string;
   city: string;
+  state: string | null;
   country: string;
   lat: number;
   lng: number;
