@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMuseums } from '@/hooks/useMuseums';
 import { useVisits, useAddVisit, useRemoveVisit } from '@/hooks/usePassport';
+import { useGeolocation } from '@/hooks/useGeolocation';
 import { MuseumMap } from '@/components/map/MuseumMap';
 import { MuseumCard } from '@/components/museum/MuseumCard';
 import { MobileBottomSheet } from '@/components/layout/MobileBottomSheet';
@@ -9,6 +10,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { parseUSState } from '@/lib/parseUSState';
+import { calculateDistance, formatDistance } from '@/lib/distance';
 import type { Museum } from '@/types/museum';
 
 export default function MapPage() {
@@ -17,16 +20,50 @@ export default function MapPage() {
   const { data: visits = [] } = useVisits();
   const addVisit = useAddVisit();
   const removeVisit = useRemoveVisit();
+  const { latitude, longitude } = useGeolocation();
   
   const [selectedMuseum, setSelectedMuseum] = useState<Museum | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const visitedIds = new Set(visits.map(v => v.museum_id));
-  
-  const filteredMuseums = museums.filter(m => 
-    m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.city.toLowerCase().includes(searchQuery.toLowerCase())
+
+  // Compute state codes and distances for all museums
+  const museumsWithData = useMemo(() => {
+    return museums.map(museum => {
+      const stateCode = parseUSState(museum.address, museum.country);
+      let distance: number | null = null;
+      let distanceFormatted: string | null = null;
+      
+      if (latitude !== null && longitude !== null) {
+        distance = calculateDistance(latitude, longitude, museum.lat, museum.lng);
+        distanceFormatted = formatDistance(distance);
+      }
+      
+      return { museum, stateCode, distance, distanceFormatted };
+    });
+  }, [museums, latitude, longitude]);
+
+  // Filter by search query
+  const filteredMuseums = museumsWithData.filter(({ museum }) => 
+    museum.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    museum.city.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Sort by distance (nearest first), null distances go to end
+  const sortedMuseums = useMemo(() => {
+    return [...filteredMuseums].sort((a, b) => {
+      if (a.distance === null && b.distance === null) return 0;
+      if (a.distance === null) return 1;
+      if (b.distance === null) return -1;
+      return a.distance - b.distance;
+    });
+  }, [filteredMuseums]);
+
+  // Get data for selected museum
+  const selectedMuseumData = useMemo(() => {
+    if (!selectedMuseum) return null;
+    return museumsWithData.find(m => m.museum.museum_id === selectedMuseum.museum_id) || null;
+  }, [selectedMuseum, museumsWithData]);
 
   const handleMarkVisited = (museumId: string) => {
     if (visitedIds.has(museumId)) {
@@ -75,14 +112,15 @@ export default function MapPage() {
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            {filteredMuseums.length} museums • {visitedIds.size} visited
+            {sortedMuseums.length} museums • {visitedIds.size} visited
+            {latitude !== null && <span> • sorted by distance</span>}
           </p>
         </div>
 
         {/* Museum List or Selected Detail */}
         <ScrollArea className="flex-1">
           <div className="p-4">
-            {selectedMuseum ? (
+            {selectedMuseum && selectedMuseumData ? (
               <div className="space-y-4">
                 <button
                   onClick={() => setSelectedMuseum(null)}
@@ -95,16 +133,23 @@ export default function MapPage() {
                   isVisited={visitedIds.has(selectedMuseum.museum_id)}
                   onMarkVisited={() => handleMarkVisited(selectedMuseum.museum_id)}
                   onViewPlan={selectedMuseum.has_full_content ? handleViewPlan : undefined}
+                  stateCode={selectedMuseumData.stateCode}
+                  distance={selectedMuseumData.distanceFormatted}
                 />
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredMuseums.map((museum) => (
+                {sortedMuseums.map(({ museum, stateCode, distanceFormatted }) => (
                   <div 
                     key={museum.museum_id}
                     onClick={() => setSelectedMuseum(museum)}
                   >
-                    <MuseumCard museum={museum} compact />
+                    <MuseumCard 
+                      museum={museum} 
+                      compact 
+                      stateCode={stateCode}
+                      distance={distanceFormatted}
+                    />
                   </div>
                 ))}
               </div>
@@ -150,12 +195,14 @@ export default function MapPage() {
         onClose={() => setSelectedMuseum(null)}
         title={selectedMuseum?.name}
       >
-        {selectedMuseum && (
+        {selectedMuseum && selectedMuseumData && (
           <MuseumCard
             museum={selectedMuseum}
             isVisited={visitedIds.has(selectedMuseum.museum_id)}
             onMarkVisited={() => handleMarkVisited(selectedMuseum.museum_id)}
             onViewPlan={selectedMuseum.has_full_content ? handleViewPlan : undefined}
+            stateCode={selectedMuseumData.stateCode}
+            distance={selectedMuseumData.distanceFormatted}
           />
         )}
       </MobileBottomSheet>
