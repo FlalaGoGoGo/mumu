@@ -79,11 +79,11 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
     <div className="gallery-card fade-in">
       {/* Hero Image */}
       {museum.hero_image_url && (
-        <div className="mb-4 -mx-4 -mt-4 aspect-[16/9]">
+        <div className="mb-4 flex justify-center">
           <img 
             src={museum.hero_image_url} 
             alt={museum.name}
-            className="w-full h-full object-cover rounded-t-sm"
+            className="w-24 h-24 object-cover rounded-lg shadow-sm"
           />
         </div>
       )}
