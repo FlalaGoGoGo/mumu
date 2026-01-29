@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { CategoryFilter, type MuseumCategory } from '@/components/map/CategoryFilter';
+import { StateFilter } from '@/components/map/StateFilter';
 import { calculateDistance, formatDistance } from '@/lib/distance';
 import type { Museum } from '@/types/museum';
 
@@ -25,6 +26,7 @@ export default function MapPage() {
   const [selectedMuseum, setSelectedMuseum] = useState<Museum | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<MuseumCategory>('all');
+  const [stateFilter, setStateFilter] = useState<string[]>([]);
 
   const visitedIds = new Set(visits.map(v => v.museum_id));
 
@@ -53,12 +55,21 @@ export default function MapPage() {
     };
   }, [museumsWithData]);
 
-  // Filter by search query and category
+  // Get unique states sorted alphabetically
+  const availableStates = useMemo(() => {
+    const states = museumsWithData
+      .map(m => m.museum.state)
+      .filter((state): state is string => !!state);
+    return [...new Set(states)].sort();
+  }, [museumsWithData]);
+
+  // Filter by search query, category, and state
   const filteredMuseums = museumsWithData.filter(({ museum }) => {
     const matchesSearch = museum.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       museum.city.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || museum.tags === categoryFilter;
-    return matchesSearch && matchesCategory;
+    const matchesState = stateFilter.length === 0 || (museum.state && stateFilter.includes(museum.state));
+    return matchesSearch && matchesCategory && matchesState;
   });
 
   // Sort by distance (nearest first), null distances go to end
@@ -104,12 +115,17 @@ export default function MapPage() {
     <div className="h-[calc(100vh-80px)] md:h-[calc(100vh-73px)] flex flex-col md:flex-row">
       {/* Desktop: Side Panel */}
       <div className="hidden md:flex md:w-96 lg:w-[420px] flex-col border-r border-border bg-background">
-        {/* Category Filter */}
-        <div className="px-4 pt-4">
+        {/* Category & State Filters */}
+        <div className="px-4 pt-4 flex flex-wrap items-center gap-2">
           <CategoryFilter 
             selected={categoryFilter} 
             onSelect={setCategoryFilter}
             counts={categoryCounts}
+          />
+          <StateFilter
+            availableStates={availableStates}
+            selectedStates={stateFilter}
+            onSelectionChange={setStateFilter}
           />
         </div>
 
