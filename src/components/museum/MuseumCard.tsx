@@ -1,6 +1,8 @@
 import { ExternalLink, Clock, MapPin, Star, Navigation } from 'lucide-react';
 import type { Museum } from '@/types/museum';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { isOpenToday } from '@/lib/parseOpeningHours';
 
 interface MuseumCardProps {
   museum: Museum;
@@ -21,6 +23,9 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
   locationParts.push(museum.country);
   const locationString = locationParts.join(', ');
 
+  // Determine open/closed status
+  const isOpen = isOpenToday(museum.opening_hours);
+
   if (compact) {
     return (
       <div className="gallery-card cursor-pointer hover:border-primary/30 transition-colors">
@@ -33,9 +38,23 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
             />
           )}
           <div className="min-w-0 flex-1">
-            <h3 className="font-display text-base font-semibold text-foreground truncate">
-              {museum.name}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-display text-base font-semibold text-foreground truncate">
+                {museum.name}
+              </h3>
+              {museum.opening_hours && (
+                <Badge 
+                  variant="outline" 
+                  className={`flex-shrink-0 text-[10px] px-1.5 py-0 h-5 ${
+                    isOpen 
+                      ? 'bg-green-50 text-green-700 border-green-200' 
+                      : 'bg-red-50 text-red-700 border-red-200'
+                  }`}
+                >
+                  {isOpen ? 'Open' : 'Closed'}
+                </Badge>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">
               {locationString}
             </p>
@@ -70,9 +89,23 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
       {/* Header */}
       <div className="mb-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h2 className="font-display text-xl font-semibold text-foreground leading-tight">
-            {museum.name}
-          </h2>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <h2 className="font-display text-xl font-semibold text-foreground leading-tight truncate">
+              {museum.name}
+            </h2>
+            {museum.opening_hours && (
+              <Badge 
+                variant="outline" 
+                className={`flex-shrink-0 text-[10px] px-1.5 py-0 h-5 ${
+                  isOpen 
+                    ? 'bg-green-50 text-green-700 border-green-200' 
+                    : 'bg-red-50 text-red-700 border-red-200'
+                }`}
+              >
+                {isOpen ? 'Open' : 'Closed'}
+              </Badge>
+            )}
+          </div>
           {museum.has_full_content && (
             <span className="museum-chip flex-shrink-0">Full Guide</span>
           )}
