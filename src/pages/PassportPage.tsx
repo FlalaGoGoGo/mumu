@@ -169,8 +169,18 @@ export default function PassportPage() {
                 
                 return (
                   <div key={visit.id} className="gallery-card flex items-center gap-4">
-                    <div className="passport-stamp completed flex-shrink-0">
-                      <Check className="w-6 h-6" />
+                    <div className="w-14 h-14 rounded-full border-2 border-primary/30 flex-shrink-0 overflow-hidden bg-background">
+                      {museum.hero_image_url ? (
+                        <img 
+                          src={museum.hero_image_url} 
+                          alt={museum.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Check className="w-6 h-6 text-primary" />
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-display font-semibold truncate">
