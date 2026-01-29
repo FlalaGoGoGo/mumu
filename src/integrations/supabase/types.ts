@@ -130,6 +130,63 @@ export type Database = {
           },
         ]
       }
+      user_preferences: {
+        Row: {
+          created_at: string
+          discounts: string[]
+          id: string
+          interests: string[]
+          kid_friendly_content: boolean
+          knowledge_level: string
+          language: string
+          pace_preference: string
+          prefer_elevator: boolean
+          prefer_less_walking: boolean
+          remind_free_days: boolean
+          session_id: string
+          show_eligible_discounts_only: boolean
+          updated_at: string
+          visit_reminders: boolean
+          visit_style: string
+        }
+        Insert: {
+          created_at?: string
+          discounts?: string[]
+          id?: string
+          interests?: string[]
+          kid_friendly_content?: boolean
+          knowledge_level?: string
+          language?: string
+          pace_preference?: string
+          prefer_elevator?: boolean
+          prefer_less_walking?: boolean
+          remind_free_days?: boolean
+          session_id: string
+          show_eligible_discounts_only?: boolean
+          updated_at?: string
+          visit_reminders?: boolean
+          visit_style?: string
+        }
+        Update: {
+          created_at?: string
+          discounts?: string[]
+          id?: string
+          interests?: string[]
+          kid_friendly_content?: boolean
+          knowledge_level?: string
+          language?: string
+          pace_preference?: string
+          prefer_elevator?: boolean
+          prefer_less_walking?: boolean
+          remind_free_days?: boolean
+          session_id?: string
+          show_eligible_discounts_only?: boolean
+          updated_at?: string
+          visit_reminders?: boolean
+          visit_style?: string
+        }
+        Relationships: []
+      }
       user_visits: {
         Row: {
           id: string
