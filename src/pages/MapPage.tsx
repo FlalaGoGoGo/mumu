@@ -54,6 +54,8 @@ export default function MapPage() {
       art: museumsWithData.filter(m => m.museum.tags === 'art').length,
       history: museumsWithData.filter(m => m.museum.tags === 'history').length,
       science: museumsWithData.filter(m => m.museum.tags === 'science').length,
+      nature: museumsWithData.filter(m => m.museum.tags === 'nature').length,
+      temple: museumsWithData.filter(m => m.museum.tags === 'temple').length,
     };
   }, [museumsWithData]);
 
