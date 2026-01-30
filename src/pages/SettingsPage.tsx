@@ -205,7 +205,7 @@ export default function SettingsPage() {
               <div>
                 <h3 className="font-display text-lg font-semibold">MuMu</h3>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Your personal museum companion. Discover art, plan visits, and track your cultural journey.
+                  Your personal museum companion for finding nearby museums and getting quick, curated "must-see" highlights.
                 </p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Info className="w-3 h-3" />
