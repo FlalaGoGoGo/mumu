@@ -120,13 +120,17 @@ export default function MapPage() {
     <div className="h-[calc(100vh-80px)] md:h-[calc(100vh-73px)] flex flex-col md:flex-row">
       {/* Desktop: Side Panel */}
       <div className="hidden md:flex md:w-96 lg:w-[420px] flex-col border-r border-border bg-background">
-        {/* Category & State Filters */}
-        <div className="px-4 pt-4 flex flex-wrap items-center gap-2">
+        {/* Category Filters */}
+        <div className="px-4 pt-4">
           <CategoryFilter 
             selected={categoryFilter} 
             onSelect={setCategoryFilter}
             counts={categoryCounts}
           />
+        </div>
+        
+        {/* State & Distance Filters */}
+        <div className="px-4 pt-2 flex items-center gap-2">
           <StateFilter
             availableStates={availableStates}
             selectedStates={stateFilter}
