@@ -1,9 +1,10 @@
-import { Map, Route, Stamp, Settings } from 'lucide-react';
+import { Map, Route, Stamp, Settings, Palette } from 'lucide-react';
 import mumuLogo from '@/assets/mumu-logo.png';
 import { NavLink } from 'react-router-dom';
 
 const navItems = [
   { to: '/', icon: Map, label: 'Map' },
+  { to: '/exhibitions', icon: Palette, label: 'Exhibitions' },
   { to: '/plan', icon: Route, label: 'Plan' },
   { to: '/passport', icon: Stamp, label: 'Passport' },
   { to: '/settings', icon: Settings, label: 'Settings' },
