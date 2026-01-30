@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Info, Trash2, ExternalLink, User, Phone, Mail, Linkedin, Github } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSavedMuseums } from '@/hooks/useSavedMuseums';
 import { usePreferences } from '@/hooks/usePreferences';
 import { SaveStatusIndicator } from '@/components/settings/SaveStatusIndicator';
 import { ProfileBasicsCard, ProfileBasicsContent } from '@/components/settings/ProfileBasicsCard';
@@ -32,8 +33,12 @@ import mumuLogo from '@/assets/mumu-logo.png';
 export default function SettingsPage() {
   const isMobile = useIsMobile();
   const { preferences, updatePreferences, saveStatus, isLoading, retrySave, resetPreferences } = usePreferences();
+  const { clearAll: clearSavedMuseums } = useSavedMuseums();
 
   const handleClearData = () => {
+    // Clear saved museums from localStorage
+    clearSavedMuseums();
+    // Clear all other localStorage
     localStorage.clear();
     resetPreferences();
     window.location.reload();
