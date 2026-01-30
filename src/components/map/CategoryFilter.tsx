@@ -1,4 +1,4 @@
-import { Palette, History, FlaskConical, Leaf, Landmark } from 'lucide-react';
+import { Palette, Scroll, FlaskConical, Leaf, Landmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type MuseumCategory = 'all' | 'art' | 'history' | 'science' | 'nature' | 'temple';
@@ -19,7 +19,7 @@ interface CategoryFilterProps {
 const categories: { value: MuseumCategory; label: string; icon: React.ReactNode }[] = [
   { value: 'all', label: 'All', icon: null },
   { value: 'art', label: 'Art', icon: <Palette className="w-3.5 h-3.5" /> },
-  { value: 'history', label: 'History', icon: <History className="w-3.5 h-3.5" /> },
+  { value: 'history', label: 'History', icon: <Scroll className="w-3.5 h-3.5" /> },
   { value: 'science', label: 'Science', icon: <FlaskConical className="w-3.5 h-3.5" /> },
   { value: 'nature', label: 'Nature', icon: <Leaf className="w-3.5 h-3.5" /> },
   { value: 'temple', label: 'Temple', icon: <Landmark className="w-3.5 h-3.5" /> },
