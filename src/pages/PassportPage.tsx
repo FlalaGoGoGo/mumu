@@ -143,26 +143,34 @@ export default function PassportPage() {
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full justify-start overflow-x-auto flex-nowrap mb-4 h-auto p-1">
-            <TabsTrigger value="visited" className="flex items-center gap-1.5 px-3 py-2">
-              <MapPin className="w-4 h-4" />
-              <span className="hidden sm:inline">Visited</span>
-              <span className="sm:hidden">Visited</span>
+          <TabsList className="w-full grid grid-cols-4 mb-4 h-auto p-1 gap-0">
+            <TabsTrigger 
+              value="visited" 
+              className="flex items-center justify-center gap-1.5 py-2.5 px-1 border-r border-border/50 rounded-none first:rounded-l-md data-[state=active]:rounded-sm"
+            >
+              <MapPin className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm truncate">Visited</span>
             </TabsTrigger>
-            <TabsTrigger value="saved" className="flex items-center gap-1.5 px-3 py-2">
-              <Heart className="w-4 h-4" />
-              <span className="hidden sm:inline">Saved</span>
-              <span className="sm:hidden">Saved</span>
+            <TabsTrigger 
+              value="saved" 
+              className="flex items-center justify-center gap-1.5 py-2.5 px-1 border-r border-border/50 rounded-none data-[state=active]:rounded-sm"
+            >
+              <Heart className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm truncate">Saved</span>
             </TabsTrigger>
-            <TabsTrigger value="artworks" className="flex items-center gap-1.5 px-3 py-2">
-              <ImageIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">Artworks</span>
-              <span className="sm:hidden">Art</span>
+            <TabsTrigger 
+              value="artworks" 
+              className="flex items-center justify-center gap-1.5 py-2.5 px-1 border-r border-border/50 rounded-none data-[state=active]:rounded-sm"
+            >
+              <ImageIcon className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm truncate">Artworks</span>
             </TabsTrigger>
-            <TabsTrigger value="achievements" className="flex items-center gap-1.5 px-3 py-2">
-              <Trophy className="w-4 h-4" />
-              <span className="hidden sm:inline">Achievements</span>
-              <span className="sm:hidden">🏆</span>
+            <TabsTrigger 
+              value="achievements" 
+              className="flex items-center justify-center gap-1.5 py-2.5 px-1 rounded-none last:rounded-r-md data-[state=active]:rounded-sm"
+            >
+              <Trophy className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm truncate">Achievements</span>
             </TabsTrigger>
           </TabsList>
 
