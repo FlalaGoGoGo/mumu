@@ -27,7 +27,7 @@ const categories: { value: MuseumCategory; label: string; icon: React.ReactNode 
 
 export function CategoryFilter({ selected, onSelect, counts }: CategoryFilterProps) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-1.5">
       {categories.map((category) => {
         const isSelected = selected === category.value;
         const count = counts?.[category.value];
