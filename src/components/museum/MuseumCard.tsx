@@ -116,8 +116,8 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
       {/* Header */}
       <div className="mb-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <h2 className="font-display text-xl font-semibold text-foreground leading-tight truncate">
+          <div className="flex items-start gap-2 flex-1 min-w-0">
+            <h2 className="font-display text-xl font-semibold text-foreground leading-tight">
               {museum.name}
             </h2>
             {showSaveButton && (
