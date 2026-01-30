@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Locate, Globe } from 'lucide-react';
+import { Locate, Globe, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Museum } from '@/types/museum';
 
@@ -88,7 +88,7 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
     mapRef.current = L.map(containerRef.current, {
       center: [39.8283, -98.5795], // Center of USA
       zoom: 4,
-      zoomControl: true,
+      zoomControl: false, // Disable default zoom control
     });
 
     // Use a muted, elegant tile layer
@@ -153,12 +153,45 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
     });
   };
 
+  const handleZoomIn = () => {
+    if (!mapRef.current) return;
+    mapRef.current.zoomIn();
+  };
+
+  const handleZoomOut = () => {
+    if (!mapRef.current) return;
+    mapRef.current.zoomOut();
+  };
+
   return (
     <div className={`relative w-full h-full ${className}`} style={{ minHeight: '300px' }}>
       <div ref={containerRef} className="w-full h-full" />
       
       {/* Map Controls */}
       <div className="absolute bottom-6 right-4 flex flex-col gap-2 z-[1000]">
+        {/* Zoom Controls */}
+        <div className="flex flex-col rounded-md overflow-hidden shadow-md">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleZoomIn}
+            className="bg-background/95 backdrop-blur-sm rounded-none rounded-t-md border-b-0 hover:bg-primary hover:text-primary-foreground hover:border-primary"
+            title="Zoom in"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleZoomOut}
+            className="bg-background/95 backdrop-blur-sm rounded-none rounded-b-md hover:bg-primary hover:text-primary-foreground hover:border-primary"
+            title="Zoom out"
+          >
+            <Minus className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        {/* Navigation Controls */}
         <Button
           variant="outline"
           size="icon"
