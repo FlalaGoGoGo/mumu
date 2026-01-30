@@ -115,38 +115,36 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
 
       {/* Header */}
       <div className="mb-4">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex items-start gap-2 flex-1 min-w-0">
-            <h2 className="font-display text-xl font-semibold text-foreground leading-tight">
-              {museum.name}
-            </h2>
-            {showSaveButton && (
-              <button
-                onClick={handleSaveClick}
-                className={cn(
-                  "p-1.5 rounded-full transition-colors flex-shrink-0",
-                  saved 
-                    ? "text-red-500 hover:text-red-600" 
-                    : "text-muted-foreground hover:text-red-500"
-                )}
-                aria-label={saved ? "Remove from favorites" : "Add to favorites"}
-              >
-                <Heart className={cn("w-5 h-5", saved && "fill-current")} />
-              </button>
-            )}
-            {museum.opening_hours && (
-              <Badge 
-                variant="outline" 
-                className={`flex-shrink-0 text-[10px] px-1.5 py-0 h-5 ${
-                  isOpen 
-                    ? 'bg-green-50 text-green-700 border-green-200' 
-                    : 'bg-red-50 text-red-700 border-red-200'
-                }`}
-              >
-                {isOpen ? 'Open Today' : 'Closed Today'}
-              </Badge>
-            )}
-          </div>
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <h2 className="font-display text-xl font-semibold text-foreground leading-tight">
+            {museum.name}
+          </h2>
+          {showSaveButton && (
+            <button
+              onClick={handleSaveClick}
+              className={cn(
+                "p-1.5 rounded-full transition-colors flex-shrink-0",
+                saved 
+                  ? "text-red-500 hover:text-red-600" 
+                  : "text-muted-foreground hover:text-red-500"
+              )}
+              aria-label={saved ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Heart className={cn("w-5 h-5", saved && "fill-current")} />
+            </button>
+          )}
+          {museum.opening_hours && (
+            <Badge 
+              variant="outline" 
+              className={`flex-shrink-0 text-[10px] px-1.5 py-0 h-5 ${
+                isOpen 
+                  ? 'bg-green-50 text-green-700 border-green-200' 
+                  : 'bg-red-50 text-red-700 border-red-200'
+              }`}
+            >
+              {isOpen ? 'Open Today' : 'Closed Today'}
+            </Badge>
+          )}
           {museum.has_full_content && (
             <span className="museum-chip flex-shrink-0">Full Guide</span>
           )}
