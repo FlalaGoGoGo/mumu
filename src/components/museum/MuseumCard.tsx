@@ -1,4 +1,4 @@
-import { ExternalLink, Clock, MapPin, Star, Navigation, Heart, Route } from 'lucide-react';
+import { ExternalLink, Clock, MapPin, Star, Navigation, Heart } from 'lucide-react';
 import type { Museum } from '@/types/museum';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -204,26 +204,6 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
               </a>
             </Button>
           )}
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex-1"
-            asChild
-          >
-            <a 
-              href={`https://www.google.com/maps/dir/?api=1&destination=${
-                encodeURIComponent(
-                  museum.name + ', ' + museum.city + (museum.state ? ', ' + museum.state : '') + ', ' + museum.country
-                )
-              }&travelmode=driving`} 
-              target="_blank" 
-              rel="noopener noreferrer"
-            >
-              <Route className="w-4 h-4 mr-2" />
-              Navigate
-            </a>
-          </Button>
           
           {onMarkVisited && (
             <Button 
