@@ -1,8 +1,10 @@
-import { ExternalLink, Clock, MapPin, Star, Navigation } from 'lucide-react';
+import { ExternalLink, Clock, MapPin, Star, Navigation, Heart } from 'lucide-react';
 import type { Museum } from '@/types/museum';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { isOpenToday } from '@/lib/parseOpeningHours';
+import { useSavedMuseums } from '@/hooks/useSavedMuseums';
+import { cn } from '@/lib/utils';
 
 interface MuseumCardProps {
   museum: Museum;
@@ -12,9 +14,13 @@ interface MuseumCardProps {
   compact?: boolean;
   stateCode?: string | null;
   distance?: string | null;
+  showSaveButton?: boolean;
 }
 
-export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compact = false, stateCode, distance }: MuseumCardProps) {
+export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compact = false, stateCode, distance, showSaveButton = true }: MuseumCardProps) {
+  const { isSaved, toggleSave } = useSavedMuseums();
+  const saved = isSaved(museum.museum_id);
+
   // Build location string: "City, STATE, Country" for US or "City, Country" for others
   const locationParts = [museum.city];
   if (stateCode) {
@@ -25,6 +31,11 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
 
   // Determine open/closed status
   const isOpen = isOpenToday(museum.opening_hours);
+
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleSave(museum);
+  };
 
   if (compact) {
     return (
@@ -43,6 +54,20 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
                 {museum.name}
               </h3>
               <div className="flex items-center gap-2 flex-shrink-0">
+                {showSaveButton && (
+                  <button
+                    onClick={handleSaveClick}
+                    className={cn(
+                      "p-1 rounded-full transition-colors",
+                      saved 
+                        ? "text-red-500 hover:text-red-600" 
+                        : "text-muted-foreground hover:text-red-500"
+                    )}
+                    aria-label={saved ? "Remove from favorites" : "Add to favorites"}
+                  >
+                    <Heart className={cn("w-4 h-4", saved && "fill-current")} />
+                  </button>
+                )}
                 {museum.opening_hours && (
                   <Badge 
                     variant="outline" 
@@ -95,6 +120,20 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
             <h2 className="font-display text-xl font-semibold text-foreground leading-tight truncate">
               {museum.name}
             </h2>
+            {showSaveButton && (
+              <button
+                onClick={handleSaveClick}
+                className={cn(
+                  "p-1.5 rounded-full transition-colors flex-shrink-0",
+                  saved 
+                    ? "text-red-500 hover:text-red-600" 
+                    : "text-muted-foreground hover:text-red-500"
+                )}
+                aria-label={saved ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Heart className={cn("w-5 h-5", saved && "fill-current")} />
+              </button>
+            )}
             {museum.opening_hours && (
               <Badge 
                 variant="outline" 
