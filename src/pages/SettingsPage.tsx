@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Info, Trash2, ExternalLink } from 'lucide-react';
+import { Info, Trash2, ExternalLink, User, Phone, Mail, Linkedin, Github } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePreferences } from '@/hooks/usePreferences';
 import { SaveStatusIndicator } from '@/components/settings/SaveStatusIndicator';
@@ -212,6 +212,51 @@ export default function SettingsPage() {
                   <span>Version 0.1.0 • Demo Release</span>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Contact Us */}
+        <section className="mb-8">
+          <h2 className="font-display text-lg font-semibold mb-4">Contact Us</h2>
+          <div className="rounded-lg border border-border/60 bg-card/80 p-5 shadow-sm">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-sm">Creator: <span className="font-medium">Flala</span></span>
+              </div>
+              <a 
+                href="tel:+12067417374" 
+                className="flex items-center gap-3 text-sm hover:text-primary transition-colors"
+              >
+                <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span>+1 (206) 741-7374</span>
+              </a>
+              <a 
+                href="mailto:flalaz@uw.edu" 
+                className="flex items-center gap-3 text-sm hover:text-primary transition-colors"
+              >
+                <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span>flalaz@uw.edu</span>
+              </a>
+              <a 
+                href="https://www.linkedin.com/in/flala/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-sm hover:text-primary transition-colors"
+              >
+                <Linkedin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span>linkedin.com/in/flala</span>
+              </a>
+              <a 
+                href="https://github.com/FlalaGoGoGo" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-sm hover:text-primary transition-colors"
+              >
+                <Github className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span>github.com/FlalaGoGoGo</span>
+              </a>
             </div>
           </div>
         </section>
