@@ -21,7 +21,7 @@ export function DesktopNav() {
         />
         <div>
           <h1 className="font-display text-xl font-bold text-foreground">MuMu</h1>
-          <p className="text-xs text-muted-foreground">Museum Guide</p>
+          <p className="text-xs text-muted-foreground">Your Museum Buddy</p>
         </div>
       </div>
 
