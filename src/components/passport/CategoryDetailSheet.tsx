@@ -5,11 +5,11 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { tagIcons } from './AchievementWall';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface CategoryDetailSheetProps {
@@ -112,25 +112,25 @@ export function CategoryDetailSheet({ category, open, onOpenChange }: CategoryDe
   const allTiers = category.achievements.flatMap(a => a.tiers);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[80vh] rounded-t-xl">
-        <SheetHeader className="pb-4 border-b border-border">
-          <SheetTitle className="font-display text-xl">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl w-[calc(100%-2rem)] max-h-[85vh] p-0 gap-0">
+        <DialogHeader className="px-6 py-4 border-b border-border flex-shrink-0">
+          <DialogTitle className="font-display text-xl">
             {category.label} Achievements
-          </SheetTitle>
+          </DialogTitle>
           <p className="text-sm text-muted-foreground">
             {category.unlockedTiers} of {category.totalTiers} tiers unlocked
           </p>
-        </SheetHeader>
+        </DialogHeader>
         
-        <ScrollArea className="h-[calc(80vh-100px)] mt-4 -mx-6 px-6">
-          <div className="grid gap-3 pb-6">
+        <ScrollArea className="flex-1 max-h-[calc(85vh-100px)]">
+          <div className="grid gap-3 p-6">
             {allTiers.map((tierProgress, index) => (
               <AchievementTierCard key={index} tierProgress={tierProgress} />
             ))}
           </div>
         </ScrollArea>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
