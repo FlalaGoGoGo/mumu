@@ -29,14 +29,14 @@ export function ExhibitionCard({ exhibition, distance }: ExhibitionCardProps) {
   const location = [exhibition.city, exhibition.state].filter(Boolean).join(', ');
 
   return (
-    <Card className="gallery-card overflow-hidden flex flex-col h-full">
-      {/* Cover Image - flush to edges */}
-      <div className="relative aspect-[16/9] bg-muted overflow-hidden">
+    <Card className="overflow-hidden flex flex-col h-full bg-card border border-border rounded-sm shadow-[0_1px_3px_hsl(var(--foreground)/0.04)] transition-shadow duration-200 hover:shadow-[0_4px_12px_hsl(var(--foreground)/0.08)]">
+      {/* Cover Image - flush to edges, no padding */}
+      <div className="relative aspect-[16/9] bg-muted">
         {!imageError && exhibition.cover_image_url ? (
           <img
             src={exhibition.cover_image_url}
             alt={exhibition.exhibition_name}
-            className="w-full h-full object-cover"
+            className="block w-full h-full object-cover"
             onError={() => setImageError(true)}
           />
         ) : (
@@ -46,7 +46,7 @@ export function ExhibitionCard({ exhibition, distance }: ExhibitionCardProps) {
         )}
       </div>
 
-      <CardContent className="p-4 flex flex-col flex-1">
+      <CardContent className="p-4 pt-4 flex flex-col flex-1">
         {/* Header with status - right aligned */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <h3 className="font-display text-lg font-semibold text-foreground leading-tight line-clamp-2">
