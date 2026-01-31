@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react';
-import { Search, SlidersHorizontal, X, MapPin } from 'lucide-react';
-import { format } from 'date-fns';
+import { useState, useMemo, useEffect } from 'react';
+import { Search, SlidersHorizontal, X, MapPin, CalendarIcon, Clock } from 'lucide-react';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, nextSaturday, nextSunday, isSaturday, isSunday } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Calendar } from '@/components/ui/calendar';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -24,8 +25,48 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
 import type { ExhibitionStatus } from '@/types/exhibition';
+
+type DatePreset = 'this-week' | 'this-month' | 'next-30-days' | 'weekend' | null;
+
+function getDatePresetRange(preset: DatePreset): { from: Date; to: Date } | null {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  switch (preset) {
+    case 'this-week':
+      return { from: startOfWeek(today, { weekStartsOn: 0 }), to: endOfWeek(today, { weekStartsOn: 0 }) };
+    case 'this-month':
+      return { from: startOfMonth(today), to: endOfMonth(today) };
+    case 'next-30-days':
+      return { from: today, to: addDays(today, 30) };
+    case 'weekend': {
+      // Find the upcoming weekend (Saturday-Sunday)
+      let sat: Date;
+      let sun: Date;
+      if (isSaturday(today)) {
+        sat = today;
+        sun = addDays(today, 1);
+      } else if (isSunday(today)) {
+        sat = today;
+        sun = today;
+      } else {
+        sat = nextSaturday(today);
+        sun = nextSunday(today);
+      }
+      return { from: sat, to: sun };
+    }
+    default:
+      return null;
+  }
+}
+
+function matchesPreset(from: Date | undefined, to: Date | undefined, preset: DatePreset): boolean {
+  if (!from || !to || !preset) return false;
+  const range = getDatePresetRange(preset);
+  if (!range) return false;
+  return from.getTime() === range.from.getTime() && to.getTime() === range.to.getTime();
+}
 
 interface ExhibitionFiltersProps {
   searchQuery: string;
@@ -45,6 +86,8 @@ interface ExhibitionFiltersProps {
   onClearFilters: () => void;
   hasActiveFilters: boolean;
   activeFilterCount: number;
+  closingSoon: boolean;
+  onClosingSoonChange: (value: boolean) => void;
 }
 
 const STATUS_OPTIONS: { value: ExhibitionStatus | 'all'; label: string }[] = [
@@ -75,8 +118,41 @@ export function ExhibitionFilters({
   onClearFilters,
   hasActiveFilters,
   activeFilterCount,
+  closingSoon,
+  onClosingSoonChange,
 }: ExhibitionFiltersProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [activePreset, setActivePreset] = useState<DatePreset>(null);
+
+  // Check if current dates match a preset
+  useEffect(() => {
+    const presets: DatePreset[] = ['this-week', 'this-month', 'next-30-days', 'weekend'];
+    const matched = presets.find(p => matchesPreset(dateFrom, dateTo, p));
+    setActivePreset(matched || null);
+  }, [dateFrom, dateTo]);
+
+  const handlePresetClick = (preset: DatePreset) => {
+    if (activePreset === preset) {
+      // Deselect
+      setActivePreset(null);
+      onDateFromChange(undefined);
+      onDateToChange(undefined);
+    } else {
+      const range = getDatePresetRange(preset);
+      if (range) {
+        setActivePreset(preset);
+        onDateFromChange(range.from);
+        onDateToChange(range.to);
+      }
+    }
+  };
+
+  const DATE_PRESETS = [
+    { key: 'this-week' as const, label: 'This Week' },
+    { key: 'this-month' as const, label: 'This Month' },
+    { key: 'next-30-days' as const, label: 'Next 30 Days' },
+    { key: 'weekend' as const, label: 'Weekend' },
+  ];
 
   return (
     <div className="flex flex-col gap-4 mb-6">
@@ -201,6 +277,39 @@ export function ExhibitionFilters({
                   </PopoverContent>
                 </Popover>
               </div>
+            </div>
+
+            {/* Date Quick Filters */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Quick Date Filters</label>
+              <div className="flex flex-wrap gap-2">
+                {DATE_PRESETS.map((preset) => (
+                  <Button
+                    key={preset.key}
+                    variant={activePreset === preset.key ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePresetClick(preset.key)}
+                    className={cn(
+                      "text-xs",
+                      activePreset === preset.key && "bg-primary text-primary-foreground"
+                    )}
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Closing Soon Toggle */}
+            <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <label className="text-sm font-medium text-foreground">Closing Soon</label>
+                  <p className="text-xs text-muted-foreground">Exhibitions ending within 14 days</p>
+                </div>
+              </div>
+              <Switch checked={closingSoon} onCheckedChange={onClosingSoonChange} />
             </div>
 
             {/* Distance Slider */}
