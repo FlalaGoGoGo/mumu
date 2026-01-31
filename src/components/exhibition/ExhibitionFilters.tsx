@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Search, SlidersHorizontal, X, MapPin, CalendarIcon, Clock } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, nextSaturday, nextSunday, isSaturday, isSunday } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { ExhibitionStatus } from '@/types/exhibition';
 
-type DatePreset = 'this-week' | 'this-month' | 'next-30-days' | 'weekend' | null;
+type DatePreset = 'this-week' | 'this-month' | 'next-30-days' | null;
 
 function getDatePresetRange(preset: DatePreset): { from: Date; to: Date } | null {
   const today = new Date();
@@ -40,22 +40,6 @@ function getDatePresetRange(preset: DatePreset): { from: Date; to: Date } | null
       return { from: startOfMonth(today), to: endOfMonth(today) };
     case 'next-30-days':
       return { from: today, to: addDays(today, 30) };
-    case 'weekend': {
-      // Find the upcoming weekend (Saturday-Sunday)
-      let sat: Date;
-      let sun: Date;
-      if (isSaturday(today)) {
-        sat = today;
-        sun = addDays(today, 1);
-      } else if (isSunday(today)) {
-        sat = today;
-        sun = today;
-      } else {
-        sat = nextSaturday(today);
-        sun = nextSunday(today);
-      }
-      return { from: sat, to: sun };
-    }
     default:
       return null;
   }
@@ -126,12 +110,17 @@ export function ExhibitionFilters({
 
   // Check if current dates match a preset
   useEffect(() => {
-    const presets: DatePreset[] = ['this-week', 'this-month', 'next-30-days', 'weekend'];
+    const presets: DatePreset[] = ['this-week', 'this-month', 'next-30-days'];
     const matched = presets.find(p => matchesPreset(dateFrom, dateTo, p));
     setActivePreset(matched || null);
   }, [dateFrom, dateTo]);
 
   const handlePresetClick = (preset: DatePreset) => {
+    // When selecting a date preset, turn off Closing Soon
+    if (closingSoon) {
+      onClosingSoonChange(false);
+    }
+    
     if (activePreset === preset) {
       // Deselect
       setActivePreset(null);
@@ -147,11 +136,22 @@ export function ExhibitionFilters({
     }
   };
 
+  const handleClosingSoonClick = () => {
+    const newValue = !closingSoon;
+    onClosingSoonChange(newValue);
+    
+    // When turning on Closing Soon, clear date presets
+    if (newValue) {
+      setActivePreset(null);
+      onDateFromChange(undefined);
+      onDateToChange(undefined);
+    }
+  };
+
   const DATE_PRESETS = [
     { key: 'this-week' as const, label: 'This Week' },
     { key: 'this-month' as const, label: 'This Month' },
     { key: 'next-30-days' as const, label: 'Next 30 Days' },
-    { key: 'weekend' as const, label: 'Weekend' },
   ];
 
   return (
@@ -297,19 +297,20 @@ export function ExhibitionFilters({
                     {preset.label}
                   </Button>
                 ))}
+                {/* Closing Soon chip */}
+                <Button
+                  variant={closingSoon ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleClosingSoonClick}
+                  className={cn(
+                    "text-xs gap-1",
+                    closingSoon && "bg-primary text-primary-foreground"
+                  )}
+                >
+                  <Clock className="w-3 h-3" />
+                  Closing Soon
+                </Button>
               </div>
-            </div>
-
-            {/* Closing Soon Toggle */}
-            <div className="flex items-center justify-between p-3 bg-muted rounded-md">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <div>
-                  <label className="text-sm font-medium text-foreground">Closing Soon</label>
-                  <p className="text-xs text-muted-foreground">Exhibitions ending within 14 days</p>
-                </div>
-              </div>
-              <Switch checked={closingSoon} onCheckedChange={onClosingSoonChange} />
             </div>
 
             {/* Distance Slider */}
