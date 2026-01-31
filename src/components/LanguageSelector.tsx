@@ -29,7 +29,7 @@ export function LanguageSelector({ variant = 'default', className = '' }: Langua
           {variant === 'compact' ? currentLang?.nativeLabel : currentLang?.label}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent className="bg-popover z-50">
+      <SelectContent className="bg-popover z-[9999]" position="popper" sideOffset={4}>
         {SUPPORTED_LANGUAGES.map((lang) => (
           <SelectItem key={lang.code} value={lang.code}>
             <span className="flex items-center gap-2">
