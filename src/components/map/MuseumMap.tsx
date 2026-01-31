@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { Locate, Globe, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Museum } from '@/types/museum';
@@ -76,8 +79,50 @@ const createSelectedMarkerIcon = (isAic: boolean) => {
   });
 };
 
+// Create custom cluster icon
+const createClusterIcon = (cluster: L.MarkerCluster) => {
+  const count = cluster.getChildCount();
+  let size = 'small';
+  let dimensions = 36;
+  
+  if (count >= 50) {
+    size = 'large';
+    dimensions = 48;
+  } else if (count >= 10) {
+    size = 'medium';
+    dimensions = 42;
+  }
+  
+  return L.divIcon({
+    className: `mumu-cluster mumu-cluster-${size}`,
+    html: `
+      <div style="
+        width: ${dimensions}px;
+        height: ${dimensions}px;
+        background: hsl(348, 45%, 32%);
+        border: 3px solid hsl(40, 33%, 97%);
+        border-radius: 50%;
+        box-shadow: 0 3px 10px hsla(24, 10%, 18%, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-family: 'Source Sans 3', sans-serif;
+        font-weight: 600;
+        font-size: ${count >= 100 ? '12px' : '14px'};
+        color: hsl(40, 33%, 97%);
+      ">
+        ${count}
+      </div>
+    `,
+    iconSize: [dimensions, dimensions],
+    iconAnchor: [dimensions / 2, dimensions / 2],
+  });
+};
+
 export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocation, className = '' }: MuseumMapProps) {
   const mapRef = useRef<L.Map | null>(null);
+  const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -98,6 +143,18 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
       maxZoom: 19,
     }).addTo(mapRef.current);
 
+    // Create marker cluster group
+    clusterGroupRef.current = L.markerClusterGroup({
+      iconCreateFunction: createClusterIcon,
+      maxClusterRadius: 50,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+      disableClusteringAtZoom: 15,
+    });
+    
+    mapRef.current.addLayer(clusterGroupRef.current);
+
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
@@ -106,12 +163,12 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
     };
   }, []);
 
-  // Add markers
+  // Add markers to cluster group
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !clusterGroupRef.current) return;
 
     // Clear existing markers
-    markersRef.current.forEach((marker) => marker.remove());
+    clusterGroupRef.current.clearLayers();
     markersRef.current.clear();
 
     museums.forEach((museum) => {
@@ -120,9 +177,16 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
       const icon = isSelected ? createSelectedMarkerIcon(isAic) : createMarkerIcon(isAic);
       
       const marker = L.marker([museum.lat, museum.lng], { icon })
-        .addTo(mapRef.current!)
         .on('click', () => onSelectMuseum(museum));
 
+      // Add tooltip with museum name
+      marker.bindTooltip(museum.name, {
+        direction: 'top',
+        offset: [0, -14],
+        className: 'mumu-tooltip',
+      });
+
+      clusterGroupRef.current!.addLayer(marker);
       markersRef.current.set(museum.museum_id, marker);
     });
   }, [museums, selectedMuseum, onSelectMuseum]);
