@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ExternalLink, MapPin, ImageOff } from 'lucide-react';
+import { ExternalLink, ImageOff } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import type { Exhibition, ExhibitionStatus } from '@/types/exhibition';
 
 interface ExhibitionCardProps {
   exhibition: Exhibition;
+  distance?: string | null;
 }
 
 const statusColors: Record<ExhibitionStatus, string> = {
@@ -17,7 +18,7 @@ const statusColors: Record<ExhibitionStatus, string> = {
   TBD: 'bg-amber-50 text-amber-700 border-amber-200',
 };
 
-export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
+export function ExhibitionCard({ exhibition, distance }: ExhibitionCardProps) {
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
 
@@ -29,7 +30,7 @@ export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
 
   return (
     <Card className="gallery-card overflow-hidden flex flex-col h-full">
-      {/* Cover Image */}
+      {/* Cover Image - flush to edges */}
       <div className="relative aspect-[16/9] bg-muted overflow-hidden">
         {!imageError && exhibition.cover_image_url ? (
           <img
@@ -46,7 +47,7 @@ export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
       </div>
 
       <CardContent className="p-4 flex flex-col flex-1">
-        {/* Header with status */}
+        {/* Header with status - right aligned */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <h3 className="font-display text-lg font-semibold text-foreground leading-tight line-clamp-2">
             {exhibition.exhibition_name}
@@ -59,10 +60,14 @@ export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
           </Badge>
         </div>
 
-        {/* Museum & Location */}
-        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-1">
-          <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="truncate">{exhibition.museum_name}</span>
+        {/* Museum name with distance on right */}
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <span className="text-sm text-muted-foreground truncate">{exhibition.museum_name}</span>
+          {distance !== undefined && (
+            <span className="text-sm text-muted-foreground flex-shrink-0">
+              {distance ?? '--'}
+            </span>
+          )}
         </div>
         <p className="text-xs text-muted-foreground mb-2">{location}</p>
 
@@ -85,7 +90,6 @@ export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
             </a>
           </Button>
           <Button variant="secondary" size="sm" className="flex-1" onClick={handleViewMuseum}>
-            <MapPin className="w-4 h-4 mr-2" />
             View Museum
           </Button>
         </div>
