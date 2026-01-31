@@ -335,26 +335,39 @@ export default function PassportPage() {
                 </Button>
               </div>
             ) : (
-              <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-0">
                 {completedHighlights.map((highlight) => (
-                  <div key={highlight!.artic_id} className="gallery-card p-2">
-                    {highlight!.image_url && (
-                      <div className="aspect-square mb-2 artwork-frame rounded-sm overflow-hidden">
-                        <img
-                          src={highlight!.image_url}
-                          alt={highlight!.title}
-                          className="w-full h-full object-cover"
-                        />
+                  <div 
+                    key={highlight!.artic_id} 
+                    className="group relative aspect-square overflow-hidden cursor-pointer"
+                  >
+                    {highlight!.image_url ? (
+                      <img
+                        src={highlight!.image_url}
+                        alt={highlight!.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <ImageIcon className="w-6 h-6 text-muted-foreground" />
                       </div>
                     )}
-                    <h3 className="font-display text-sm font-semibold leading-tight line-clamp-2">
-                      {highlight!.title}
-                    </h3>
-                    {highlight!.artist && (
-                      <p className="text-xs text-muted-foreground truncate mt-1">
-                        {highlight!.artist}
-                      </p>
-                    )}
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-2">
+                      <h3 className="font-display text-xs font-semibold text-white leading-tight line-clamp-2">
+                        {highlight!.title}
+                      </h3>
+                      {highlight!.artist && (
+                        <p className="text-[10px] text-white/80 truncate mt-0.5">
+                          {highlight!.artist}
+                        </p>
+                      )}
+                      {highlight!.year && (
+                        <p className="text-[10px] text-white/60 truncate">
+                          {highlight!.year}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
