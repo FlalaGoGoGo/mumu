@@ -5,6 +5,7 @@ import { useVisits, useHighlightCompletions, useRemoveVisit } from '@/hooks/useP
 import { useAicHighlights } from '@/hooks/useHighlights';
 import { useSavedMuseums } from '@/hooks/useSavedMuseums';
 import { useAchievements } from '@/hooks/useAchievements';
+import { useLanguage } from '@/lib/i18n';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import type { CategoryProgress } from '@/lib/achievements';
 
 export default function PassportPage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { data: museums = [] } = useMuseums();
   const { data: visits = [], isLoading: visitsLoading } = useVisits();
   const { data: completions = [] } = useHighlightCompletions();
@@ -83,10 +85,10 @@ export default function PassportPage() {
         {/* Header */}
         <div className="mb-6">
           <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
-            My Passport
+            {t('passport.title')}
           </h1>
           <p className="text-muted-foreground">
-            Track your museum visits and artwork discoveries
+            {t('passport.subtitle')}
           </p>
         </div>
 
@@ -98,7 +100,7 @@ export default function PassportPage() {
             </div>
             <div className="text-xs md:text-sm text-muted-foreground flex items-center justify-center gap-1">
               <MapPin className="w-3 h-3" />
-              Museums Visited
+              {t('passport.museumsVisited')}
             </div>
           </div>
           <div className="gallery-card text-center">
@@ -114,15 +116,15 @@ export default function PassportPage() {
                     </div>
                     <div className="text-xs md:text-sm text-muted-foreground flex items-center justify-center gap-1">
                       <Flag className="w-3 h-3" />
-                      US States
+                      {t('passport.usStates')}
                     </div>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="text-xs max-w-[200px]">
                     {hasUnparsableAddresses 
-                      ? "Some museums don't include state info in their address, so count may be undercounted."
-                      : "Unique US states where you've visited museums."}
+                      ? t('passport.statesMayBeUndercounted')
+                      : t('passport.uniqueStatesVisited')}
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -134,7 +136,7 @@ export default function PassportPage() {
             </div>
             <div className="text-xs md:text-sm text-muted-foreground flex items-center justify-center gap-1">
               <ImageIcon className="w-3 h-3" />
-              Artworks Seen
+              {t('passport.artworksSeen')}
             </div>
           </div>
           <div className="gallery-card text-center">
@@ -143,7 +145,7 @@ export default function PassportPage() {
             </div>
             <div className="text-xs md:text-sm text-muted-foreground flex items-center justify-center gap-1">
               <Heart className="w-3 h-3" />
-              Saved Museums
+              {t('passport.savedMuseums')}
             </div>
           </div>
         </div>
@@ -156,28 +158,28 @@ export default function PassportPage() {
               className="flex items-center justify-center gap-1.5 py-2.5 px-1 border-r border-border/50 rounded-none first:rounded-l-md data-[state=active]:rounded-sm"
             >
               <MapPin className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs sm:text-sm truncate">Visited</span>
+              <span className="text-xs sm:text-sm truncate">{t('passport.visited')}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="saved" 
               className="flex items-center justify-center gap-1.5 py-2.5 px-1 border-r border-border/50 rounded-none data-[state=active]:rounded-sm"
             >
               <Heart className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs sm:text-sm truncate">Saved</span>
+              <span className="text-xs sm:text-sm truncate">{t('passport.saved')}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="artworks" 
               className="flex items-center justify-center gap-1.5 py-2.5 px-1 border-r border-border/50 rounded-none data-[state=active]:rounded-sm"
             >
               <ImageIcon className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs sm:text-sm truncate">Artworks</span>
+              <span className="text-xs sm:text-sm truncate">{t('passport.artworks')}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="achievements" 
               className="flex items-center justify-center gap-1.5 py-2.5 px-1 rounded-none last:rounded-r-md data-[state=active]:rounded-sm"
             >
               <Trophy className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs sm:text-sm truncate">Achievements</span>
+              <span className="text-xs sm:text-sm truncate">{t('passport.achievements')}</span>
             </TabsTrigger>
           </TabsList>
 
@@ -186,14 +188,14 @@ export default function PassportPage() {
             {visits.length === 0 ? (
               <div className="gallery-card text-center py-8">
                 <div className="passport-stamp mx-auto mb-4">
-                  <span>Empty</span>
+                  <span>{t('passport.empty')}</span>
                 </div>
                 <p className="text-muted-foreground mb-4">
-                  No museums visited yet. Start exploring!
+                  {t('passport.noMuseumsVisited')}
                 </p>
                 <Button onClick={() => navigate('/')}>
                   <MapIcon className="w-4 h-4 mr-2" />
-                  Go to Map
+                  {t('passport.goToMap')}
                 </Button>
               </div>
             ) : (
@@ -249,11 +251,11 @@ export default function PassportPage() {
               <div className="gallery-card text-center py-8">
                 <Heart className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-muted-foreground mb-4">
-                  No saved museums yet. Tap the heart icon on any museum to save it!
+                  {t('passport.noSavedMuseums')}
                 </p>
                 <Button onClick={() => navigate('/')}>
                   <MapIcon className="w-4 h-4 mr-2" />
-                  Go to Map
+                  {t('passport.goToMap')}
                 </Button>
               </div>
             ) : (
@@ -290,7 +292,7 @@ export default function PassportPage() {
                           >
                             <a href={saved.website_url} target="_blank" rel="noopener noreferrer">
                               <ExternalLink className="w-3 h-3 mr-1" />
-                              Website
+                              {t('passport.website')}
                             </a>
                           </Button>
                         )}
@@ -301,7 +303,7 @@ export default function PassportPage() {
                           onClick={() => navigate('/')}
                         >
                           <MapIcon className="w-3 h-3 mr-1" />
-                          Map
+                          {t('passport.map')}
                         </Button>
                       </div>
                     </div>
@@ -324,14 +326,14 @@ export default function PassportPage() {
             {completedHighlights.length === 0 ? (
               <div className="gallery-card text-center py-8">
                 <div className="passport-stamp mx-auto mb-4">
-                  <span>Empty</span>
+                  <span>{t('passport.empty')}</span>
                 </div>
                 <p className="text-muted-foreground mb-4">
-                  No artworks marked yet. Visit the Plan page to start!
+                  {t('passport.noArtworksMarked')}
                 </p>
                 <Button onClick={() => navigate('/plan')}>
                   <ImageIcon className="w-4 h-4 mr-2" />
-                  View Plan
+                  {t('passport.viewPlan')}
                 </Button>
               </div>
             ) : (
