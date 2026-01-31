@@ -4,15 +4,20 @@ import { useMuseums } from '@/hooks/useMuseums';
 import { useVisits, useHighlightCompletions, useRemoveVisit } from '@/hooks/usePassport';
 import { useAicHighlights } from '@/hooks/useHighlights';
 import { useSavedMuseums } from '@/hooks/useSavedMuseums';
+import { useAchievements } from '@/hooks/useAchievements';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MapPin, Check, Trash2, Image as ImageIcon, Flag, Info, Heart, Trophy, ExternalLink, Map as MapIcon } from 'lucide-react';
 import { parseUSState } from '@/lib/parseUSState';
-import { AchievementBadge } from '@/components/passport/AchievementBadge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { PassportCard } from '@/components/passport/PassportCard';
+import { AchievementWall } from '@/components/passport/AchievementWall';
+import { CategoryDetailSheet } from '@/components/passport/CategoryDetailSheet';
+import { NextToUnlock } from '@/components/passport/NextToUnlock';
+import type { CategoryProgress } from '@/lib/achievements';
 
 export default function PassportPage() {
   const navigate = useNavigate();
@@ -22,8 +27,10 @@ export default function PassportPage() {
   const { data: highlights = [] } = useAicHighlights();
   const removeVisit = useRemoveVisit();
   const { savedMuseums, savedCount, removeMuseum } = useSavedMuseums();
+  const { categories, nextToUnlock, stats } = useAchievements();
 
   const [activeTab, setActiveTab] = useState('visited');
+  const [selectedCategory, setSelectedCategory] = useState<CategoryProgress | null>(null);
 
   const museumMap = new Map(museums.map(m => [m.museum_id, m]));
   const highlightMap = new Map(highlights.map(h => [h.artic_id, h]));
@@ -355,27 +362,25 @@ export default function PassportPage() {
           </TabsContent>
 
           {/* Achievements Tab */}
-          <TabsContent value="achievements" className="mt-0">
-            <div className="grid gap-3 md:grid-cols-3">
-              <AchievementBadge
-                title="Road Tripper"
-                description="Visit museums in 2 US states"
-                icon="road-tripper"
-                unlocked={statesCount >= 2}
-              />
-              <AchievementBadge
-                title="Cross-State Explorer"
-                description="Visit museums in 5 US states"
-                icon="explorer"
-                unlocked={statesCount >= 5}
-              />
-              <AchievementBadge
-                title="Nationwide Collector"
-                description="Visit museums in 10 US states"
-                icon="collector"
-                unlocked={statesCount >= 10}
-              />
-            </div>
+          <TabsContent value="achievements" className="mt-0 space-y-6">
+            {/* Passport Card */}
+            <PassportCard stats={stats} displayName="Explorer" />
+            
+            {/* Achievement Wall */}
+            <AchievementWall 
+              categories={categories} 
+              onCategoryClick={(cat) => setSelectedCategory(cat)} 
+            />
+            
+            {/* Next to Unlock */}
+            <NextToUnlock items={nextToUnlock} />
+            
+            {/* Category Detail Sheet */}
+            <CategoryDetailSheet 
+              category={selectedCategory}
+              open={!!selectedCategory}
+              onOpenChange={(open) => !open && setSelectedCategory(null)}
+            />
           </TabsContent>
         </Tabs>
       </div>
