@@ -335,11 +335,11 @@ export default function PassportPage() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-0">
+              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-1.5">
                 {completedHighlights.map((highlight) => (
                   <div 
                     key={highlight!.artic_id} 
-                    className="group relative aspect-square overflow-hidden cursor-pointer"
+                    className="group relative aspect-square overflow-hidden cursor-pointer border border-accent/60"
                   >
                     {highlight!.image_url ? (
                       <img
