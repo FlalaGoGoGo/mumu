@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Loader2, ImageOff } from 'lucide-react';
+import { addDays } from 'date-fns';
 import { useExhibitions } from '@/hooks/useExhibitions';
 import { useMuseums } from '@/hooks/useMuseums';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -64,6 +65,7 @@ export default function ExhibitionsPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [maxDistance, setMaxDistance] = useState(MAX_DISTANCE_VALUE);
+  const [closingSoon, setClosingSoon] = useState(false);
 
   const hasLocation = latitude !== null && longitude !== null;
 
@@ -143,6 +145,19 @@ export default function ExhibitionsPage() {
       });
     }
 
+    // Closing Soon filter - exhibitions ending within 14 days
+    if (closingSoon) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const closingSoonCutoff = addDays(today, 14);
+      
+      filtered = filtered.filter(({ exhibition }) => {
+        // Must have an end_date to be considered "closing soon"
+        if (!exhibition.end_date) return false;
+        return exhibition.end_date >= today && exhibition.end_date <= closingSoonCutoff;
+      });
+    }
+
     // Distance filter
     if (hasLocation && maxDistance < MAX_DISTANCE_VALUE) {
       filtered = filtered.filter(({ distance }) => {
@@ -156,7 +171,7 @@ export default function ExhibitionsPage() {
     // Map back to include distance info
     const distanceMap = new Map(filtered.map(f => [f.exhibition.exhibition_id, f]));
     return sortedExhibitions.map(exhibition => distanceMap.get(exhibition.exhibition_id)!);
-  }, [exhibitionsWithDistance, searchQuery, selectedState, selectedStatus, dateFrom, dateTo, maxDistance, hasLocation]);
+  }, [exhibitionsWithDistance, searchQuery, selectedState, selectedStatus, dateFrom, dateTo, maxDistance, hasLocation, closingSoon]);
 
   // Count active filters
   const activeFilterCount = useMemo(() => {
@@ -166,8 +181,9 @@ export default function ExhibitionsPage() {
     if (dateFrom) count++;
     if (dateTo) count++;
     if (hasLocation && maxDistance < MAX_DISTANCE_VALUE) count++;
+    if (closingSoon) count++;
     return count;
-  }, [selectedState, selectedStatus, dateFrom, dateTo, maxDistance, hasLocation]);
+  }, [selectedState, selectedStatus, dateFrom, dateTo, maxDistance, hasLocation, closingSoon]);
 
   const hasActiveFilters = searchQuery !== '' || activeFilterCount > 0;
 
@@ -178,6 +194,7 @@ export default function ExhibitionsPage() {
     setDateFrom(undefined);
     setDateTo(undefined);
     setMaxDistance(MAX_DISTANCE_VALUE);
+    setClosingSoon(false);
   };
 
   const isLoading = exhibitionsLoading || museumsLoading;
@@ -231,6 +248,8 @@ export default function ExhibitionsPage() {
         onClearFilters={handleClearFilters}
         hasActiveFilters={hasActiveFilters}
         activeFilterCount={activeFilterCount}
+        closingSoon={closingSoon}
+        onClosingSoonChange={setClosingSoon}
       />
 
       {/* Results */}
