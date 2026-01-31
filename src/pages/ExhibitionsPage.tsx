@@ -5,7 +5,7 @@ import { useExhibitions } from '@/hooks/useExhibitions';
 import { useMuseums } from '@/hooks/useMuseums';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { ExhibitionCard } from '@/components/exhibition/ExhibitionCard';
-import { ExhibitionFilters } from '@/components/exhibition/ExhibitionFilters';
+import { ExhibitionFilters, DateSortOrder, DistanceSortOrder } from '@/components/exhibition/ExhibitionFilters';
 import { Button } from '@/components/ui/button';
 import { calculateDistance, formatDistance } from '@/lib/distance';
 import type { Exhibition, ExhibitionStatus } from '@/types/exhibition';
@@ -66,6 +66,8 @@ export default function ExhibitionsPage() {
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [maxDistance, setMaxDistance] = useState(MAX_DISTANCE_VALUE);
   const [closingSoon, setClosingSoon] = useState(false);
+  const [dateSortOrder, setDateSortOrder] = useState<DateSortOrder>('none');
+  const [distanceSortOrder, setDistanceSortOrder] = useState<DistanceSortOrder>('none');
 
   const hasLocation = latitude !== null && longitude !== null;
 
@@ -165,13 +167,54 @@ export default function ExhibitionsPage() {
       });
     }
 
-    // Sort exhibitions
-    const sortedExhibitions = sortExhibitions(filtered.map(f => f.exhibition));
+    // Custom sorting based on user selection
+    // Priority: Distance (primary) > Date (secondary) > Default status sorting
+    const sortedFiltered = [...filtered].sort((a, b) => {
+      // Distance sort (primary)
+      if (distanceSortOrder !== 'none' && hasLocation) {
+        const distA = a.distance ?? Number.MAX_SAFE_INTEGER;
+        const distB = b.distance ?? Number.MAX_SAFE_INTEGER;
+        const distDiff = distanceSortOrder === 'asc' ? distA - distB : distB - distA;
+        if (distDiff !== 0) return distDiff;
+      }
+
+      // Date sort (secondary)
+      if (dateSortOrder !== 'none') {
+        const dateA = a.exhibition.start_date?.getTime();
+        const dateB = b.exhibition.start_date?.getTime();
+        
+        // Items with no start_date go to bottom
+        if (dateA === undefined && dateB === undefined) {
+          // Both TBD - check end_date too
+          const hasDatesA = a.exhibition.start_date || a.exhibition.end_date;
+          const hasDatesB = b.exhibition.start_date || b.exhibition.end_date;
+          if (!hasDatesA && hasDatesB) return 1;
+          if (hasDatesA && !hasDatesB) return -1;
+          return 0;
+        }
+        if (dateA === undefined) return 1;
+        if (dateB === undefined) return -1;
+        
+        const dateDiff = dateSortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+        if (dateDiff !== 0) return dateDiff;
+      }
+
+      // Default: fall back to status-based sorting
+      const statusDiff = STATUS_PRIORITY[a.exhibition.status] - STATUS_PRIORITY[b.exhibition.status];
+      if (statusDiff !== 0) return statusDiff;
+
+      // Within same status, sort by end date for ongoing
+      if (a.exhibition.status === 'Ongoing') {
+        const aEnd = a.exhibition.end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        const bEnd = b.exhibition.end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        return aEnd - bEnd;
+      }
+
+      return 0;
+    });
     
-    // Map back to include distance info
-    const distanceMap = new Map(filtered.map(f => [f.exhibition.exhibition_id, f]));
-    return sortedExhibitions.map(exhibition => distanceMap.get(exhibition.exhibition_id)!);
-  }, [exhibitionsWithDistance, searchQuery, selectedState, selectedStatus, dateFrom, dateTo, maxDistance, hasLocation, closingSoon]);
+    return sortedFiltered;
+  }, [exhibitionsWithDistance, searchQuery, selectedState, selectedStatus, dateFrom, dateTo, maxDistance, hasLocation, closingSoon, dateSortOrder, distanceSortOrder]);
 
   // Count active filters
   const activeFilterCount = useMemo(() => {
@@ -250,6 +293,10 @@ export default function ExhibitionsPage() {
         activeFilterCount={activeFilterCount}
         closingSoon={closingSoon}
         onClosingSoonChange={setClosingSoon}
+        dateSortOrder={dateSortOrder}
+        onDateSortOrderChange={setDateSortOrder}
+        distanceSortOrder={distanceSortOrder}
+        onDistanceSortOrderChange={setDistanceSortOrder}
       />
 
       {/* Results */}

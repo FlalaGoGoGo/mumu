@@ -52,6 +52,9 @@ function matchesPreset(from: Date | undefined, to: Date | undefined, preset: Dat
   return from.getTime() === range.from.getTime() && to.getTime() === range.to.getTime();
 }
 
+export type DateSortOrder = 'none' | 'asc' | 'desc';
+export type DistanceSortOrder = 'none' | 'asc' | 'desc';
+
 interface ExhibitionFiltersProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
@@ -72,6 +75,10 @@ interface ExhibitionFiltersProps {
   activeFilterCount: number;
   closingSoon: boolean;
   onClosingSoonChange: (value: boolean) => void;
+  dateSortOrder: DateSortOrder;
+  onDateSortOrderChange: (value: DateSortOrder) => void;
+  distanceSortOrder: DistanceSortOrder;
+  onDistanceSortOrderChange: (value: DistanceSortOrder) => void;
 }
 
 const STATUS_OPTIONS: { value: ExhibitionStatus | 'all'; label: string }[] = [
@@ -83,6 +90,18 @@ const STATUS_OPTIONS: { value: ExhibitionStatus | 'all'; label: string }[] = [
 ];
 
 const MAX_DISTANCE_VALUE = 500; // miles
+
+const DATE_SORT_OPTIONS = [
+  { value: 'none' as const, label: 'Date' },
+  { value: 'asc' as const, label: 'Date ↑' },
+  { value: 'desc' as const, label: 'Date ↓' },
+];
+
+const DISTANCE_SORT_OPTIONS = [
+  { value: 'none' as const, label: 'Distance' },
+  { value: 'asc' as const, label: 'Distance ↑' },
+  { value: 'desc' as const, label: 'Distance ↓' },
+];
 
 export function ExhibitionFilters({
   searchQuery,
@@ -104,6 +123,10 @@ export function ExhibitionFilters({
   activeFilterCount,
   closingSoon,
   onClosingSoonChange,
+  dateSortOrder,
+  onDateSortOrderChange,
+  distanceSortOrder,
+  onDistanceSortOrderChange,
 }: ExhibitionFiltersProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activePreset, setActivePreset] = useState<DatePreset>(null);
@@ -156,12 +179,12 @@ export function ExhibitionFilters({
 
   return (
     <div className="flex flex-col gap-4 mb-6">
-      {/* Search Row */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
+      {/* Search Row with Sort Controls */}
+      <div className="flex flex-wrap gap-2">
+        <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search exhibitions or museums..."
+            placeholder="Search..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-10"
@@ -180,6 +203,38 @@ export function ExhibitionFilters({
             </Button>
           </CollapsibleTrigger>
         </Collapsible>
+
+        {/* Date Sort */}
+        <Select value={dateSortOrder} onValueChange={(v) => onDateSortOrderChange(v as DateSortOrder)}>
+          <SelectTrigger className="w-[100px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {DATE_SORT_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Distance Sort */}
+        <Select 
+          value={distanceSortOrder} 
+          onValueChange={(v) => onDistanceSortOrderChange(v as DistanceSortOrder)}
+          disabled={!hasLocation}
+        >
+          <SelectTrigger className={cn("w-[110px]", !hasLocation && "opacity-50")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {DISTANCE_SORT_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Collapsible Filter Panel */}
