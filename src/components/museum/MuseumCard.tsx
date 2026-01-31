@@ -1,4 +1,6 @@
-import { ExternalLink, Clock, MapPin, Star, Navigation, Heart } from 'lucide-react';
+import { useState } from 'react';
+import { ExternalLink, Clock, MapPin, Star, Navigation, Heart, Copy, Check } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 import type { Museum } from '@/types/museum';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +22,28 @@ interface MuseumCardProps {
 export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compact = false, stateCode, distance, showSaveButton = true }: MuseumCardProps) {
   const { isSaved, toggleSave } = useSavedMuseums();
   const saved = isSaved(museum.museum_id);
+  const [addressCopied, setAddressCopied] = useState(false);
+
+  const handleCopyAddress = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!museum.address) return;
+    
+    try {
+      await navigator.clipboard.writeText(museum.address);
+      setAddressCopied(true);
+      toast({
+        title: "Address copied",
+        description: "The address has been copied to your clipboard.",
+      });
+      setTimeout(() => setAddressCopied(false), 1500);
+    } catch (err) {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy address to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Build location string: "City, STATE, Country" for US or "City, Country" for others
   const locationParts = [museum.city];
@@ -170,12 +194,34 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
 
       {/* Opening Hours */}
       {museum.opening_hours && (
-        <div className="flex items-start gap-2 mb-4 p-3 bg-muted/50 rounded-sm">
+        <div className="flex items-start gap-2 mb-2 p-3 bg-muted/50 rounded-sm">
           <Clock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
           <div className="text-sm">
             <span className="font-medium text-foreground">Hours: </span>
             <span className="text-muted-foreground">{museum.opening_hours}</span>
           </div>
+        </div>
+      )}
+
+      {/* Address with Copy */}
+      {museum.address && (
+        <div className="flex items-start gap-2 mb-4 p-3 bg-muted/50 rounded-sm">
+          <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+          <div className="text-sm flex-1 min-w-0">
+            <span className="font-medium text-foreground">Address: </span>
+            <span className="text-muted-foreground break-words">{museum.address}</span>
+          </div>
+          <button
+            onClick={handleCopyAddress}
+            className="p-1.5 rounded-md hover:bg-muted transition-colors flex-shrink-0"
+            aria-label="Copy address to clipboard"
+          >
+            {addressCopied ? (
+              <Check className="w-4 h-4 text-green-600" />
+            ) : (
+              <Copy className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
         </div>
       )}
 
