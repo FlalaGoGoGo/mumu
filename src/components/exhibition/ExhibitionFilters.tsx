@@ -334,66 +334,69 @@ export function ExhibitionFilters({
               </div>
             </div>
 
-            {/* Date Quick Filters */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Quick Date Filters</label>
-              <div className="flex flex-wrap gap-2">
-                {DATE_PRESETS.map((preset) => (
+            {/* Quick Date Filters + Distance Slider Row */}
+            <div className="flex flex-wrap items-end gap-4">
+              {/* Quick Date Filters */}
+              <div className="space-y-2 flex-shrink-0">
+                <label className="text-sm font-medium text-foreground">Quick Date Filters</label>
+                <div className="flex flex-wrap gap-2">
+                  {DATE_PRESETS.map((preset) => (
+                    <Button
+                      key={preset.key}
+                      variant={activePreset === preset.key ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handlePresetClick(preset.key)}
+                      className={cn(
+                        "text-xs",
+                        activePreset === preset.key && "bg-primary text-primary-foreground"
+                      )}
+                    >
+                      {preset.label}
+                    </Button>
+                  ))}
+                  {/* Closing Soon chip */}
                   <Button
-                    key={preset.key}
-                    variant={activePreset === preset.key ? "default" : "outline"}
+                    variant={closingSoon ? "default" : "outline"}
                     size="sm"
-                    onClick={() => handlePresetClick(preset.key)}
+                    onClick={handleClosingSoonClick}
                     className={cn(
-                      "text-xs",
-                      activePreset === preset.key && "bg-primary text-primary-foreground"
+                      "text-xs gap-1",
+                      closingSoon && "bg-primary text-primary-foreground"
                     )}
                   >
-                    {preset.label}
+                    <Clock className="w-3 h-3" />
+                    Closing Soon
                   </Button>
-                ))}
-                {/* Closing Soon chip */}
-                <Button
-                  variant={closingSoon ? "default" : "outline"}
-                  size="sm"
-                  onClick={handleClosingSoonClick}
-                  className={cn(
-                    "text-xs gap-1",
-                    closingSoon && "bg-primary text-primary-foreground"
-                  )}
-                >
-                  <Clock className="w-3 h-3" />
-                  Closing Soon
-                </Button>
-              </div>
-            </div>
-
-            {/* Distance Slider */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Distance
-                </label>
-                <span className="text-sm text-muted-foreground">
-                  {maxDistance >= MAX_DISTANCE_VALUE ? 'Any distance' : `Within ${maxDistance} mi`}
-                </span>
-              </div>
-              {hasLocation ? (
-                <Slider
-                  value={[maxDistance]}
-                  onValueChange={(value) => onMaxDistanceChange(value[0])}
-                  max={MAX_DISTANCE_VALUE}
-                  min={10}
-                  step={10}
-                  className="w-full"
-                />
-              ) : (
-                <div className="text-sm text-muted-foreground bg-muted rounded-md p-3 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Enable location to filter by distance
                 </div>
-              )}
+              </div>
+
+              {/* Distance Slider - inline on right */}
+              <div className="flex-1 min-w-[200px] max-w-[300px] ml-auto space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5" />
+                    Distance
+                  </label>
+                  <span className="text-xs text-muted-foreground">
+                    {maxDistance >= MAX_DISTANCE_VALUE ? 'Any distance' : `${maxDistance} mi`}
+                  </span>
+                </div>
+                {hasLocation ? (
+                  <Slider
+                    value={[maxDistance]}
+                    onValueChange={(value) => onMaxDistanceChange(value[0])}
+                    max={MAX_DISTANCE_VALUE}
+                    min={10}
+                    step={10}
+                    className="w-full"
+                  />
+                ) : (
+                  <div className="text-xs text-muted-foreground bg-muted rounded-md p-2 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5" />
+                    Enable location
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Clear Filters */}
