@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { LanguageProvider } from "@/lib/i18n";
+import { usePreferences } from "@/hooks/usePreferences";
 import Index from "./pages/Index";
 import PlanPage from "./pages/PlanPage";
 import PassportPage from "./pages/PassportPage";
@@ -14,11 +16,15 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
+// Wrapper component to connect LanguageProvider with preferences
+function AppWithLanguage() {
+  const { preferences, updatePreferences, isLoading } = usePreferences();
+
+  return (
+    <LanguageProvider 
+      externalLanguage={isLoading ? undefined : preferences.language}
+      onLanguageChange={(language) => updatePreferences({ language })}
+    >
       <BrowserRouter>
         <AppLayout>
           <Routes>
@@ -33,6 +39,16 @@ const App = () => (
           </Routes>
         </AppLayout>
       </BrowserRouter>
+    </LanguageProvider>
+  );
+}
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <AppWithLanguage />
     </TooltipProvider>
   </QueryClientProvider>
 );

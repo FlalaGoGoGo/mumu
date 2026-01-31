@@ -16,10 +16,12 @@ import { StateFilter } from '@/components/map/StateFilter';
 import { DistanceFilter } from '@/components/map/DistanceFilter';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { calculateDistance, formatDistance } from '@/lib/distance';
+import { useLanguage } from '@/lib/i18n';
 import type { Museum } from '@/types/museum';
 
 export default function MapPage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { data: museums = [], isLoading } = useMuseums();
   const { data: visits = [] } = useVisits();
   const addVisit = useAddVisit();
@@ -135,7 +137,7 @@ export default function MapPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] md:h-[calc(100vh-73px)] flex flex-col md:flex-row">
+    <div className="h-[calc(100vh-128px)] md:h-[calc(100vh-73px)] flex flex-col md:flex-row">
       {/* Desktop: Side Panel */}
       <div className="hidden md:flex md:w-96 lg:w-[420px] flex-col border-r border-border bg-background">
         {/* Search Row with Filters Button */}
@@ -144,7 +146,7 @@ export default function MapPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search museums..."
+                placeholder={t('map.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-10"
@@ -165,7 +167,7 @@ export default function MapPage() {
               className="shrink-0"
             >
               <SlidersHorizontal className="w-4 h-4" />
-              <span>Filters</span>
+              <span>{t('map.filters')}</span>
               {activeFilterCount > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-primary-foreground">
                   {activeFilterCount}
@@ -203,7 +205,7 @@ export default function MapPage() {
                     onClick={handleClearFilters}
                     className="text-xs text-muted-foreground hover:text-foreground ml-auto"
                   >
-                    Clear all
+                    {t('common.clear')}
                   </Button>
                 )}
               </div>
