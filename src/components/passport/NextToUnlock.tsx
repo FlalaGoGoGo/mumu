@@ -1,6 +1,7 @@
 import { Sparkles } from 'lucide-react';
 import type { TierProgress } from '@/lib/achievements';
 import { TIER_LABELS } from '@/lib/achievements';
+import { useLanguage } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { tagIcons } from './AchievementWall';
@@ -10,12 +11,14 @@ interface NextToUnlockProps {
 }
 
 export function NextToUnlock({ items }: NextToUnlockProps) {
+  const { t, tp } = useLanguage();
+
   if (items.length === 0) {
     return (
       <div className="gallery-card text-center py-6">
         <Sparkles className="w-8 h-8 mx-auto text-accent mb-2" />
         <p className="text-muted-foreground">
-          All achievements unlocked! 🎉
+          {t('passport.allUnlocked')}
         </p>
       </div>
     );
@@ -26,7 +29,7 @@ export function NextToUnlock({ items }: NextToUnlockProps) {
       <div className="flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-accent" />
         <h3 className="font-display text-lg font-semibold text-foreground">
-          Next to Unlock
+          {t('passport.nextToUnlock')}
         </h3>
       </div>
       
@@ -65,7 +68,7 @@ export function NextToUnlock({ items }: NextToUnlockProps) {
                 </div>
                 
                 <p className="text-xs text-accent mt-0.5">
-                  Need {remaining} more
+                  {tp('passport.needMore', { count: remaining })}
                 </p>
               </div>
             </div>

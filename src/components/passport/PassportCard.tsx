@@ -1,5 +1,6 @@
 import { Star, MapPin, Flag, Palette } from 'lucide-react';
 import type { PassportStats } from '@/lib/achievements';
+import { useLanguage } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 interface PassportCardProps {
@@ -9,6 +10,7 @@ interface PassportCardProps {
 }
 
 export function PassportCard({ stats, displayName = 'Explorer', avatarUrl }: PassportCardProps) {
+  const { t } = useLanguage();
   const { 
     museumsVisited, 
     statesVisited, 
@@ -48,7 +50,7 @@ export function PassportCard({ stats, displayName = 'Explorer', avatarUrl }: Pas
             <span className="text-2xl md:text-3xl font-display font-bold text-primary">
               {completionPercent.toFixed(1)}%
             </span>
-            <span className="text-sm text-muted-foreground">complete</span>
+            <span className="text-sm text-muted-foreground">{t('passport.complete')}</span>
           </div>
 
           {/* Star rating */}
@@ -65,7 +67,7 @@ export function PassportCard({ stats, displayName = 'Explorer', avatarUrl }: Pas
               />
             ))}
             <span className="text-sm text-muted-foreground ml-2">
-              {totalScore} pts
+              {totalScore} {t('passport.pts')}
             </span>
           </div>
         </div>
@@ -80,7 +82,7 @@ export function PassportCard({ stats, displayName = 'Explorer', avatarUrl }: Pas
           <div className="font-display text-lg font-bold text-foreground">
             {museumsVisited}
           </div>
-          <div className="text-xs text-muted-foreground">Museums</div>
+          <div className="text-xs text-muted-foreground">{t('passport.museums')}</div>
         </div>
         <div className="text-center border-x border-border/50">
           <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
@@ -89,7 +91,7 @@ export function PassportCard({ stats, displayName = 'Explorer', avatarUrl }: Pas
           <div className="font-display text-lg font-bold text-foreground">
             {statesVisited}
           </div>
-          <div className="text-xs text-muted-foreground">States</div>
+          <div className="text-xs text-muted-foreground">{t('passport.states')}</div>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
@@ -98,14 +100,14 @@ export function PassportCard({ stats, displayName = 'Explorer', avatarUrl }: Pas
           <div className="font-display text-lg font-bold text-foreground">
             {categoriesCompleted}/5
           </div>
-          <div className="text-xs text-muted-foreground">Categories</div>
+          <div className="text-xs text-muted-foreground">{t('passport.categories')}</div>
         </div>
       </div>
 
       {/* Tiers progress bar */}
       <div className="mt-4 pt-3 border-t border-border/50">
         <div className="flex justify-between text-xs text-muted-foreground mb-1">
-          <span>Achievements Unlocked</span>
+          <span>{t('passport.achievementsUnlocked')}</span>
           <span>{unlockedTiers}/{totalTiers}</span>
         </div>
         <div className="h-2 bg-muted rounded-full overflow-hidden">

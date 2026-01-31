@@ -7,6 +7,7 @@ import { Info, Trash2, ExternalLink, User, Phone, Mail, Linkedin, Github } from 
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSavedMuseums } from '@/hooks/useSavedMuseums';
 import { usePreferences } from '@/hooks/usePreferences';
+import { useLanguage } from '@/lib/i18n';
 import { SaveStatusIndicator } from '@/components/settings/SaveStatusIndicator';
 import { ProfileBasicsCard, ProfileBasicsContent } from '@/components/settings/ProfileBasicsCard';
 import { InterestsCard, InterestsContent } from '@/components/settings/InterestsCard';
@@ -32,6 +33,7 @@ import mumuLogo from '@/assets/mumu-logo.png';
 
 export default function SettingsPage() {
   const isMobile = useIsMobile();
+  const { t, tp } = useLanguage();
   const { preferences, updatePreferences, saveStatus, isLoading, retrySave, resetPreferences } = usePreferences();
   const { clearAll: clearSavedMuseums } = useSavedMuseums();
 
@@ -47,7 +49,7 @@ export default function SettingsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-80px)] md:h-[calc(100vh-73px)]">
-        <div className="animate-pulse text-muted-foreground">Loading preferences...</div>
+        <div className="animate-pulse text-muted-foreground">{t('settings.loadingPreferences')}</div>
       </div>
     );
   }
@@ -58,17 +60,17 @@ export default function SettingsPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
-            Settings
+            {t('settings.title')}
           </h1>
           <p className="text-muted-foreground">
-            Customize your MuMu experience
+            {t('settings.subtitle')}
           </p>
         </div>
 
         {/* A) Personal Preferences */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="font-display text-xl font-semibold text-foreground">Personal Preferences</h2>
+            <h2 className="font-display text-xl font-semibold text-foreground">{t('settings.personalPreferences')}</h2>
             <SaveStatusIndicator status={saveStatus} onRetry={retrySave} />
           </div>
 
@@ -77,7 +79,7 @@ export default function SettingsPage() {
             <Accordion type="single" collapsible defaultValue="profile" className="space-y-3">
               <AccordionItem value="profile" className="rounded-lg border border-border/60 bg-card/80 px-4 shadow-sm">
                 <AccordionTrigger className="hover:no-underline">
-                  <span className="font-display font-semibold">Profile Basics</span>
+                  <span className="font-display font-semibold">{t('settings.profileBasics')}</span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <ProfileBasicsContent preferences={preferences} onUpdate={updatePreferences} />
@@ -86,7 +88,7 @@ export default function SettingsPage() {
 
               <AccordionItem value="interests" className="rounded-lg border border-border/60 bg-card/80 px-4 shadow-sm">
                 <AccordionTrigger className="hover:no-underline">
-                  <span className="font-display font-semibold">Interests</span>
+                  <span className="font-display font-semibold">{t('settings.interests')}</span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <InterestsContent preferences={preferences} onUpdate={updatePreferences} />
@@ -95,7 +97,7 @@ export default function SettingsPage() {
 
               <AccordionItem value="discounts" className="rounded-lg border border-border/60 bg-card/80 px-4 shadow-sm">
                 <AccordionTrigger className="hover:no-underline">
-                  <span className="font-display font-semibold">Discounts & Eligibility</span>
+                  <span className="font-display font-semibold">{t('settings.discounts')}</span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <DiscountsContent preferences={preferences} onUpdate={updatePreferences} />
@@ -118,15 +120,15 @@ export default function SettingsPage() {
 
         {/* B) Notifications */}
         <section className="mb-8">
-          <h2 className="font-display text-lg font-semibold mb-4">Notifications</h2>
+          <h2 className="font-display text-lg font-semibold mb-4">{t('settings.notifications')}</h2>
           <div className="rounded-lg border border-border/60 bg-card/80 p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="visit-reminders" className="text-base cursor-pointer">
-                  Visit Reminders
+                  {t('settings.visitReminders')}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Get reminded to visit nearby museums
+                  {t('settings.visitRemindersDescription')}
                 </p>
               </div>
               <Switch
@@ -140,10 +142,10 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between pt-2 border-t border-border/40">
                 <div className="space-y-0.5">
                   <Label htmlFor="free-day-notify" className="text-base cursor-pointer">
-                    Free Day Notifications
+                    {t('settings.freeDayNotifications')}
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Alerts when museums offer free admission
+                    {t('settings.freeDayNotificationsDescription')}
                   </p>
                 </div>
                 <Switch
@@ -160,33 +162,31 @@ export default function SettingsPage() {
 
         {/* C) Data & Privacy */}
         <section className="mb-8">
-          <h2 className="font-display text-lg font-semibold mb-4">Data & Privacy</h2>
+          <h2 className="font-display text-lg font-semibold mb-4">{t('settings.dataPrivacy')}</h2>
           <div className="rounded-lg border border-border/60 bg-card/80 p-5 shadow-sm">
             <div>
-              <h3 className="font-medium mb-1">Your Data</h3>
+              <h3 className="font-medium mb-1">{t('settings.yourData')}</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Your visit history, preferences, and progress are stored locally and in our database. 
-                Clear your data to start fresh.
+                {t('settings.dataDescription')}
               </p>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm" className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive">
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Clear All Data
+                    {t('settings.clearAllData')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Clear all data?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('settings.clearDataTitle')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will clear your local visit history and preferences. 
-                      Your settings will be reset to defaults. This action cannot be undone.
+                      {t('settings.clearDataDescription')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                     <AlertDialogAction onClick={handleClearData} className="bg-destructive hover:bg-destructive/90">
-                      Clear Data
+                      {t('settings.clearAllData')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -199,7 +199,7 @@ export default function SettingsPage() {
 
         {/* About */}
         <section className="mb-8">
-          <h2 className="font-display text-lg font-semibold mb-4">About</h2>
+          <h2 className="font-display text-lg font-semibold mb-4">{t('settings.about')}</h2>
           <div className="rounded-lg border border-border/60 bg-card/80 p-5 shadow-sm">
             <div className="flex items-start gap-4">
               <img 
@@ -208,13 +208,13 @@ export default function SettingsPage() {
                 className="w-12 h-12 rounded-full object-cover flex-shrink-0"
               />
               <div>
-                <h3 className="font-display text-lg font-semibold">MuMu</h3>
+                <h3 className="font-display text-lg font-semibold">{t('app.title')}</h3>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Your personal museum companion for finding nearby museums and getting quick, curated "must-see" highlights.
+                  {t('settings.aboutDescription')}
                 </p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Info className="w-3 h-3" />
-                  <span>Version 0.1.0 • Demo Release</span>
+                  <span>{tp('settings.version', { version: '0.1.0' })}</span>
                 </div>
               </div>
             </div>
@@ -223,12 +223,12 @@ export default function SettingsPage() {
 
         {/* Contact Us */}
         <section className="mb-8">
-          <h2 className="font-display text-lg font-semibold mb-4">Contact Us</h2>
+          <h2 className="font-display text-lg font-semibold mb-4">{t('settings.contactUs')}</h2>
           <div className="rounded-lg border border-border/60 bg-card/80 p-5 shadow-sm">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-sm">Creator: <span className="font-medium">Flala</span></span>
+                <span className="text-sm">{t('settings.creator')}: <span className="font-medium">Flala</span></span>
               </div>
               <a 
                 href="tel:+12067417374" 
@@ -268,10 +268,10 @@ export default function SettingsPage() {
 
         {/* Credits */}
         <section>
-          <h2 className="font-display text-lg font-semibold mb-4">Credits</h2>
+          <h2 className="font-display text-lg font-semibold mb-4">{t('settings.credits')}</h2>
           <div className="rounded-lg border border-border/60 bg-card/80 p-5 shadow-sm">
             <p className="text-sm text-muted-foreground mb-3">
-              Artwork images and data provided by The Art Institute of Chicago's public API.
+              {t('settings.creditsDescription')}
             </p>
             <Button variant="outline" size="sm" asChild>
               <a 
@@ -280,7 +280,7 @@ export default function SettingsPage() {
                 rel="noopener noreferrer"
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
-                AIC API Documentation
+                {t('settings.aicApiDocs')}
               </a>
             </Button>
           </div>

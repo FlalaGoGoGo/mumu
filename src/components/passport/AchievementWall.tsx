@@ -1,5 +1,6 @@
 import { Building2, Flag, Grid3X3, Palette, Scroll, FlaskConical, Leaf, Landmark, ChevronRight } from 'lucide-react';
 import type { CategoryProgress, AchievementProgress } from '@/lib/achievements';
+import { useLanguage } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 
@@ -20,17 +21,27 @@ const categoryColors: Record<string, string> = {
   categories: 'bg-accent/10 text-accent border-accent/20',
 };
 
+const categoryLabelKeys: Record<string, string> = {
+  museums: 'passport.museums',
+  states: 'passport.states',
+  categories: 'passport.categories',
+};
+
 export function AchievementWall({ categories, onCategoryClick }: AchievementWallProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="space-y-3">
       <h3 className="font-display text-lg font-semibold text-foreground">
-        Achievement Wall
+        {t('passport.achievementWall')}
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {categories.map((category) => {
           const progressPercent = category.totalTiers > 0 
             ? (category.unlockedTiers / category.totalTiers) * 100 
             : 0;
+          
+          const labelKey = categoryLabelKeys[category.category] || category.category;
           
           return (
             <button
@@ -51,10 +62,10 @@ export function AchievementWall({ categories, onCategoryClick }: AchievementWall
                   </div>
                   <div>
                     <h4 className="font-display font-semibold text-foreground">
-                      {category.label}
+                      {t(labelKey as any)}
                     </h4>
                     <p className="text-xs text-muted-foreground">
-                      {category.unlockedTiers}/{category.totalTiers} tiers
+                      {category.unlockedTiers}/{category.totalTiers} {t('passport.tiers')}
                     </p>
                   </div>
                 </div>
