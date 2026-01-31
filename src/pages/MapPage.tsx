@@ -8,11 +8,13 @@ import { MuseumCard } from '@/components/museum/MuseumCard';
 import { MobileBottomSheet } from '@/components/layout/MobileBottomSheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, X } from 'lucide-react';
+import { Search, X, SlidersHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { CategoryFilter, type MuseumCategory } from '@/components/map/CategoryFilter';
 import { StateFilter } from '@/components/map/StateFilter';
 import { DistanceFilter } from '@/components/map/DistanceFilter';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { calculateDistance, formatDistance } from '@/lib/distance';
 import type { Museum } from '@/types/museum';
 
@@ -29,6 +31,22 @@ export default function MapPage() {
   const [categoryFilter, setCategoryFilter] = useState<MuseumCategory>('all');
   const [stateFilter, setStateFilter] = useState<string[]>([]);
   const [maxDistanceFilter, setMaxDistanceFilter] = useState<number | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (categoryFilter !== 'all') count++;
+    if (stateFilter.length > 0) count++;
+    if (maxDistanceFilter !== null) count++;
+    return count;
+  }, [categoryFilter, stateFilter, maxDistanceFilter]);
+
+  const handleClearFilters = () => {
+    setCategoryFilter('all');
+    setStateFilter([]);
+    setMaxDistanceFilter(null);
+  };
 
   const visitedIds = new Set(visits.map(v => v.museum_id));
 
@@ -120,49 +138,79 @@ export default function MapPage() {
     <div className="h-[calc(100vh-80px)] md:h-[calc(100vh-73px)] flex flex-col md:flex-row">
       {/* Desktop: Side Panel */}
       <div className="hidden md:flex md:w-96 lg:w-[420px] flex-col border-r border-border bg-background">
-        {/* Category Filters */}
-        <div className="px-4 pt-4">
-          <CategoryFilter 
-            selected={categoryFilter} 
-            onSelect={setCategoryFilter}
-            counts={categoryCounts}
-          />
-        </div>
-        
-        {/* State & Distance Filters */}
-        <div className="px-4 pt-2 flex items-center gap-2">
-          <StateFilter
-            availableStates={availableStates}
-            selectedStates={stateFilter}
-            onSelectionChange={setStateFilter}
-          />
-          <DistanceFilter
-            maxDistance={maxDistanceFilter}
-            onMaxDistanceChange={setMaxDistanceFilter}
-            hasLocation={latitude !== null}
-          />
-        </div>
-
-        {/* Search */}
-        <div className="p-4 border-b border-border">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search museums..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-10"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
+        {/* Search Row with Filters Button */}
+        <div className="p-4 border-b border-border space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search museums..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-10"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <Button
+              variant={filtersOpen ? "secondary" : "outline"}
+              size="default"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              className="shrink-0"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-primary-foreground">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
+
+          {/* Collapsible Filter Panel */}
+          <Collapsible open={filtersOpen}>
+            <CollapsibleContent className="space-y-3 pt-3 border-t border-border">
+              {/* Category Chips */}
+              <CategoryFilter 
+                selected={categoryFilter} 
+                onSelect={setCategoryFilter}
+                counts={categoryCounts}
+              />
+              
+              {/* State & Distance Filters */}
+              <div className="flex items-center gap-2">
+                <StateFilter
+                  availableStates={availableStates}
+                  selectedStates={stateFilter}
+                  onSelectionChange={setStateFilter}
+                />
+                <DistanceFilter
+                  maxDistance={maxDistanceFilter}
+                  onMaxDistanceChange={setMaxDistanceFilter}
+                  hasLocation={latitude !== null}
+                />
+                {activeFilterCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearFilters}
+                    className="text-xs text-muted-foreground hover:text-foreground ml-auto"
+                  >
+                    Clear all
+                  </Button>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          <p className="text-xs text-muted-foreground">
             {sortedMuseums.length} museums • {visitedIds.size} visited
             {latitude !== null && <span> • sorted by distance</span>}
           </p>
