@@ -45,12 +45,11 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
     }
   };
 
-  // Build location string: "City, STATE, Country" for US or "City, Country" for others
+  // Build location string: "City, State" (omit country for cleaner display)
   const locationParts = [museum.city];
   if (stateCode) {
     locationParts.push(stateCode);
   }
-  locationParts.push(museum.country);
   const locationString = locationParts.join(', ');
 
   // Determine open/closed status
@@ -137,17 +136,17 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
         </div>
       )}
 
-      {/* Header */}
-      <div className="mb-4">
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <h2 className="font-display text-xl font-semibold text-foreground leading-tight">
-            {museum.name}
-          </h2>
+      {/* Header Row: Name + Heart + Badge */}
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <h2 className="font-display text-xl font-semibold text-foreground leading-tight flex-1 min-w-0">
+          {museum.name}
+        </h2>
+        <div className="flex items-center gap-2 flex-shrink-0">
           {showSaveButton && (
             <button
               onClick={handleSaveClick}
               className={cn(
-                "p-1.5 rounded-full transition-colors flex-shrink-0",
+                "p-1.5 rounded-full transition-colors",
                 saved 
                   ? "text-red-500 hover:text-red-600" 
                   : "text-muted-foreground hover:text-red-500"
@@ -160,73 +159,77 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
           {museum.opening_hours && (
             <Badge 
               variant="outline" 
-              className={`flex-shrink-0 text-[10px] px-1.5 py-0 h-5 ${
+              className={cn(
+                "text-[10px] px-2 py-0.5 h-5 whitespace-nowrap",
                 isOpen 
                   ? 'bg-green-50 text-green-700 border-green-200' 
                   : 'bg-red-50 text-red-700 border-red-200'
-              }`}
+              )}
             >
               {isOpen ? 'Open Today' : 'Closed Today'}
             </Badge>
           )}
-          {museum.has_full_content && (
-            <span className="museum-chip flex-shrink-0">Full Guide</span>
-          )}
         </div>
-        <div className="flex items-center gap-1 text-muted-foreground text-sm">
-          <MapPin className="w-4 h-4" />
+      </div>
+
+      {/* Location Meta */}
+      <div className="mb-4 space-y-0.5">
+        <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
+          <MapPin className="w-4 h-4 flex-shrink-0" />
           <span>{locationString}</span>
         </div>
         {distance && (
-          <div className="flex items-center gap-1 text-muted-foreground/70 text-xs mt-1">
-            <Navigation className="w-3 h-3" />
+          <div className="flex items-center gap-1.5 text-muted-foreground/70 text-sm pl-0.5">
+            <Navigation className="w-3.5 h-3.5 flex-shrink-0" />
             <span>{distance} away</span>
           </div>
         )}
       </div>
 
-      {/* Address */}
-      {museum.address && (
-        <p className="text-sm text-muted-foreground mb-3">
-          {museum.address}
-        </p>
-      )}
-
-      {/* Opening Hours */}
-      {museum.opening_hours && (
-        <div className="flex items-start gap-2 mb-2 p-3 bg-muted/50 rounded-sm">
-          <Clock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-          <div className="text-sm">
-            <span className="font-medium text-foreground">Hours: </span>
-            <span className="text-muted-foreground">{museum.opening_hours}</span>
-          </div>
+      {museum.has_full_content && (
+        <div className="mb-4">
+          <span className="museum-chip">Full Guide</span>
         </div>
       )}
 
-      {/* Address with Copy */}
-      {museum.address && (
-        <div className="flex items-start gap-2 mb-4 p-3 bg-muted/50 rounded-sm">
-          <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-          <div className="text-sm flex-1 min-w-0">
-            <span className="font-medium text-foreground">Address: </span>
-            <span className="text-muted-foreground break-words">{museum.address}</span>
+      {/* Info Bars */}
+      <div className="space-y-2 mb-4">
+        {/* Hours Bar */}
+        {museum.opening_hours && (
+          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-md min-h-[48px]">
+            <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <div className="text-sm flex-1">
+              <span className="font-medium text-foreground">Hours: </span>
+              <span className="text-muted-foreground">{museum.opening_hours}</span>
+            </div>
           </div>
-          <button
-            onClick={handleCopyAddress}
-            className="p-1.5 rounded-md hover:bg-muted transition-colors flex-shrink-0"
-            aria-label="Copy address to clipboard"
-          >
-            {addressCopied ? (
-              <Check className="w-4 h-4 text-green-600" />
-            ) : (
-              <Copy className="w-4 h-4 text-muted-foreground" />
-            )}
-          </button>
-        </div>
-      )}
+        )}
+
+        {/* Address Bar with Copy */}
+        {museum.address && (
+          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-md min-h-[48px]">
+            <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <div className="text-sm flex-1 min-w-0">
+              <span className="font-medium text-foreground">Address: </span>
+              <span className="text-muted-foreground break-words">{museum.address}</span>
+            </div>
+            <button
+              onClick={handleCopyAddress}
+              className="p-2 rounded-md hover:bg-muted transition-colors flex-shrink-0 -mr-1"
+              aria-label="Copy address to clipboard"
+            >
+              {addressCopied ? (
+                <Check className="w-4 h-4 text-green-600" />
+              ) : (
+                <Copy className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Actions */}
-      <div className="flex flex-col gap-2 mt-auto pt-2">
+      <div className="flex flex-col gap-2 mt-auto">
         {museum.has_full_content && onViewPlan && (
           <Button onClick={onViewPlan} className="w-full" variant="default">
             <Star className="w-4 h-4 mr-2" />
@@ -234,12 +237,12 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
           </Button>
         )}
         
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {museum.website_url && (
             <Button 
               variant="outline" 
-              size="sm" 
-              className="flex-1"
+              size="default"
+              className="w-full"
               asChild
             >
               <a href={museum.website_url} target="_blank" rel="noopener noreferrer">
@@ -251,9 +254,9 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
           
           {onMarkVisited && (
             <Button 
-              variant={isVisited ? "secondary" : "outline"}
-              size="sm"
-              className="flex-1"
+              variant={isVisited ? "secondary" : "default"}
+              size="default"
+              className="w-full"
               onClick={onMarkVisited}
             >
               {isVisited ? '✓ Visited' : 'Mark Visited'}
