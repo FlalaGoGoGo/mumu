@@ -33,13 +33,12 @@ export interface TileConfig {
  * Get the tile configuration for the given language.
  * Uses Mapbox if access token is available, otherwise falls back to CartoDB.
  */
-export function getTileConfig(language: Language, accessToken?: string | null): TileConfig {
-  // If Mapbox access token is provided, use Mapbox with language support
+export function getTileConfig(_language: Language, accessToken?: string | null): TileConfig {
+  // If Mapbox access token is provided, use Mapbox with English labels only
   if (accessToken) {
-    const langCode = MAPBOX_LANGUAGE_MAP[language] || 'en';
-    // Mapbox Streets style with language parameter
+    // Always use English for map labels regardless of app language
     return {
-      url: `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=${accessToken}&language=${langCode}`,
+      url: `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=${accessToken}&language=en`,
       attribution: '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
     };
@@ -57,12 +56,12 @@ export function getTileConfig(language: Language, accessToken?: string | null): 
 /**
  * Get a simplified tile config for the minimap (lighter style for cleaner look).
  */
-export function getMiniMapTileConfig(language: Language, accessToken?: string | null): TileConfig {
-  // If Mapbox access token is provided, use Mapbox light style
+export function getMiniMapTileConfig(_language: Language, accessToken?: string | null): TileConfig {
+  // If Mapbox access token is provided, use Mapbox light style with English labels
   if (accessToken) {
-    const langCode = MAPBOX_LANGUAGE_MAP[language] || 'en';
+    // Always use English for map labels regardless of app language
     return {
-      url: `https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/{z}/{x}/{y}?access_token=${accessToken}&language=${langCode}`,
+      url: `https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/{z}/{x}/{y}?access_token=${accessToken}&language=en`,
       attribution: '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a>',
       maxZoom: 19,
     };
