@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, MapPin, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n';
 
 interface StateFilterProps {
   availableStates: string[];
@@ -9,6 +10,7 @@ interface StateFilterProps {
 }
 
 export function StateFilter({ availableStates, selectedStates, onSelectionChange }: StateFilterProps) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -38,6 +40,12 @@ export function StateFilter({ availableStates, selectedStates, onSelectionChange
 
   const hasSelection = selectedStates.length > 0;
 
+  const getButtonLabel = () => {
+    if (!hasSelection) return t('map.state');
+    if (selectedStates.length === 1) return selectedStates[0];
+    return `${selectedStates.length} ${t('map.statesSelected')}`;
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -51,14 +59,7 @@ export function StateFilter({ availableStates, selectedStates, onSelectionChange
         )}
       >
         <MapPin className="w-3.5 h-3.5" />
-        <span>
-          {hasSelection 
-            ? selectedStates.length === 1 
-              ? selectedStates[0] 
-              : `${selectedStates.length} states`
-            : 'State'
-          }
-        </span>
+        <span>{getButtonLabel()}</span>
         <ChevronDown className={cn(
           "w-3.5 h-3.5 transition-transform",
           isOpen && "rotate-180"
@@ -70,7 +71,7 @@ export function StateFilter({ availableStates, selectedStates, onSelectionChange
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Filter by State
+              {t('map.filterByState')}
             </span>
             {hasSelection && (
               <button
@@ -78,7 +79,7 @@ export function StateFilter({ availableStates, selectedStates, onSelectionChange
                 className="text-xs text-primary hover:underline flex items-center gap-1"
               >
                 <X className="w-3 h-3" />
-                Clear
+                {t('common.clear')}
               </button>
             )}
           </div>
@@ -87,7 +88,7 @@ export function StateFilter({ availableStates, selectedStates, onSelectionChange
           <div className="max-h-64 overflow-y-auto">
             {availableStates.length === 0 ? (
               <div className="px-3 py-4 text-sm text-muted-foreground text-center">
-                No states available
+                {t('map.noStatesAvailable')}
               </div>
             ) : (
               availableStates.map((state) => {
