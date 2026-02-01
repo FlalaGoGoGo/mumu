@@ -45,12 +45,15 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
     }
   };
 
-  // Build location string: "City, State" (omit country for cleaner display)
-  const locationParts = [museum.city];
-  if (stateCode) {
-    locationParts.push(stateCode);
-  }
-  const locationString = locationParts.join(', ');
+  // Build location string: "City, State, Country" with graceful fallbacks
+  const buildLocationString = () => {
+    const parts: string[] = [];
+    if (museum.city) parts.push(museum.city);
+    if (stateCode) parts.push(stateCode);
+    if (museum.country) parts.push(museum.country);
+    return parts.length > 0 ? parts.join(', ') : 'Location unavailable';
+  };
+  const locationString = buildLocationString();
 
   // Determine open/closed status
   const isOpen = isOpenToday(museum.opening_hours);
