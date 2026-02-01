@@ -4,6 +4,7 @@ import { addDays } from 'date-fns';
 import { useExhibitions } from '@/hooks/useExhibitions';
 import { useMuseums } from '@/hooks/useMuseums';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { useLanguage } from '@/lib/i18n';
 import { ExhibitionCard } from '@/components/exhibition/ExhibitionCard';
 import { ExhibitionFilters, DateSortOrder, DistanceSortOrder } from '@/components/exhibition/ExhibitionFilters';
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,7 @@ export default function ExhibitionsPage() {
   const { data: exhibitions, isLoading: exhibitionsLoading, error: exhibitionsError } = useExhibitions();
   const { data: museums, isLoading: museumsLoading } = useMuseums();
   const { latitude, longitude, loading: geoLoading } = useGeolocation();
+  const { t } = useLanguage();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedState, setSelectedState] = useState('all');
@@ -254,8 +256,8 @@ export default function ExhibitionsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
         <ImageOff className="w-12 h-12 text-muted-foreground mb-4" />
-        <h2 className="font-display text-xl font-semibold mb-2">Failed to load exhibitions</h2>
-        <p className="text-muted-foreground">Please try again later.</p>
+        <h2 className="font-display text-xl font-semibold mb-2">{t('exhibitions.failedToLoad')}</h2>
+        <p className="text-muted-foreground">{t('exhibitions.tryAgainLater')}</p>
       </div>
     );
   }
@@ -268,10 +270,10 @@ export default function ExhibitionsPage() {
           {/* Header */}
           <div className="mb-6">
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-2">
-              Exhibitions
+              {t('exhibitions.title')}
             </h1>
             <p className="text-muted-foreground">
-              Discover current and upcoming exhibitions at museums near you.
+              {t('exhibitions.subtitle')}
             </p>
           </div>
 
@@ -312,13 +314,13 @@ export default function ExhibitionsPage() {
           {filteredExhibitions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <ImageOff className="w-12 h-12 text-muted-foreground mb-4" />
-              <h2 className="font-display text-xl font-semibold mb-2">No exhibitions found</h2>
+              <h2 className="font-display text-xl font-semibold mb-2">{t('exhibitions.noResults')}</h2>
               <p className="text-muted-foreground mb-4">
-                Try adjusting your search or filters.
+                {t('exhibitions.noResultsHint')}
               </p>
               {hasActiveFilters && (
                 <Button variant="outline" onClick={handleClearFilters}>
-                  Clear filters
+                  {t('common.clearFilters')}
                 </Button>
               )}
             </div>

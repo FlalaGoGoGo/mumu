@@ -3,6 +3,7 @@ import { ExternalLink, ImageOff } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useLanguage } from '@/lib/i18n';
 import type { Exhibition, ExhibitionStatus } from '@/types/exhibition';
 
 interface ExhibitionCardProps {
@@ -19,8 +20,20 @@ const statusColors: Record<ExhibitionStatus, string> = {
 
 export function ExhibitionCard({ exhibition, distance }: ExhibitionCardProps) {
   const [imageError, setImageError] = useState(false);
+  const { t } = useLanguage();
 
   const location = [exhibition.city, exhibition.state].filter(Boolean).join(', ');
+
+  // Map status to translation key
+  const getStatusLabel = (status: ExhibitionStatus): string => {
+    switch (status) {
+      case 'Ongoing': return t('exhibitions.ongoing');
+      case 'Upcoming': return t('exhibitions.upcoming');
+      case 'Past': return t('exhibitions.past');
+      case 'TBD': return t('exhibitions.tbd');
+      default: return status;
+    }
+  };
 
   return (
     <Card className="overflow-hidden flex flex-col h-full bg-card border border-border rounded-sm shadow-[0_1px_3px_hsl(var(--foreground)/0.04)] transition-shadow duration-200 hover:shadow-[0_4px_12px_hsl(var(--foreground)/0.08)]">
@@ -50,7 +63,7 @@ export function ExhibitionCard({ exhibition, distance }: ExhibitionCardProps) {
             variant="outline"
             className={`flex-shrink-0 text-[10px] px-1.5 py-0 h-5 ${statusColors[exhibition.status]}`}
           >
-            {exhibition.status}
+            {getStatusLabel(exhibition.status)}
           </Badge>
         </div>
 
@@ -79,7 +92,7 @@ export function ExhibitionCard({ exhibition, distance }: ExhibitionCardProps) {
             rel="noopener noreferrer"
           >
             <ExternalLink className="w-4 h-4 mr-2" />
-            Official Page
+            {t('exhibitions.officialPage')}
           </a>
         </Button>
       </CardContent>
