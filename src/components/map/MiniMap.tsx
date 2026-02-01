@@ -1,16 +1,21 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { useLanguage } from '@/lib/i18n';
+import { getMiniMapTileConfig } from '@/lib/mapTiles';
 
 interface MiniMapProps {
   mainMap: L.Map;
 }
 
 export function MiniMap({ mainMap }: MiniMapProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const miniMapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const viewportRectRef = useRef<L.Rectangle | null>(null);
+
+  // Get MapTiler API key from env (optional)
+  const mapTilerKey = import.meta.env.VITE_MAPTILER_API_KEY || null;
 
   useEffect(() => {
     if (!containerRef.current || miniMapRef.current) return;
@@ -31,10 +36,11 @@ export function MiniMap({ mainMap }: MiniMapProps) {
       touchZoom: false,
     });
 
-    // Add tile layer with muted styling
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 19,
+    // Add tile layer with language support
+    const tileConfig = getMiniMapTileConfig(language, mapTilerKey);
+    tileLayerRef.current = L.tileLayer(tileConfig.url, {
+      subdomains: tileConfig.subdomains || '',
+      maxZoom: tileConfig.maxZoom || 19,
     }).addTo(miniMap);
 
     // Create viewport rectangle
@@ -83,9 +89,28 @@ export function MiniMap({ mainMap }: MiniMapProps) {
       if (miniMapRef.current) {
         miniMapRef.current.remove();
         miniMapRef.current = null;
+        tileLayerRef.current = null;
       }
     };
   }, [mainMap]);
+
+  // Update tile layer when language changes
+  useEffect(() => {
+    if (!miniMapRef.current || !tileLayerRef.current) return;
+
+    // Remove old tile layer
+    miniMapRef.current.removeLayer(tileLayerRef.current);
+
+    // Add new tile layer with updated language
+    const tileConfig = getMiniMapTileConfig(language, mapTilerKey);
+    tileLayerRef.current = L.tileLayer(tileConfig.url, {
+      subdomains: tileConfig.subdomains || '',
+      maxZoom: tileConfig.maxZoom || 19,
+    }).addTo(miniMapRef.current);
+
+    // Move tile layer to bottom
+    tileLayerRef.current.bringToBack();
+  }, [language, mapTilerKey]);
 
   return (
     <div className="minimap-container relative group">
