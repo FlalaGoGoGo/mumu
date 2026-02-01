@@ -1,15 +1,16 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
+import { useLanguage } from '@/lib/i18n';
 
 interface MiniMapProps {
   mainMap: L.Map;
 }
 
 export function MiniMap({ mainMap }: MiniMapProps) {
+  const { t } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const miniMapRef = useRef<L.Map | null>(null);
   const viewportRectRef = useRef<L.Rectangle | null>(null);
-  const isDraggingRef = useRef(false);
 
   useEffect(() => {
     if (!containerRef.current || miniMapRef.current) return;
@@ -51,7 +52,7 @@ export function MiniMap({ mainMap }: MiniMapProps) {
 
     // Update viewport rectangle when main map moves
     const updateViewport = () => {
-      if (viewportRectRef.current && !isDraggingRef.current) {
+      if (viewportRectRef.current) {
         const newBounds = mainMap.getBounds();
         viewportRectRef.current.setBounds(newBounds);
       }
@@ -87,14 +88,27 @@ export function MiniMap({ mainMap }: MiniMapProps) {
   }, [mainMap]);
 
   return (
-    <div className="minimap-container">
+    <div className="minimap-container relative">
+      {/* Title label */}
+      <div 
+        className="absolute top-2 left-2.5 z-[1001] text-xs font-medium text-foreground/60 pointer-events-none select-none"
+        style={{
+          textShadow: '0 1px 2px hsl(var(--background))',
+        }}
+      >
+        {t('map.worldOverview')}
+      </div>
+      
+      {/* Map container */}
       <div 
         ref={containerRef}
-        className="w-[180px] h-[110px] rounded-lg border-2 border-background shadow-lg overflow-hidden cursor-pointer"
+        className="w-[180px] h-[110px] rounded-lg overflow-hidden cursor-pointer"
         style={{
+          border: '2px solid hsl(43, 60%, 45%)',
+          boxShadow: '0 4px 12px hsla(24, 10%, 18%, 0.15)',
           background: 'hsl(39, 33%, 96%)',
         }}
-        title="Click to move map"
+        title={t('map.worldOverview')}
       />
     </div>
   );

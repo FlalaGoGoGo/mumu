@@ -53,6 +53,7 @@ export const translations = {
     'map.any': 'Any',
     'map.noStatesAvailable': 'No states available',
     'map.statesSelected': 'states',
+    'map.worldOverview': 'World Overview',
     
     // Categories
     'category.all': 'All',
@@ -281,6 +282,7 @@ export const translations = {
     'map.any': '任意',
     'map.noStatesAvailable': '没有可用的州/省',
     'map.statesSelected': '个州/省',
+    'map.worldOverview': '世界概览',
     
     // Categories
     'category.all': '全部',
@@ -509,6 +511,7 @@ export const translations = {
     'map.any': '任意',
     'map.noStatesAvailable': '沒有可用的州/省',
     'map.statesSelected': '個州/省',
+    'map.worldOverview': '世界概覽',
     
     // Categories
     'category.all': '全部',
@@ -730,6 +733,7 @@ export const translations = {
     'map.any': 'Cualquiera',
     'map.noStatesAvailable': 'No hay estados disponibles',
     'map.statesSelected': 'estados',
+    'map.worldOverview': 'Vista Mundial',
     'category.all': 'Todos',
     'category.art': 'Arte',
     'category.history': 'Historia',
@@ -931,6 +935,7 @@ export const translations = {
     'map.any': 'Tous',
     'map.noStatesAvailable': 'Aucun état disponible',
     'map.statesSelected': 'états',
+    'map.worldOverview': 'Vue Mondiale',
     'category.all': 'Tous',
     'category.art': 'Art',
     'category.history': 'Histoire',
@@ -1132,6 +1137,7 @@ export const translations = {
     'map.any': 'Alle',
     'map.noStatesAvailable': 'Keine Bundesländer verfügbar',
     'map.statesSelected': 'Bundesländer',
+    'map.worldOverview': 'Weltübersicht',
     'category.all': 'Alle',
     'category.art': 'Kunst',
     'category.history': 'Geschichte',
@@ -1333,6 +1339,7 @@ export const translations = {
     'map.any': 'すべて',
     'map.noStatesAvailable': '利用可能な州がありません',
     'map.statesSelected': '州',
+    'map.worldOverview': '世界概観',
     'category.all': 'すべて',
     'category.art': 'アート',
     'category.history': '歴史',
@@ -1534,6 +1541,7 @@ export const translations = {
     'map.any': '전체',
     'map.noStatesAvailable': '이용 가능한 주가 없습니다',
     'map.statesSelected': '개 주',
+    'map.worldOverview': '세계 개요',
     'category.all': '전체',
     'category.art': '예술',
     'category.history': '역사',
@@ -1735,6 +1743,7 @@ export const translations = {
     'map.any': 'Todos',
     'map.noStatesAvailable': 'Nenhum estado disponível',
     'map.statesSelected': 'estados',
+    'map.worldOverview': 'Visão Mundial',
     'category.all': 'Todos',
     'category.art': 'Arte',
     'category.history': 'História',
@@ -1936,6 +1945,7 @@ export const translations = {
     'map.any': 'Tutti',
     'map.noStatesAvailable': 'Nessuno stato disponibile',
     'map.statesSelected': 'stati',
+    'map.worldOverview': 'Panoramica Mondiale',
     'category.all': 'Tutti',
     'category.art': 'Arte',
     'category.history': 'Storia',
