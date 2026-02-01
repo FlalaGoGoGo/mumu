@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
@@ -6,6 +6,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { Locate, Globe, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MiniMap } from './MiniMap';
 import type { Museum } from '@/types/museum';
 
 interface MuseumMapProps {
@@ -125,6 +126,7 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
+  const [mapReady, setMapReady] = useState(false);
 
   // Initialize map
   useEffect(() => {
@@ -154,11 +156,15 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
     });
     
     mapRef.current.addLayer(clusterGroupRef.current);
+    
+    // Mark map as ready
+    setMapReady(true);
 
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
+        setMapReady(false);
       }
     };
   }, []);
@@ -235,6 +241,13 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
   return (
     <div className={`relative w-full h-full ${className}`} style={{ minHeight: '300px' }}>
       <div ref={containerRef} className="w-full h-full" />
+      
+      {/* Minimap - Top Right */}
+      {mapReady && mapRef.current && (
+        <div className="absolute top-4 right-4 z-[1000]">
+          <MiniMap mainMap={mapRef.current} />
+        </div>
+      )}
       
       {/* Map Controls */}
       <div className="absolute bottom-6 right-4 flex flex-col gap-2 z-[1000]">
