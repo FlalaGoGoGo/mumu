@@ -1,21 +1,16 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { useLanguage } from '@/lib/i18n';
-import { getMiniMapTileConfig } from '@/lib/mapTiles';
 
 interface MiniMapProps {
   mainMap: L.Map;
 }
 
 export function MiniMap({ mainMap }: MiniMapProps) {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const miniMapRef = useRef<L.Map | null>(null);
-  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const viewportRectRef = useRef<L.Rectangle | null>(null);
-
-  // Get Mapbox access token from env (optional)
-  const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || null;
 
   useEffect(() => {
     if (!containerRef.current || miniMapRef.current) return;
@@ -36,13 +31,10 @@ export function MiniMap({ mainMap }: MiniMapProps) {
       touchZoom: false,
     });
 
-    // Add tile layer with language support
-    const tileConfig = getMiniMapTileConfig(language, mapboxToken);
-    tileLayerRef.current = L.tileLayer(tileConfig.url, {
-      subdomains: tileConfig.subdomains || '',
-      maxZoom: tileConfig.maxZoom || 19,
-      tileSize: 512,
-      zoomOffset: -1,
+    // Add tile layer with muted styling
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: 19,
     }).addTo(miniMap);
 
     // Create viewport rectangle
@@ -91,30 +83,9 @@ export function MiniMap({ mainMap }: MiniMapProps) {
       if (miniMapRef.current) {
         miniMapRef.current.remove();
         miniMapRef.current = null;
-        tileLayerRef.current = null;
       }
     };
   }, [mainMap]);
-
-  // Update tile layer when language changes
-  useEffect(() => {
-    if (!miniMapRef.current || !tileLayerRef.current) return;
-
-    // Remove old tile layer
-    miniMapRef.current.removeLayer(tileLayerRef.current);
-
-    // Add new tile layer with updated language
-    const tileConfig = getMiniMapTileConfig(language, mapboxToken);
-    tileLayerRef.current = L.tileLayer(tileConfig.url, {
-      subdomains: tileConfig.subdomains || '',
-      maxZoom: tileConfig.maxZoom || 19,
-      tileSize: 512,
-      zoomOffset: -1,
-    }).addTo(miniMapRef.current);
-
-    // Move tile layer to bottom
-    tileLayerRef.current.bringToBack();
-  }, [language, mapboxToken]);
 
   return (
     <div className="minimap-container relative group">
