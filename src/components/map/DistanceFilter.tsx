@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Navigation, X } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n';
 
 interface DistanceFilterProps {
   maxDistance: number | null;
@@ -12,6 +13,7 @@ interface DistanceFilterProps {
 const DISTANCE_PRESETS = [10, 25, 50, 100, 250, 500, 1000, 2500];
 
 export function DistanceFilter({ maxDistance, onMaxDistanceChange, hasLocation }: DistanceFilterProps) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -55,7 +57,7 @@ export function DistanceFilter({ maxDistance, onMaxDistanceChange, hasLocation }
     return (
       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-muted/50 text-muted-foreground border border-border cursor-not-allowed">
         <Navigation className="w-3.5 h-3.5" />
-        <span>Distance</span>
+        <span>{t('map.distance')}</span>
       </div>
     );
   }
@@ -74,7 +76,7 @@ export function DistanceFilter({ maxDistance, onMaxDistanceChange, hasLocation }
       >
         <Navigation className="w-3.5 h-3.5" />
         <span>
-          {hasFilter ? `≤ ${formatDistance(maxDistance)}` : 'Distance'}
+          {hasFilter ? `≤ ${formatDistance(maxDistance)}` : t('map.distance')}
         </span>
         <ChevronDown className={cn(
           "w-3.5 h-3.5 transition-transform",
@@ -87,7 +89,7 @@ export function DistanceFilter({ maxDistance, onMaxDistanceChange, hasLocation }
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Max Distance
+              {t('map.maxDistance')}
             </span>
             {hasFilter && (
               <button
@@ -95,7 +97,7 @@ export function DistanceFilter({ maxDistance, onMaxDistanceChange, hasLocation }
                 className="text-xs text-primary hover:underline flex items-center gap-1"
               >
                 <X className="w-3 h-3" />
-                Clear
+                {t('common.clear')}
               </button>
             )}
           </div>
@@ -104,10 +106,10 @@ export function DistanceFilter({ maxDistance, onMaxDistanceChange, hasLocation }
           <div className="p-4 space-y-4">
             <div className="text-center">
               <span className="text-2xl font-display font-semibold text-foreground">
-                {maxDistance ? formatDistance(maxDistance) : 'Any'}
+                {maxDistance ? formatDistance(maxDistance) : t('map.any')}
               </span>
               <p className="text-xs text-muted-foreground mt-1">
-                {maxDistance ? 'or closer' : 'No distance limit'}
+                {maxDistance ? t('map.orCloser') : t('map.noDistanceLimit')}
               </p>
             </div>
             
@@ -150,7 +152,7 @@ export function DistanceFilter({ maxDistance, onMaxDistanceChange, hasLocation }
                     : "bg-muted hover:bg-accent text-muted-foreground hover:text-accent-foreground"
                 )}
               >
-                Any
+                {t('map.any')}
               </button>
             </div>
           </div>

@@ -213,8 +213,8 @@ export default function MapPage() {
           </Collapsible>
 
           <p className="text-xs text-muted-foreground">
-            {sortedMuseums.length} museums • {visitedIds.size} visited
-            {latitude !== null && <span> • sorted by distance</span>}
+            {sortedMuseums.length} {t('map.museums')} • {visitedIds.size} {t('map.visited')}
+            {latitude !== null && <span> • {t('map.sortedByDistance')}</span>}
           </p>
         </div>
 
@@ -227,7 +227,7 @@ export default function MapPage() {
                   onClick={() => setSelectedMuseum(null)}
                   className="text-sm text-primary hover:underline"
                 >
-                  ← Back to list
+                  {t('map.backToList')}
                 </button>
                 <MuseumCard
                   museum={selectedMuseum}
