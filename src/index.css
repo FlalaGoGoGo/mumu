@@ -350,3 +350,12 @@
 .leaflet-tooltip-top:before {
   border-top-color: hsl(35, 15%, 82%) !important;
 }
+
+/* Minimap styling */
+.minimap-container .leaflet-container {
+  background: hsl(39, 33%, 96%);
+}
+
+.minimap-container .leaflet-tile-pane {
+  filter: saturate(0.7) brightness(1.02);
+}
