@@ -132,8 +132,8 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
   const containerRef = useRef<HTMLDivElement>(null);
   const [mapReady, setMapReady] = useState(false);
 
-  // Get MapTiler API key from env (optional)
-  const mapTilerKey = import.meta.env.VITE_MAPTILER_API_KEY || null;
+  // Get Mapbox access token from env (optional)
+  const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || null;
 
   // Initialize map
   useEffect(() => {
@@ -146,11 +146,13 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
     });
 
     // Add initial tile layer
-    const tileConfig = getTileConfig(language, mapTilerKey);
+    const tileConfig = getTileConfig(language, mapboxToken);
     tileLayerRef.current = L.tileLayer(tileConfig.url, {
       attribution: tileConfig.attribution,
       subdomains: tileConfig.subdomains || '',
       maxZoom: tileConfig.maxZoom || 19,
+      tileSize: 512,
+      zoomOffset: -1,
     }).addTo(mapRef.current);
 
     // Create marker cluster group
@@ -186,16 +188,18 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
     mapRef.current.removeLayer(tileLayerRef.current);
 
     // Add new tile layer with updated language
-    const tileConfig = getTileConfig(language, mapTilerKey);
+    const tileConfig = getTileConfig(language, mapboxToken);
     tileLayerRef.current = L.tileLayer(tileConfig.url, {
       attribution: tileConfig.attribution,
       subdomains: tileConfig.subdomains || '',
       maxZoom: tileConfig.maxZoom || 19,
+      tileSize: 512,
+      zoomOffset: -1,
     }).addTo(mapRef.current);
 
     // Move tile layer to bottom (below markers)
     tileLayerRef.current.bringToBack();
-  }, [language, mapTilerKey]);
+  }, [language, mapboxToken]);
 
   // Add markers to cluster group
   useEffect(() => {

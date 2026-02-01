@@ -14,8 +14,8 @@ export function MiniMap({ mainMap }: MiniMapProps) {
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const viewportRectRef = useRef<L.Rectangle | null>(null);
 
-  // Get MapTiler API key from env (optional)
-  const mapTilerKey = import.meta.env.VITE_MAPTILER_API_KEY || null;
+  // Get Mapbox access token from env (optional)
+  const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || null;
 
   useEffect(() => {
     if (!containerRef.current || miniMapRef.current) return;
@@ -37,10 +37,12 @@ export function MiniMap({ mainMap }: MiniMapProps) {
     });
 
     // Add tile layer with language support
-    const tileConfig = getMiniMapTileConfig(language, mapTilerKey);
+    const tileConfig = getMiniMapTileConfig(language, mapboxToken);
     tileLayerRef.current = L.tileLayer(tileConfig.url, {
       subdomains: tileConfig.subdomains || '',
       maxZoom: tileConfig.maxZoom || 19,
+      tileSize: 512,
+      zoomOffset: -1,
     }).addTo(miniMap);
 
     // Create viewport rectangle
@@ -102,15 +104,17 @@ export function MiniMap({ mainMap }: MiniMapProps) {
     miniMapRef.current.removeLayer(tileLayerRef.current);
 
     // Add new tile layer with updated language
-    const tileConfig = getMiniMapTileConfig(language, mapTilerKey);
+    const tileConfig = getMiniMapTileConfig(language, mapboxToken);
     tileLayerRef.current = L.tileLayer(tileConfig.url, {
       subdomains: tileConfig.subdomains || '',
       maxZoom: tileConfig.maxZoom || 19,
+      tileSize: 512,
+      zoomOffset: -1,
     }).addTo(miniMapRef.current);
 
     // Move tile layer to bottom
     tileLayerRef.current.bringToBack();
-  }, [language, mapTilerKey]);
+  }, [language, mapboxToken]);
 
   return (
     <div className="minimap-container relative group">
