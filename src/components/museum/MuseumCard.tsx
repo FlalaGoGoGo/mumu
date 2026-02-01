@@ -64,14 +64,24 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
   };
 
   if (compact) {
-    // Split location to de-emphasize country
-    const locationParts: string[] = [];
-    if (museum.city) locationParts.push(museum.city);
-    if (stateCode) locationParts.push(stateCode);
-    const cityState = locationParts.join(', ');
-
     return (
-      <div className="gallery-card cursor-pointer hover:border-primary/30 transition-colors">
+      <div className="gallery-card cursor-pointer hover:border-primary/30 transition-colors relative overflow-hidden">
+        {/* Corner Ribbon Status */}
+        {museum.opening_hours && (
+          <div 
+            className={cn(
+              "absolute top-0 right-0 text-[9px] font-medium px-4 py-0.5",
+              "origin-center rotate-0",
+              "rounded-bl-md",
+              isOpen 
+                ? 'bg-green-100 text-green-700' 
+                : 'bg-red-100 text-red-700'
+            )}
+          >
+            {isOpen ? 'Open' : 'Closed'}
+          </div>
+        )}
+
         <div className="flex gap-3">
           {/* Hero Image */}
           {museum.hero_image_url && (
@@ -83,21 +93,18 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
           )}
           
           {/* Left Column: Info */}
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 pr-8">
             {/* Title - 2 line clamp */}
             <h3 className="font-display text-base font-semibold text-foreground leading-snug line-clamp-2">
               {museum.name}
             </h3>
             
-            {/* Location with de-emphasized country */}
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {cityState}
-              {museum.country && (
-                <span className="text-muted-foreground/60">, {museum.country}</span>
-              )}
+            {/* Location - unified style */}
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              {locationString}
             </p>
             
-            {/* Distance */}
+            {/* Distance - unified style */}
             {distance && (
               <p className="text-xs text-muted-foreground/70 flex items-center gap-1 mt-0.5">
                 <Navigation className="w-3 h-3" />
@@ -106,10 +113,9 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
             )}
           </div>
           
-          {/* Right Column: Actions - fixed width */}
-          <div className="flex flex-col items-end justify-between w-[72px] flex-shrink-0">
-            {/* Heart Icon */}
-            {showSaveButton && (
+          {/* Right Column: Heart - positioned below ribbon area */}
+          {showSaveButton && (
+            <div className="flex flex-col items-end pt-5 flex-shrink-0">
               <button
                 onClick={handleSaveClick}
                 className={cn(
@@ -122,23 +128,8 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
               >
                 <Heart className={cn("w-4 h-4", saved && "fill-current")} />
               </button>
-            )}
-            
-            {/* Status Badge */}
-            {museum.opening_hours && (
-              <Badge 
-                variant="outline" 
-                className={cn(
-                  "text-[10px] px-2 py-0 h-5 whitespace-nowrap",
-                  isOpen 
-                    ? 'bg-green-50 text-green-700 border-green-200' 
-                    : 'bg-red-50 text-red-700 border-red-200'
-                )}
-              >
-                {isOpen ? 'Open' : 'Closed'}
-              </Badge>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     );
