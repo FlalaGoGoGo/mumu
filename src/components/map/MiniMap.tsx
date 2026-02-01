@@ -88,12 +88,14 @@ export function MiniMap({ mainMap }: MiniMapProps) {
   }, [mainMap]);
 
   return (
-    <div className="minimap-container relative">
-      {/* Title label */}
+    <div className="minimap-container relative group">
+      {/* Title chip/badge */}
       <div 
-        className="absolute top-2 left-2.5 z-[1001] text-xs font-medium text-foreground/60 pointer-events-none select-none"
+        className="absolute top-2 left-2 z-[1001] pointer-events-none select-none px-2.5 py-1 rounded-lg text-xs font-medium text-foreground/80 transition-all duration-200 group-hover:bg-white/90"
         style={{
-          textShadow: '0 1px 2px hsl(var(--background))',
+          background: 'hsla(0, 0%, 100%, 0.75)',
+          border: '1px solid hsla(0, 0%, 60%, 0.3)',
+          boxShadow: '0 1px 3px hsla(0, 0%, 0%, 0.08)',
         }}
       >
         {t('map.worldOverview')}
