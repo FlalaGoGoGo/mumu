@@ -1,12 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Search, SlidersHorizontal, X, MapPin, CalendarIcon, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, SlidersHorizontal, X, CalendarIcon } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
 import { Calendar } from '@/components/ui/calendar';
-import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -25,6 +23,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n';
 import type { ExhibitionStatus } from '@/types/exhibition';
 
 type DatePreset = 'this-week' | 'this-month' | 'next-30-days' | null;
@@ -81,28 +80,6 @@ interface ExhibitionFiltersProps {
   onDistanceSortOrderChange: (value: DistanceSortOrder) => void;
 }
 
-const STATUS_OPTIONS: { value: ExhibitionStatus | 'all'; label: string }[] = [
-  { value: 'all', label: 'All Statuses' },
-  { value: 'Ongoing', label: 'Ongoing' },
-  { value: 'Upcoming', label: 'Upcoming' },
-  { value: 'Past', label: 'Past' },
-  { value: 'TBD', label: 'TBD' },
-];
-
-const MAX_DISTANCE_VALUE = 500; // miles
-
-const DATE_SORT_OPTIONS = [
-  { value: 'none' as const, label: 'Date' },
-  { value: 'asc' as const, label: 'Date ↑' },
-  { value: 'desc' as const, label: 'Date ↓' },
-];
-
-const DISTANCE_SORT_OPTIONS = [
-  { value: 'none' as const, label: 'Distance' },
-  { value: 'asc' as const, label: 'Distance ↑' },
-  { value: 'desc' as const, label: 'Distance ↓' },
-];
-
 export function ExhibitionFilters({
   searchQuery,
   onSearchChange,
@@ -115,8 +92,6 @@ export function ExhibitionFilters({
   dateTo,
   onDateFromChange,
   onDateToChange,
-  maxDistance,
-  onMaxDistanceChange,
   hasLocation,
   onClearFilters,
   hasActiveFilters,
@@ -128,8 +103,32 @@ export function ExhibitionFilters({
   distanceSortOrder,
   onDistanceSortOrderChange,
 }: ExhibitionFiltersProps) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [activePreset, setActivePreset] = useState<DatePreset>(null);
+
+  // Status options with translations
+  const STATUS_OPTIONS: { value: ExhibitionStatus | 'all'; labelKey: string }[] = [
+    { value: 'all', labelKey: 'exhibitions.allStatuses' },
+    { value: 'Ongoing', labelKey: 'exhibitions.ongoing' },
+    { value: 'Upcoming', labelKey: 'exhibitions.upcoming' },
+    { value: 'Past', labelKey: 'exhibitions.past' },
+    { value: 'TBD', labelKey: 'exhibitions.tbd' },
+  ];
+
+  // Date sort options with translations
+  const DATE_SORT_OPTIONS = [
+    { value: 'none' as const, labelKey: 'exhibitions.dateSort' },
+    { value: 'asc' as const, labelKey: 'exhibitions.dateSortAsc' },
+    { value: 'desc' as const, labelKey: 'exhibitions.dateSortDesc' },
+  ];
+
+  // Distance sort options with translations
+  const DISTANCE_SORT_OPTIONS = [
+    { value: 'none' as const, labelKey: 'exhibitions.distanceSort' },
+    { value: 'asc' as const, labelKey: 'exhibitions.distanceSortAsc' },
+    { value: 'desc' as const, labelKey: 'exhibitions.distanceSortDesc' },
+  ];
 
   // Check if current dates match a preset
   useEffect(() => {
@@ -171,12 +170,6 @@ export function ExhibitionFilters({
     }
   };
 
-  const DATE_PRESETS = [
-    { key: 'this-week' as const, label: 'This Week' },
-    { key: 'this-month' as const, label: 'This Month' },
-    { key: 'next-30-days' as const, label: 'Next 30 Days' },
-  ];
-
   return (
     <div className="flex flex-col gap-4 mb-6">
       {/* Search Row with Sort Controls */}
@@ -184,7 +177,7 @@ export function ExhibitionFilters({
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search..."
+            placeholder={t('exhibitions.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-10"
@@ -194,7 +187,7 @@ export function ExhibitionFilters({
           <CollapsibleTrigger asChild>
             <Button variant="outline" className="gap-2">
               <SlidersHorizontal className="w-4 h-4" />
-              <span className="hidden sm:inline">Filters</span>
+              <span className="hidden sm:inline">{t('exhibitions.filters')}</span>
               {activeFilterCount > 0 && (
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                   {activeFilterCount}
@@ -212,7 +205,7 @@ export function ExhibitionFilters({
           <SelectContent>
             {DATE_SORT_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
+                {t(opt.labelKey as any)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -230,7 +223,7 @@ export function ExhibitionFilters({
           <SelectContent>
             {DISTANCE_SORT_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
+                {t(opt.labelKey as any)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -244,13 +237,13 @@ export function ExhibitionFilters({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* State Filter */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">State</label>
+                <label className="text-sm font-medium text-foreground">{t('exhibitions.state')}</label>
                 <Select value={selectedState} onValueChange={onStateChange}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All States" />
+                    <SelectValue placeholder={t('exhibitions.allStates')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All States</SelectItem>
+                    <SelectItem value="all">{t('exhibitions.allStates')}</SelectItem>
                     {states.map((state) => (
                       <SelectItem key={state} value={state}>
                         {state}
@@ -262,15 +255,15 @@ export function ExhibitionFilters({
 
               {/* Status Filter */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Status</label>
+                <label className="text-sm font-medium text-foreground">{t('exhibitions.status')}</label>
                 <Select value={selectedStatus} onValueChange={onStatusChange}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All Statuses" />
+                    <SelectValue placeholder={t('exhibitions.allStatuses')} />
                   </SelectTrigger>
                   <SelectContent>
                     {STATUS_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                        {t(option.labelKey as any)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -279,7 +272,7 @@ export function ExhibitionFilters({
 
               {/* Date From */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">From</label>
+                <label className="text-sm font-medium text-foreground">{t('exhibitions.from')}</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -290,7 +283,7 @@ export function ExhibitionFilters({
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateFrom ? format(dateFrom, "MMM d, yyyy") : "Start date"}
+                      {dateFrom ? format(dateFrom, "MMM d, yyyy") : t('exhibitions.startDate')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -307,7 +300,7 @@ export function ExhibitionFilters({
 
               {/* Date To */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">To</label>
+                <label className="text-sm font-medium text-foreground">{t('exhibitions.to')}</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -318,7 +311,7 @@ export function ExhibitionFilters({
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateTo ? format(dateTo, "MMM d, yyyy") : "End date"}
+                      {dateTo ? format(dateTo, "MMM d, yyyy") : t('exhibitions.endDate')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -339,7 +332,7 @@ export function ExhibitionFilters({
               <div className="pt-2 border-t">
                 <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-muted-foreground">
                   <X className="w-4 h-4 mr-1" />
-                  Clear all filters
+                  {t('exhibitions.clearFilters')}
                 </Button>
               </div>
             )}
