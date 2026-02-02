@@ -42,6 +42,10 @@ interface ArtFiltersProps {
   artists: Artist[];
   museums: Museum[];
   artTypes: string[];
+  artistCounts: Map<string, number>;
+  museumCounts: Map<string, number>;
+  totalArtistCount: number;
+  totalMuseumCount: number;
 }
 
 export function ArtFilters({
@@ -50,10 +54,28 @@ export function ArtFilters({
   artists,
   museums,
   artTypes,
+  artistCounts,
+  museumCounts,
+  totalArtistCount,
+  totalMuseumCount,
 }: ArtFiltersProps) {
   const { t } = useLanguage();
   const [artistOpen, setArtistOpen] = useState(false);
   const [museumOpen, setMuseumOpen] = useState(false);
+
+  // Sort artists alphabetically by name, only those with count > 0
+  const sortedArtists = useMemo(() => {
+    return artists
+      .filter(a => (artistCounts.get(a.artist_id) || 0) > 0)
+      .sort((a, b) => a.artist_name.localeCompare(b.artist_name, undefined, { sensitivity: 'base' }));
+  }, [artists, artistCounts]);
+
+  // Sort museums alphabetically by name, only those with count > 0
+  const sortedMuseums = useMemo(() => {
+    return museums
+      .filter(m => (museumCounts.get(m.museum_id) || 0) > 0)
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  }, [museums, museumCounts]);
 
   const selectedArtist = useMemo(
     () => artists.find(a => a.artist_id === filters.artistId),
@@ -140,9 +162,10 @@ export function ArtFilters({
                         !filters.artistId ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    {t('art.allArtists')}
+                    <span>{t('art.allArtists')}</span>
+                    <span className="ml-1 text-xs text-muted-foreground">({totalArtistCount})</span>
                   </CommandItem>
-                  {artists.map((artist) => (
+                  {sortedArtists.map((artist) => (
                     <CommandItem
                       key={artist.artist_id}
                       value={artist.artist_name}
@@ -157,7 +180,8 @@ export function ArtFilters({
                           filters.artistId === artist.artist_id ? "opacity-100" : "opacity-0"
                         )}
                       />
-                      {artist.artist_name}
+                      <span>{artist.artist_name}</span>
+                      <span className="ml-1 text-xs text-muted-foreground">({artistCounts.get(artist.artist_id) || 0})</span>
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -200,9 +224,10 @@ export function ArtFilters({
                         !filters.museumId ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    {t('art.allMuseums')}
+                    <span>{t('art.allMuseums')}</span>
+                    <span className="ml-1 text-xs text-muted-foreground">({totalMuseumCount})</span>
                   </CommandItem>
-                  {museums.map((museum) => (
+                  {sortedMuseums.map((museum) => (
                     <CommandItem
                       key={museum.museum_id}
                       value={museum.name}
@@ -217,7 +242,8 @@ export function ArtFilters({
                           filters.museumId === museum.museum_id ? "opacity-100" : "opacity-0"
                         )}
                       />
-                      {museum.name}
+                      <span>{museum.name}</span>
+                      <span className="ml-1 text-xs text-muted-foreground">({museumCounts.get(museum.museum_id) || 0})</span>
                     </CommandItem>
                   ))}
                 </CommandGroup>
