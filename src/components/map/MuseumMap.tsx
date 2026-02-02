@@ -13,9 +13,25 @@ interface MuseumMapProps {
   museums: Museum[];
   selectedMuseum: Museum | null;
   onSelectMuseum: (museum: Museum) => void;
-  userLocation?: { latitude: number; longitude: number } | null;
+  userLocation?: { latitude: number; longitude: number; accuracy?: number | null } | null;
   className?: string;
 }
+
+// Create user location marker icon
+const createUserLocationIcon = () => {
+  return L.divIcon({
+    className: 'user-location-marker',
+    html: `
+      <div class="user-location-wrapper">
+        <div class="user-location-halo"></div>
+        <div class="user-location-ring"></div>
+        <div class="user-location-dot"></div>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  });
+};
 
 // Create custom marker icons
 const createMarkerIcon = (isAic: boolean) => {
@@ -125,6 +141,8 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
   const mapRef = useRef<L.Map | null>(null);
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const userMarkerRef = useRef<L.Marker | null>(null);
+  const accuracyCircleRef = useRef<L.Circle | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [mapReady, setMapReady] = useState(false);
 
@@ -164,10 +182,45 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
+        userMarkerRef.current = null;
+        accuracyCircleRef.current = null;
         setMapReady(false);
       }
     };
   }, []);
+
+  // Update user location marker
+  useEffect(() => {
+    if (!mapRef.current || !userLocation) return;
+
+    const { latitude, longitude, accuracy } = userLocation;
+    const latLng = L.latLng(latitude, longitude);
+
+    // Create or update accuracy circle
+    if (accuracy && accuracy < 5000) { // Only show if accuracy is reasonable
+      if (accuracyCircleRef.current) {
+        accuracyCircleRef.current.setLatLng(latLng);
+        accuracyCircleRef.current.setRadius(accuracy);
+      } else {
+        accuracyCircleRef.current = L.circle(latLng, {
+          radius: accuracy,
+          fillColor: 'hsl(348, 45%, 32%)',
+          fillOpacity: 0.08,
+          stroke: false,
+        }).addTo(mapRef.current);
+      }
+    }
+
+    // Create or update user marker
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setLatLng(latLng);
+    } else {
+      userMarkerRef.current = L.marker(latLng, {
+        icon: createUserLocationIcon(),
+        zIndexOffset: -100, // Below museum markers
+      }).addTo(mapRef.current);
+    }
+  }, [userLocation]);
 
   // Add markers to cluster group
   useEffect(() => {
