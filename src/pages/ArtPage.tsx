@@ -206,7 +206,7 @@ export default function ArtPage() {
 
           {/* Grid */}
           {filteredArtworks.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
               {filteredArtworks.map((artwork) => (
                 <ArtworkCard
                   key={artwork.artwork_id}
