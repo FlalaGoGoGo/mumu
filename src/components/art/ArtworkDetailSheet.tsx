@@ -141,9 +141,9 @@ export function ArtworkDetailSheet({
                   </a>
                 </Button>
               )}
-              <Button variant="secondary" onClick={handleNavigate}>
-                <Navigation className="mr-2 h-4 w-4" />
+              <Button variant="outline" onClick={handleNavigate}>
                 {t('art.navigate')}
+                <Navigation className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>
