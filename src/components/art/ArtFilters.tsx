@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/popover';
 import { X, ChevronDown, Check, ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getCountryFlag } from '@/lib/countryFlag';
 
 export interface ArtFiltersState {
   artType: string | null;
@@ -232,7 +233,7 @@ export function ArtFilters({
                         !filters.museumId ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    <span>{t('art.allMuseums')}</span>
+                    <span>🌍 {t('art.allMuseums')}</span>
                     <span className="ml-1 text-xs text-muted-foreground">({totalMuseumCount})</span>
                   </CommandItem>
                   {sortedMuseums.map((museum) => (
@@ -250,7 +251,7 @@ export function ArtFilters({
                           filters.museumId === museum.museum_id ? "opacity-100" : "opacity-0"
                         )}
                       />
-                      <span>{museum.name}</span>
+                      <span>{getCountryFlag(museum.country)} {museum.name}</span>
                       <span className="ml-1 text-xs text-muted-foreground">({museumCounts.get(museum.museum_id) || 0})</span>
                     </CommandItem>
                   ))}
