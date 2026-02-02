@@ -34,8 +34,8 @@ export default function ArtPage() {
     return Array.from(types).sort();
   }, [artworks]);
 
-  // Filter artworks
-  const filteredArtworks = useMemo(() => {
+  // Filter artworks (without museum filter for computing available museums)
+  const artworksWithoutMuseumFilter = useMemo(() => {
     return artworks.filter(artwork => {
       if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) {
         return false;
@@ -43,15 +43,24 @@ export default function ArtPage() {
       if (filters.artistId && artwork.artist_id !== filters.artistId) {
         return false;
       }
-      if (filters.museumId && artwork.museum_id !== filters.museumId) {
-        return false;
-      }
       if (filters.onViewOnly && !artwork.on_view) {
         return false;
       }
       return true;
     });
-  }, [artworks, filters]);
+  }, [artworks, filters.artType, filters.artistId, filters.onViewOnly]);
+
+  // Get museums that have artworks in the current filtered set
+  const availableMuseums = useMemo(() => {
+    const museumIds = new Set(artworksWithoutMuseumFilter.map(a => a.museum_id));
+    return museums.filter(m => museumIds.has(m.museum_id));
+  }, [artworksWithoutMuseumFilter, museums]);
+
+  // Final filtered artworks (including museum filter)
+  const filteredArtworks = useMemo(() => {
+    if (!filters.museumId) return artworksWithoutMuseumFilter;
+    return artworksWithoutMuseumFilter.filter(artwork => artwork.museum_id === filters.museumId);
+  }, [artworksWithoutMuseumFilter, filters.museumId]);
 
   // Get selected artist
   const selectedArtist: Artist | null = useMemo(() => {
@@ -111,7 +120,7 @@ export default function ArtPage() {
           filters={filters}
           onFiltersChange={setFilters}
           artists={artists}
-          museums={museums}
+          museums={availableMuseums}
           artTypes={artTypes}
         />
       </div>
