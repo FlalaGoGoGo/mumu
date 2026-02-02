@@ -5,7 +5,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { ArtworkCard } from '@/components/art/ArtworkCard';
 import { ArtistPanel } from '@/components/art/ArtistPanel';
 import { ArtistDrawer } from '@/components/art/ArtistDrawer';
-import { ArtFilters, ArtFiltersState } from '@/components/art/ArtFilters';
+import { ArtFilters, ArtFiltersState, SortOrder } from '@/components/art/ArtFilters';
 import { ArtworkDetailSheet } from '@/components/art/ArtworkDetailSheet';
 import { EnrichedArtwork, Artist } from '@/types/art';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,6 +27,7 @@ export default function ArtPage() {
   const [selectedArtwork, setSelectedArtwork] = useState<EnrichedArtwork | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [artistDrawerOpen, setArtistDrawerOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   // Get unique art types
   const artTypes = useMemo(() => {
@@ -96,15 +97,21 @@ export default function ArtPage() {
     return artists.filter(a => artistIds.has(a.artist_id));
   }, [artworksWithoutArtistFilter, artists]);
 
-  // Final filtered artworks (including all filters)
+  // Final filtered artworks (including all filters) with sorting
   const filteredArtworks = useMemo(() => {
-    return artworksWithoutMuseumFilter.filter(artwork => {
+    const filtered = artworksWithoutMuseumFilter.filter(artwork => {
       if (filters.museumId && artwork.museum_id !== filters.museumId) {
         return false;
       }
       return true;
     });
-  }, [artworksWithoutMuseumFilter, filters.museumId]);
+    
+    // Apply sorting by title (case-insensitive, locale-aware)
+    return filtered.sort((a, b) => {
+      const comparison = a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [artworksWithoutMuseumFilter, filters.museumId, sortOrder]);
 
   // Get selected artist
   const selectedArtist: Artist | null = useMemo(() => {
@@ -163,6 +170,8 @@ export default function ArtPage() {
         <ArtFilters
           filters={filters}
           onFiltersChange={setFilters}
+          sortOrder={sortOrder}
+          onSortOrderChange={setSortOrder}
           artists={availableArtists}
           museums={availableMuseums}
           artTypes={artTypes}

@@ -26,7 +26,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { X, ChevronDown, Check } from 'lucide-react';
+import { X, ChevronDown, Check, ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface ArtFiltersState {
@@ -36,9 +36,13 @@ export interface ArtFiltersState {
   onViewOnly: boolean;
 }
 
+export type SortOrder = 'asc' | 'desc';
+
 interface ArtFiltersProps {
   filters: ArtFiltersState;
   onFiltersChange: (filters: ArtFiltersState) => void;
+  sortOrder: SortOrder;
+  onSortOrderChange: (order: SortOrder) => void;
   artists: Artist[];
   museums: Museum[];
   artTypes: string[];
@@ -51,6 +55,8 @@ interface ArtFiltersProps {
 export function ArtFilters({
   filters,
   onFiltersChange,
+  sortOrder,
+  onSortOrderChange,
   artists,
   museums,
   artTypes,
@@ -108,6 +114,8 @@ export function ArtFilters({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
+        {/* Left side filters */}
+        <div className="flex flex-wrap items-center gap-2 flex-1">
         {/* Art Type Filter */}
         <Select
           value={filters.artType || 'all'}
@@ -265,19 +273,31 @@ export function ArtFilters({
             {t('art.onViewOnly')}
           </Label>
         </div>
+        </div>
 
-        {/* Clear All */}
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilters}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <X className="mr-1 h-4 w-4" />
-            {t('common.clearFilters')}
-          </Button>
-        )}
+        {/* Sort Control - Right aligned */}
+        <Select
+          value={sortOrder}
+          onValueChange={(value) => onSortOrderChange(value as SortOrder)}
+        >
+          <SelectTrigger className="w-[150px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="asc">
+              <span className="flex items-center gap-2">
+                <ArrowDownAZ className="h-4 w-4" />
+                {t('art.sortAZ')}
+              </span>
+            </SelectItem>
+            <SelectItem value="desc">
+              <span className="flex items-center gap-2">
+                <ArrowUpAZ className="h-4 w-4" />
+                {t('art.sortZA')}
+              </span>
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Active Filter Chips */}
