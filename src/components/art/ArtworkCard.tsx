@@ -45,6 +45,11 @@ export function ArtworkCard({ artwork, onClick }: ArtworkCardProps) {
           <p className="line-clamp-1 text-left text-xs text-white/80">
             {artwork.artist_name}
           </p>
+          {artwork.museum_name && (
+            <p className="line-clamp-1 text-left text-[10px] font-light text-white/60">
+              {artwork.museum_name}
+            </p>
+          )}
         </div>
       </AspectRatio>
     </button>
