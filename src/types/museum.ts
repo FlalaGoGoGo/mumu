@@ -12,6 +12,7 @@ export interface Museum {
   has_full_content: boolean;
   hero_image_url: string | null;
   tags: string | null;
+  highlight: boolean;
 }
 
 export interface AicHighlight {

@@ -61,6 +61,7 @@ export type Database = {
           created_at: string | null
           has_full_content: boolean | null
           hero_image_url: string | null
+          highlight: boolean | null
           lat: number
           lng: number
           museum_id: string
@@ -77,6 +78,7 @@ export type Database = {
           created_at?: string | null
           has_full_content?: boolean | null
           hero_image_url?: string | null
+          highlight?: boolean | null
           lat: number
           lng: number
           museum_id: string
@@ -93,6 +95,7 @@ export type Database = {
           created_at?: string | null
           has_full_content?: boolean | null
           hero_image_url?: string | null
+          highlight?: boolean | null
           lat?: number
           lng?: number
           museum_id?: string
