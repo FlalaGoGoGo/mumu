@@ -33,9 +33,37 @@ const createUserLocationIcon = () => {
   });
 };
 
+// SVG paths for category icons (matching filter chips)
+const categoryIconSvgs: Record<string, string> = {
+  // Palette icon for Art
+  art: `<circle cx="13.5" cy="6.5" r=".5" fill="white"/><circle cx="17.5" cy="10.5" r=".5" fill="white"/><circle cx="8.5" cy="7.5" r=".5" fill="white"/><circle cx="6.5" cy="12.5" r=".5" fill="white"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z" stroke="white" stroke-width="2" fill="none"/>`,
+  // Scroll icon for History
+  history: `<path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M19 17V5a2 2 0 0 0-2-2H4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
+  // Flask icon for Science
+  science: `<path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8.5 2h7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M7 16h10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
+  // Leaf icon for Nature
+  nature: `<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
+  // Landmark icon for Temple
+  temple: `<line x1="3" x2="21" y1="22" y2="22" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="6" x2="6" y1="18" y2="11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="10" x2="10" y1="18" y2="11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="14" x2="14" y1="18" y2="11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="18" x2="18" y1="18" y2="11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polygon points="12 2 20 7 4 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="3" x2="21" y1="18" y2="18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+  // Default building icon (fallback)
+  default: `<path d="M3 21h18" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 21V7l7-4 7 4v14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 21v-8h6v8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`,
+};
+
+// Get category from museum tags
+const getMuseumCategory = (tags: string | null): string => {
+  if (!tags) return 'default';
+  const tag = tags.toLowerCase();
+  if (['art', 'history', 'science', 'nature', 'temple'].includes(tag)) {
+    return tag;
+  }
+  return 'default';
+};
+
 // Create custom marker icons
-const createMarkerIcon = (isAic: boolean) => {
+const createMarkerIcon = (isAic: boolean, category: string) => {
   const color = isAic ? 'hsl(43, 60%, 45%)' : 'hsl(348, 45%, 32%)';
+  const iconSvg = categoryIconSvgs[category] || categoryIconSvgs.default;
+  
   return L.divIcon({
     className: 'custom-marker-wrapper',
     html: `
@@ -52,10 +80,8 @@ const createMarkerIcon = (isAic: boolean) => {
         cursor: pointer;
         transition: transform 0.15s ease;
       ">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 21h18"/>
-          <path d="M5 21V7l7-4 7 4v14"/>
-          <path d="M9 21v-8h6v8"/>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          ${iconSvg}
         </svg>
       </div>
     `,
@@ -65,8 +91,10 @@ const createMarkerIcon = (isAic: boolean) => {
   });
 };
 
-const createSelectedMarkerIcon = (isAic: boolean) => {
+const createSelectedMarkerIcon = (isAic: boolean, category: string) => {
   const color = isAic ? 'hsl(43, 60%, 45%)' : 'hsl(348, 45%, 32%)';
+  const iconSvg = categoryIconSvgs[category] || categoryIconSvgs.default;
+  
   return L.divIcon({
     className: 'custom-marker-wrapper selected',
     html: `
@@ -83,10 +111,8 @@ const createSelectedMarkerIcon = (isAic: boolean) => {
         cursor: pointer;
         transform: scale(1.1);
       ">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 21h18"/>
-          <path d="M5 21V7l7-4 7 4v14"/>
-          <path d="M9 21v-8h6v8"/>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          ${iconSvg}
         </svg>
       </div>
     `,
@@ -233,7 +259,8 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
     museums.forEach((museum) => {
       const isAic = museum.has_full_content;
       const isSelected = selectedMuseum?.museum_id === museum.museum_id;
-      const icon = isSelected ? createSelectedMarkerIcon(isAic) : createMarkerIcon(isAic);
+      const category = getMuseumCategory(museum.tags);
+      const icon = isSelected ? createSelectedMarkerIcon(isAic, category) : createMarkerIcon(isAic, category);
       
       const marker = L.marker([museum.lat, museum.lng], { icon })
         .on('click', () => onSelectMuseum(museum));
