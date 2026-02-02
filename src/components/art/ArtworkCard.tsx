@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { EnrichedArtwork } from '@/types/art';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { cn } from '@/lib/utils';
 
 interface ArtworkCardProps {
   artwork: EnrichedArtwork;
   onClick: () => void;
+  compact?: boolean;
 }
 
-export function ArtworkCard({ artwork, onClick }: ArtworkCardProps) {
+export function ArtworkCard({ artwork, onClick, compact = false }: ArtworkCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
@@ -38,15 +40,27 @@ export function ArtworkCard({ artwork, onClick }: ArtworkCardProps) {
         )}
         
         {/* Hover overlay */}
-        <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          <h3 className="line-clamp-2 text-left text-sm font-medium text-white">
+        <div className={cn(
+          "absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100",
+          compact ? "p-2" : "p-3"
+        )}>
+          <h3 className={cn(
+            "line-clamp-2 text-left font-medium text-white",
+            compact ? "text-xs leading-tight" : "text-sm"
+          )}>
             {artwork.title}
           </h3>
-          <p className="line-clamp-1 text-left text-xs text-white/80">
+          <p className={cn(
+            "text-left text-white/80 mt-0.5",
+            compact ? "text-[10px] leading-tight" : "text-xs"
+          )}>
             {artwork.artist_name}
           </p>
           {artwork.museum_name && (
-            <p className="line-clamp-1 text-left text-[10px] font-light text-white/60">
+            <p className={cn(
+              "text-left font-light text-white/60 mt-0.5",
+              compact ? "text-[9px] leading-tight line-clamp-2" : "text-[10px] line-clamp-1"
+            )}>
               {artwork.museum_name}
             </p>
           )}
