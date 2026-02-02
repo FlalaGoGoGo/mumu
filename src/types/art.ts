@@ -24,6 +24,7 @@ export interface Artwork {
   dimensions: string;
   museum_page_url: string;
   on_view: boolean;
+  highlight: boolean;
 }
 
 export interface EnrichedArtwork extends Artwork {
