@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { LanguageProvider } from "@/lib/i18n";
 import { usePreferences } from "@/hooks/usePreferences";
 import Index from "./pages/Index";
+import ArtPage from "./pages/ArtPage";
 import PlanPage from "./pages/PlanPage";
 import PassportPage from "./pages/PassportPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -29,6 +30,7 @@ function AppWithLanguage() {
         <AppLayout>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/art" element={<ArtPage />} />
             <Route path="/plan" element={<PlanPage />} />
             <Route path="/passport" element={<PassportPage />} />
             <Route path="/settings" element={<SettingsPage />} />
