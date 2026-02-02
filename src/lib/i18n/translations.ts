@@ -278,6 +278,8 @@ export const translations = {
     'art.noResults': 'No artworks found',
     'art.tryAdjustingFilters': 'Try adjusting your filters',
     'art.viewDetails': 'View details',
+    'art.sortAZ': 'Title: A → Z',
+    'art.sortZA': 'Title: Z → A',
   },
   'Simplified Chinese': {
     // Navigation
@@ -539,6 +541,8 @@ export const translations = {
     'art.noResults': '未找到艺术品',
     'art.tryAdjustingFilters': '请尝试调整筛选条件',
     'art.viewDetails': '查看详情',
+    'art.sortAZ': '标题: A → Z',
+    'art.sortZA': '标题: Z → A',
   },
   'Traditional Chinese': {
     // Navigation
@@ -798,6 +802,8 @@ export const translations = {
     'art.noResults': '未找到藝術品',
     'art.tryAdjustingFilters': '請嘗試調整篩選條件',
     'art.viewDetails': '查看詳情',
+    'art.sortAZ': '標題: A → Z',
+    'art.sortZA': '標題: Z → A',
   },
   Spanish: {
     'nav.map': 'Mapa',
@@ -1032,6 +1038,8 @@ export const translations = {
     'art.noResults': 'No se encontraron obras',
     'art.tryAdjustingFilters': 'Intenta ajustar los filtros',
     'art.viewDetails': 'Ver detalles',
+    'art.sortAZ': 'Título: A → Z',
+    'art.sortZA': 'Título: Z → A',
   },
   French: {
     'nav.map': 'Carte',
@@ -1266,6 +1274,8 @@ export const translations = {
     'art.noResults': 'Aucune œuvre trouvée',
     'art.tryAdjustingFilters': 'Essayez d\'ajuster les filtres',
     'art.viewDetails': 'Voir les détails',
+    'art.sortAZ': 'Titre: A → Z',
+    'art.sortZA': 'Titre: Z → A',
   },
   German: {
     'nav.map': 'Karte',
@@ -1500,6 +1510,8 @@ export const translations = {
     'art.noResults': 'Keine Kunstwerke gefunden',
     'art.tryAdjustingFilters': 'Versuchen Sie, die Filter anzupassen',
     'art.viewDetails': 'Details anzeigen',
+    'art.sortAZ': 'Titel: A → Z',
+    'art.sortZA': 'Titel: Z → A',
   },
   Japanese: {
     'nav.map': '地図',
@@ -1734,6 +1746,8 @@ export const translations = {
     'art.noResults': '作品が見つかりません',
     'art.tryAdjustingFilters': 'フィルターを調整してください',
     'art.viewDetails': '詳細を見る',
+    'art.sortAZ': 'タイトル: A → Z',
+    'art.sortZA': 'タイトル: Z → A',
   },
   Korean: {
     'nav.map': '지도',
@@ -1968,6 +1982,8 @@ export const translations = {
     'art.noResults': '작품을 찾을 수 없습니다',
     'art.tryAdjustingFilters': '필터를 조정해 보세요',
     'art.viewDetails': '상세 보기',
+    'art.sortAZ': '제목: A → Z',
+    'art.sortZA': '제목: Z → A',
   },
   Portuguese: {
     'nav.map': 'Mapa',
@@ -2202,6 +2218,8 @@ export const translations = {
     'art.noResults': 'Nenhuma obra encontrada',
     'art.tryAdjustingFilters': 'Tente ajustar os filtros',
     'art.viewDetails': 'Ver detalhes',
+    'art.sortAZ': 'Título: A → Z',
+    'art.sortZA': 'Título: Z → A',
   },
   Italian: {
     'nav.map': 'Mappa',
@@ -2436,6 +2454,8 @@ export const translations = {
     'art.noResults': 'Nessuna opera trovata',
     'art.tryAdjustingFilters': 'Prova a modificare i filtri',
     'art.viewDetails': 'Vedi dettagli',
+    'art.sortAZ': 'Titolo: A → Z',
+    'art.sortZA': 'Titolo: Z → A',
   },
 } as const;
 
