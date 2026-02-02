@@ -26,7 +26,7 @@ export default function MapPage() {
   const { data: visits = [] } = useVisits();
   const addVisit = useAddVisit();
   const removeVisit = useRemoveVisit();
-  const { latitude, longitude } = useGeolocation();
+  const { latitude, longitude, accuracy } = useGeolocation(true);
   
   const [selectedMuseum, setSelectedMuseum] = useState<Museum | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -265,7 +265,7 @@ export default function MapPage() {
           museums={sortedMuseums.map(m => m.museum)}
           selectedMuseum={selectedMuseum}
           onSelectMuseum={setSelectedMuseum}
-          userLocation={latitude !== null && longitude !== null ? { latitude, longitude } : null}
+          userLocation={latitude !== null && longitude !== null ? { latitude, longitude, accuracy } : null}
           className="w-full h-full"
         />
 

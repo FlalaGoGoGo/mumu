@@ -359,3 +359,56 @@
 .minimap-container .leaflet-tile-pane {
   filter: saturate(0.7) brightness(1.02);
 }
+
+/* User location marker styling */
+.user-location-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.user-location-wrapper {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-location-halo {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: hsl(348, 45%, 32%);
+  opacity: 0.15;
+  animation: user-location-pulse 2s ease-in-out infinite;
+}
+
+.user-location-ring {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 4px hsla(24, 10%, 18%, 0.25);
+}
+
+.user-location-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: hsl(348, 45%, 32%);
+}
+
+@keyframes user-location-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.08;
+  }
+}
