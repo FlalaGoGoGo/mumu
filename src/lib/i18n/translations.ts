@@ -53,6 +53,7 @@ export const translations = {
     'map.any': 'Any',
     'map.noStatesAvailable': 'No states available',
     'map.statesSelected': 'states',
+    'map.mustVisit': 'Must-Visit',
     'map.worldOverview': 'World Overview',
     
     // Categories
@@ -316,6 +317,7 @@ export const translations = {
     'map.any': '任意',
     'map.noStatesAvailable': '没有可用的州/省',
     'map.statesSelected': '个州/省',
+    'map.mustVisit': '必游',
     'map.worldOverview': '世界概览',
     
     // Categories
@@ -579,6 +581,7 @@ export const translations = {
     'map.any': '任意',
     'map.noStatesAvailable': '沒有可用的州/省',
     'map.statesSelected': '個州/省',
+    'map.mustVisit': '必遊',
     'map.worldOverview': '世界概覽',
     
     // Categories
@@ -835,6 +838,7 @@ export const translations = {
     'map.any': 'Cualquiera',
     'map.noStatesAvailable': 'No hay estados disponibles',
     'map.statesSelected': 'estados',
+    'map.mustVisit': 'Imprescindible',
     'map.worldOverview': 'Vista Mundial',
     'category.all': 'Todos',
     'category.art': 'Arte',
@@ -1071,6 +1075,7 @@ export const translations = {
     'map.any': 'Tous',
     'map.noStatesAvailable': 'Aucun état disponible',
     'map.statesSelected': 'états',
+    'map.mustVisit': 'Incontournable',
     'map.worldOverview': 'Vue Mondiale',
     'category.all': 'Tous',
     'category.art': 'Art',
@@ -1307,6 +1312,7 @@ export const translations = {
     'map.any': 'Alle',
     'map.noStatesAvailable': 'Keine Bundesländer verfügbar',
     'map.statesSelected': 'Bundesländer',
+    'map.mustVisit': 'Muss man sehen',
     'map.worldOverview': 'Weltübersicht',
     'category.all': 'Alle',
     'category.art': 'Kunst',
@@ -1543,6 +1549,7 @@ export const translations = {
     'map.any': 'すべて',
     'map.noStatesAvailable': '利用可能な州がありません',
     'map.statesSelected': '州',
+    'map.mustVisit': '必見',
     'map.worldOverview': '世界概観',
     'category.all': 'すべて',
     'category.art': 'アート',
@@ -1779,6 +1786,7 @@ export const translations = {
     'map.any': '전체',
     'map.noStatesAvailable': '이용 가능한 주가 없습니다',
     'map.statesSelected': '개 주',
+    'map.mustVisit': '필수 방문',
     'map.worldOverview': '세계 개요',
     'category.all': '전체',
     'category.art': '예술',
@@ -2015,6 +2023,7 @@ export const translations = {
     'map.any': 'Todos',
     'map.noStatesAvailable': 'Nenhum estado disponível',
     'map.statesSelected': 'estados',
+    'map.mustVisit': 'Imperdível',
     'map.worldOverview': 'Visão Mundial',
     'category.all': 'Todos',
     'category.art': 'Arte',
@@ -2251,6 +2260,7 @@ export const translations = {
     'map.any': 'Tutti',
     'map.noStatesAvailable': 'Nessuno stato disponibile',
     'map.statesSelected': 'stati',
+    'map.mustVisit': 'Da non perdere',
     'map.worldOverview': 'Panoramica Mondiale',
     'category.all': 'Tutti',
     'category.art': 'Arte',

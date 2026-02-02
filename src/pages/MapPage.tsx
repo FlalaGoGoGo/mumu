@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { CategoryFilter, type MuseumCategory } from '@/components/map/CategoryFilter';
 import { StateFilter } from '@/components/map/StateFilter';
 import { DistanceFilter } from '@/components/map/DistanceFilter';
+import { MustVisitFilter } from '@/components/map/MustVisitFilter';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { calculateDistance, formatDistance } from '@/lib/distance';
 import { useLanguage } from '@/lib/i18n';
@@ -33,6 +34,7 @@ export default function MapPage() {
   const [categoryFilter, setCategoryFilter] = useState<MuseumCategory>('all');
   const [stateFilter, setStateFilter] = useState<string[]>([]);
   const [maxDistanceFilter, setMaxDistanceFilter] = useState<number | null>(null);
+  const [mustVisitFilter, setMustVisitFilter] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Count active filters
@@ -41,13 +43,15 @@ export default function MapPage() {
     if (categoryFilter !== 'all') count++;
     if (stateFilter.length > 0) count++;
     if (maxDistanceFilter !== null) count++;
+    if (mustVisitFilter) count++;
     return count;
-  }, [categoryFilter, stateFilter, maxDistanceFilter]);
+  }, [categoryFilter, stateFilter, maxDistanceFilter, mustVisitFilter]);
 
   const handleClearFilters = () => {
     setCategoryFilter('all');
     setStateFilter([]);
     setMaxDistanceFilter(null);
+    setMustVisitFilter(false);
   };
 
   const visitedIds = new Set(visits.map(v => v.museum_id));
@@ -79,6 +83,18 @@ export default function MapPage() {
     };
   }, [museumsWithData]);
 
+  // Count Must-Visit museums (based on current filtered set minus mustVisit filter itself)
+  const mustVisitCount = useMemo(() => {
+    return museumsWithData.filter(({ museum, distance }) => {
+      const matchesSearch = museum.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        museum.city.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = categoryFilter === 'all' || museum.tags === categoryFilter;
+      const matchesState = stateFilter.length === 0 || (museum.state && stateFilter.includes(museum.state));
+      const matchesDistance = maxDistanceFilter === null || (distance !== null && distance <= maxDistanceFilter);
+      return matchesSearch && matchesCategory && matchesState && matchesDistance && museum.highlight;
+    }).length;
+  }, [museumsWithData, searchQuery, categoryFilter, stateFilter, maxDistanceFilter]);
+
   // Get unique states sorted alphabetically
   const availableStates = useMemo(() => {
     const states = museumsWithData
@@ -87,14 +103,15 @@ export default function MapPage() {
     return [...new Set(states)].sort();
   }, [museumsWithData]);
 
-  // Filter by search query, category, state, and distance
+  // Filter by search query, category, state, distance, and must-visit
   const filteredMuseums = museumsWithData.filter(({ museum, distance }) => {
     const matchesSearch = museum.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       museum.city.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || museum.tags === categoryFilter;
     const matchesState = stateFilter.length === 0 || (museum.state && stateFilter.includes(museum.state));
     const matchesDistance = maxDistanceFilter === null || (distance !== null && distance <= maxDistanceFilter);
-    return matchesSearch && matchesCategory && matchesState && matchesDistance;
+    const matchesMustVisit = !mustVisitFilter || museum.highlight;
+    return matchesSearch && matchesCategory && matchesState && matchesDistance && matchesMustVisit;
   });
 
   // Sort by distance (nearest first), null distances go to end
@@ -186,8 +203,8 @@ export default function MapPage() {
                 counts={categoryCounts}
               />
               
-              {/* State & Distance Filters */}
-              <div className="flex items-center gap-2">
+              {/* State, Distance & Must-Visit Filters */}
+              <div className="flex flex-wrap items-center gap-2">
                 <StateFilter
                   availableStates={availableStates}
                   selectedStates={stateFilter}
@@ -197,6 +214,11 @@ export default function MapPage() {
                   maxDistance={maxDistanceFilter}
                   onMaxDistanceChange={setMaxDistanceFilter}
                   hasLocation={latitude !== null}
+                />
+                <MustVisitFilter
+                  enabled={mustVisitFilter}
+                  onToggle={setMustVisitFilter}
+                  count={mustVisitCount}
                 />
                 {activeFilterCount > 0 && (
                   <Button
