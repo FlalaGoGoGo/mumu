@@ -35,6 +35,7 @@ export interface ArtFiltersState {
   artistId: string | null;
   museumId: string | null;
   onViewOnly: boolean;
+  mustSeeOnly: boolean;
 }
 
 export type SortOrder = 'asc' | 'desc';
@@ -51,6 +52,7 @@ interface ArtFiltersProps {
   museumCounts: Map<string, number>;
   totalArtistCount: number;
   totalMuseumCount: number;
+  mustSeeCount: number;
 }
 
 export function ArtFilters({
@@ -65,6 +67,7 @@ export function ArtFilters({
   museumCounts,
   totalArtistCount,
   totalMuseumCount,
+  mustSeeCount,
 }: ArtFiltersProps) {
   const { t } = useLanguage();
   const [artistOpen, setArtistOpen] = useState(false);
@@ -94,7 +97,7 @@ export function ArtFilters({
     [museums, filters.museumId]
   );
 
-  const hasActiveFilters = filters.artType || filters.artistId || filters.museumId || filters.onViewOnly;
+  const hasActiveFilters = filters.artType || filters.artistId || filters.museumId || filters.onViewOnly || filters.mustSeeOnly;
 
   const clearFilters = () => {
     onFiltersChange({
@@ -102,6 +105,7 @@ export function ArtFilters({
       artistId: null,
       museumId: null,
       onViewOnly: false,
+      mustSeeOnly: false,
     });
   };
 
@@ -274,6 +278,20 @@ export function ArtFilters({
             {t('art.onViewOnly')}
           </Label>
         </div>
+
+        {/* Must-see Toggle */}
+        <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2">
+          <Switch
+            id="must-see-filter"
+            checked={filters.mustSeeOnly}
+            onCheckedChange={(checked) =>
+              onFiltersChange({ ...filters, mustSeeOnly: checked })
+            }
+          />
+          <Label htmlFor="must-see-filter" className="cursor-pointer text-sm">
+            {t('art.mustSee')} <span className="text-muted-foreground">({mustSeeCount})</span>
+          </Label>
+        </div>
         </div>
 
         {/* Sort Control - Right aligned */}
@@ -332,6 +350,14 @@ export function ArtFilters({
             <Badge variant="secondary" className="gap-1">
               {t('art.onViewOnly')}
               <button onClick={() => removeFilter('onViewOnly')} className="ml-1 hover:text-destructive">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {filters.mustSeeOnly && (
+            <Badge variant="secondary" className="gap-1">
+              {t('art.mustSee')}
+              <button onClick={() => removeFilter('mustSeeOnly')} className="ml-1 hover:text-destructive">
                 <X className="h-3 w-3" />
               </button>
             </Badge>

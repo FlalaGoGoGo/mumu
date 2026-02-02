@@ -23,7 +23,7 @@ async function parseCSV<T>(url: string): Promise<T[]> {
       let value: unknown = values[index] ?? '';
       
       // Handle boolean fields
-      if (header === 'on_view') {
+      if (header === 'on_view' || header === 'highlight') {
         value = value === 'TRUE' || value === 'true';
       }
       // Handle numeric fields

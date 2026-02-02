@@ -22,6 +22,7 @@ export default function ArtPage() {
     artistId: null,
     museumId: null,
     onViewOnly: false,
+    mustSeeOnly: false,
   });
   
   const [selectedArtwork, setSelectedArtwork] = useState<EnrichedArtwork | null>(null);
@@ -47,9 +48,12 @@ export default function ArtPage() {
       if (filters.onViewOnly && !artwork.on_view) {
         return false;
       }
+      if (filters.mustSeeOnly && !artwork.highlight) {
+        return false;
+      }
       return true;
     });
-  }, [artworks, filters.artType, filters.museumId, filters.onViewOnly]);
+  }, [artworks, filters.artType, filters.museumId, filters.onViewOnly, filters.mustSeeOnly]);
 
   // Filter artworks without museum filter (for museum counts)
   const artworksWithoutMuseumFilter = useMemo(() => {
@@ -63,9 +67,31 @@ export default function ArtPage() {
       if (filters.onViewOnly && !artwork.on_view) {
         return false;
       }
+      if (filters.mustSeeOnly && !artwork.highlight) {
+        return false;
+      }
       return true;
     });
-  }, [artworks, filters.artType, filters.artistId, filters.onViewOnly]);
+  }, [artworks, filters.artType, filters.artistId, filters.onViewOnly, filters.mustSeeOnly]);
+
+  // Compute must-see count (excluding mustSeeOnly filter itself)
+  const mustSeeCount = useMemo(() => {
+    return artworks.filter(artwork => {
+      if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) {
+        return false;
+      }
+      if (filters.artistId && artwork.artist_id !== filters.artistId) {
+        return false;
+      }
+      if (filters.museumId && artwork.museum_id !== filters.museumId) {
+        return false;
+      }
+      if (filters.onViewOnly && !artwork.on_view) {
+        return false;
+      }
+      return artwork.highlight === true;
+    }).length;
+  }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.onViewOnly]);
 
   // Compute artist counts
   const artistCounts = useMemo(() => {
@@ -179,6 +205,7 @@ export default function ArtPage() {
           museumCounts={museumCounts}
           totalArtistCount={artworksWithoutArtistFilter.length}
           totalMuseumCount={artworksWithoutMuseumFilter.length}
+          mustSeeCount={mustSeeCount}
         />
       </div>
 
