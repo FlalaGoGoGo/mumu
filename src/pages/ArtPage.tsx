@@ -34,7 +34,23 @@ export default function ArtPage() {
     return Array.from(types).sort();
   }, [artworks]);
 
-  // Filter artworks (without museum filter for computing available museums)
+  // Filter artworks without artist filter (for artist counts)
+  const artworksWithoutArtistFilter = useMemo(() => {
+    return artworks.filter(artwork => {
+      if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) {
+        return false;
+      }
+      if (filters.museumId && artwork.museum_id !== filters.museumId) {
+        return false;
+      }
+      if (filters.onViewOnly && !artwork.on_view) {
+        return false;
+      }
+      return true;
+    });
+  }, [artworks, filters.artType, filters.museumId, filters.onViewOnly]);
+
+  // Filter artworks without museum filter (for museum counts)
   const artworksWithoutMuseumFilter = useMemo(() => {
     return artworks.filter(artwork => {
       if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) {
@@ -50,16 +66,44 @@ export default function ArtPage() {
     });
   }, [artworks, filters.artType, filters.artistId, filters.onViewOnly]);
 
+  // Compute artist counts
+  const artistCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const artwork of artworksWithoutArtistFilter) {
+      counts.set(artwork.artist_id, (counts.get(artwork.artist_id) || 0) + 1);
+    }
+    return counts;
+  }, [artworksWithoutArtistFilter]);
+
+  // Compute museum counts
+  const museumCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const artwork of artworksWithoutMuseumFilter) {
+      counts.set(artwork.museum_id, (counts.get(artwork.museum_id) || 0) + 1);
+    }
+    return counts;
+  }, [artworksWithoutMuseumFilter]);
+
   // Get museums that have artworks in the current filtered set
   const availableMuseums = useMemo(() => {
     const museumIds = new Set(artworksWithoutMuseumFilter.map(a => a.museum_id));
     return museums.filter(m => museumIds.has(m.museum_id));
   }, [artworksWithoutMuseumFilter, museums]);
 
-  // Final filtered artworks (including museum filter)
+  // Get artists that have artworks in the current filtered set
+  const availableArtists = useMemo(() => {
+    const artistIds = new Set(artworksWithoutArtistFilter.map(a => a.artist_id));
+    return artists.filter(a => artistIds.has(a.artist_id));
+  }, [artworksWithoutArtistFilter, artists]);
+
+  // Final filtered artworks (including all filters)
   const filteredArtworks = useMemo(() => {
-    if (!filters.museumId) return artworksWithoutMuseumFilter;
-    return artworksWithoutMuseumFilter.filter(artwork => artwork.museum_id === filters.museumId);
+    return artworksWithoutMuseumFilter.filter(artwork => {
+      if (filters.museumId && artwork.museum_id !== filters.museumId) {
+        return false;
+      }
+      return true;
+    });
   }, [artworksWithoutMuseumFilter, filters.museumId]);
 
   // Get selected artist
@@ -119,9 +163,13 @@ export default function ArtPage() {
         <ArtFilters
           filters={filters}
           onFiltersChange={setFilters}
-          artists={artists}
+          artists={availableArtists}
           museums={availableMuseums}
           artTypes={artTypes}
+          artistCounts={artistCounts}
+          museumCounts={museumCounts}
+          totalArtistCount={artworksWithoutArtistFilter.length}
+          totalMuseumCount={artworksWithoutMuseumFilter.length}
         />
       </div>
 
