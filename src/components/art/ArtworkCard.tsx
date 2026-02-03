@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { EnrichedArtwork, getArtworkImageUrl } from '@/types/art';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { cn } from '@/lib/utils';
+import { useImageLoad } from '@/contexts/ImageLoadContext';
 
 interface ArtworkCardProps {
   artwork: EnrichedArtwork;
@@ -13,6 +14,7 @@ export function ArtworkCard({ artwork, onClick, compact = false }: ArtworkCardPr
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [useFallback, setUseFallback] = useState(false);
+  const { reportImageLoaded, reportImageFailed } = useImageLoad();
 
   // Get the best available image URL
   const imageUrl = useMemo(() => {
@@ -23,6 +25,11 @@ export function ArtworkCard({ artwork, onClick, compact = false }: ArtworkCardPr
     return getArtworkImageUrl(artwork);
   }, [artwork.image_cached_url, artwork.image_url, useFallback]);
 
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+    reportImageLoaded(artwork.artwork_id);
+  };
+
   const handleImageError = () => {
     if (!useFallback && artwork.image_url && artwork.image_url.trim() && artwork.image_cached_url) {
       // If cached URL failed and we have a source URL, try it
@@ -30,8 +37,16 @@ export function ArtworkCard({ artwork, onClick, compact = false }: ArtworkCardPr
       setImageLoaded(false);
     } else {
       setImageError(true);
+      reportImageFailed(artwork.artwork_id);
     }
   };
+
+  // Report failure immediately if there's no URL to try
+  useEffect(() => {
+    if (!imageUrl) {
+      reportImageFailed(artwork.artwork_id);
+    }
+  }, [imageUrl, artwork.artwork_id, reportImageFailed]);
 
   return (
     <button
@@ -51,7 +66,7 @@ export function ArtworkCard({ artwork, onClick, compact = false }: ArtworkCardPr
             src={imageUrl}
             alt={artwork.title}
             loading="lazy"
-            onLoad={() => setImageLoaded(true)}
+            onLoad={handleImageLoad}
             onError={handleImageError}
             className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
               imageLoaded ? 'opacity-100' : 'opacity-0'

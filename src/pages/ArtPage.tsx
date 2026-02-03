@@ -7,15 +7,17 @@ import { ArtistPanel } from '@/components/art/ArtistPanel';
 import { ArtistDrawer } from '@/components/art/ArtistDrawer';
 import { ArtFilters, ArtFiltersState, SortOrder } from '@/components/art/ArtFilters';
 import { ArtworkDetailSheet } from '@/components/art/ArtworkDetailSheet';
-import { EnrichedArtwork, Artist, hasReliableImage, getArtworkImageUrl } from '@/types/art';
+import { EnrichedArtwork, Artist, getArtworkImageUrl } from '@/types/art';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { User } from 'lucide-react';
+import { useImageLoad } from '@/contexts/ImageLoadContext';
 
 export default function ArtPage() {
   const { t } = useLanguage();
   const isMobile = useIsMobile();
   const { data: artworks, artists, museums, isLoading } = useEnrichedArtworks();
+  const { loadedImageIds, hasVerifiedImage } = useImageLoad();
   
   const [filters, setFilters] = useState<ArtFiltersState>({
     artType: null,
@@ -37,13 +39,20 @@ export default function ArtPage() {
     return Array.from(types).sort();
   }, [artworks]);
 
-  // Helper to check if artwork has valid image (for display purposes)
-  // Uses cached URL for reliability, falls back to source URL
+  // Helper to check if artwork has valid image based on runtime load status
+  // Uses verified load success from ImageLoadContext
   const hasValidImage = (artwork: EnrichedArtwork) => {
-    // Prefer cached URL for reliable "Has Image" filtering
-    if (hasReliableImage(artwork)) return true;
-    // Fallback to source URL check (less reliable but better than nothing)
-    return !!(artwork.image_url && artwork.image_url.trim());
+    // If we've verified the image loaded successfully, it's valid
+    if (hasVerifiedImage(artwork.artwork_id)) return true;
+    // If filter is on, we only trust verified images
+    // For initial count before images load, check if there's a URL to try
+    const hasUrl = !!(getArtworkImageUrl(artwork));
+    return hasUrl;
+  };
+
+  // For strict filtering when Has Image is ON - only count verified loaded images
+  const hasVerifiedLoadedImage = (artwork: EnrichedArtwork) => {
+    return hasVerifiedImage(artwork.artwork_id);
   };
 
   // Filter artworks without artist filter (for artist counts)
@@ -61,12 +70,12 @@ export default function ArtPage() {
       if (filters.mustSeeOnly && !artwork.highlight) {
         return false;
       }
-      if (filters.hasImageOnly && !hasValidImage(artwork)) {
+      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) {
         return false;
       }
       return true;
     });
-  }, [artworks, filters.artType, filters.museumId, filters.onViewOnly, filters.mustSeeOnly, filters.hasImageOnly]);
+  }, [artworks, filters.artType, filters.museumId, filters.onViewOnly, filters.mustSeeOnly, filters.hasImageOnly, loadedImageIds]);
 
   // Filter artworks without museum filter (for museum counts)
   const artworksWithoutMuseumFilter = useMemo(() => {
@@ -83,12 +92,12 @@ export default function ArtPage() {
       if (filters.mustSeeOnly && !artwork.highlight) {
         return false;
       }
-      if (filters.hasImageOnly && !hasValidImage(artwork)) {
+      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) {
         return false;
       }
       return true;
     });
-  }, [artworks, filters.artType, filters.artistId, filters.onViewOnly, filters.mustSeeOnly, filters.hasImageOnly]);
+  }, [artworks, filters.artType, filters.artistId, filters.onViewOnly, filters.mustSeeOnly, filters.hasImageOnly, loadedImageIds]);
 
   // Compute on-view count (excluding onViewOnly filter itself)
   const onViewCount = useMemo(() => {
@@ -105,12 +114,12 @@ export default function ArtPage() {
       if (filters.mustSeeOnly && !artwork.highlight) {
         return false;
       }
-      if (filters.hasImageOnly && !hasValidImage(artwork)) {
+      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) {
         return false;
       }
       return artwork.on_view === true;
     }).length;
-  }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.mustSeeOnly, filters.hasImageOnly]);
+  }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.mustSeeOnly, filters.hasImageOnly, loadedImageIds]);
 
   // Compute must-see count (excluding mustSeeOnly filter itself)
   const mustSeeCount = useMemo(() => {
@@ -127,12 +136,12 @@ export default function ArtPage() {
       if (filters.onViewOnly && !artwork.on_view) {
         return false;
       }
-      if (filters.hasImageOnly && !hasValidImage(artwork)) {
+      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) {
         return false;
       }
       return artwork.highlight === true;
     }).length;
-  }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.onViewOnly, filters.hasImageOnly]);
+  }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.onViewOnly, filters.hasImageOnly, loadedImageIds]);
 
   // Compute has-image count (excluding hasImageOnly filter itself)
   const hasImageCount = useMemo(() => {
@@ -152,9 +161,9 @@ export default function ArtPage() {
       if (filters.mustSeeOnly && !artwork.highlight) {
         return false;
       }
-      return hasValidImage(artwork);
+      return hasVerifiedLoadedImage(artwork);
     }).length;
-  }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.onViewOnly, filters.mustSeeOnly]);
+  }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.onViewOnly, filters.mustSeeOnly, loadedImageIds]);
 
   // Compute artist counts
   const artistCounts = useMemo(() => {
