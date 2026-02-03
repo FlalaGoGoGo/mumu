@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Palette, Scroll, FlaskConical, Leaf, Landmark, Check, X } from 'lucide-react';
+import { ChevronDown, LayoutGrid, Palette, Scroll, FlaskConical, Leaf, Landmark, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/i18n';
 
@@ -70,7 +70,7 @@ export function CategoryFilterDropdown({ selected, onSelectionChange, counts }: 
             : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground hover:border-accent"
         )}
       >
-        <Palette className="w-3.5 h-3.5" />
+        <LayoutGrid className="w-3.5 h-3.5" />
         <span>{getButtonLabel()}</span>
         {hasSelection && (
           <span className="text-xs tabular-nums text-primary-foreground/80">
