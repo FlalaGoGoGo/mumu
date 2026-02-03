@@ -51,8 +51,10 @@ interface ArtFiltersProps {
   artTypes: string[];
   artistCounts: Map<string, number>;
   museumCounts: Map<string, number>;
+  typeCounts: Map<string, number>;
   totalArtistCount: number;
   totalMuseumCount: number;
+  totalTypeCount: number;
   onViewCount: number;
   mustSeeCount: number;
   hasImageCount: number;
@@ -68,8 +70,10 @@ export function ArtFilters({
   artTypes,
   artistCounts,
   museumCounts,
+  typeCounts,
   totalArtistCount,
   totalMuseumCount,
+  totalTypeCount,
   onViewCount,
   mustSeeCount,
   hasImageCount,
@@ -134,14 +138,19 @@ export function ArtFilters({
             onFiltersChange({ ...filters, artType: value === 'all' ? null : value })
           }
         >
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder={t('art.type')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t('art.allTypes')}</SelectItem>
-            {artTypes.map((type) => (
+            <SelectItem value="all">
+              {t('art.allTypes')} <span className="text-muted-foreground">({totalTypeCount})</span>
+            </SelectItem>
+            {artTypes
+              .filter(type => (typeCounts.get(type) || 0) > 0)
+              .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+              .map((type) => (
               <SelectItem key={type} value={type} className="capitalize">
-                {type}
+                {type} <span className="text-muted-foreground">({typeCounts.get(type) || 0})</span>
               </SelectItem>
             ))}
           </SelectContent>
