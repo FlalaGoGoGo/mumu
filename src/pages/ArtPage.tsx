@@ -86,6 +86,28 @@ export default function ArtPage() {
     });
   }, [artworks, filters.artType, filters.artistId, filters.onViewOnly, filters.mustSeeOnly, filters.hasImageOnly]);
 
+  // Compute on-view count (excluding onViewOnly filter itself)
+  const onViewCount = useMemo(() => {
+    return artworks.filter(artwork => {
+      if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) {
+        return false;
+      }
+      if (filters.artistId && artwork.artist_id !== filters.artistId) {
+        return false;
+      }
+      if (filters.museumId && artwork.museum_id !== filters.museumId) {
+        return false;
+      }
+      if (filters.mustSeeOnly && !artwork.highlight) {
+        return false;
+      }
+      if (filters.hasImageOnly && !hasValidImage(artwork)) {
+        return false;
+      }
+      return artwork.on_view === true;
+    }).length;
+  }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.mustSeeOnly, filters.hasImageOnly]);
+
   // Compute must-see count (excluding mustSeeOnly filter itself)
   const mustSeeCount = useMemo(() => {
     return artworks.filter(artwork => {
@@ -242,6 +264,7 @@ export default function ArtPage() {
           museumCounts={museumCounts}
           totalArtistCount={artworksWithoutArtistFilter.length}
           totalMuseumCount={artworksWithoutMuseumFilter.length}
+          onViewCount={onViewCount}
           mustSeeCount={mustSeeCount}
           hasImageCount={hasImageCount}
         />
