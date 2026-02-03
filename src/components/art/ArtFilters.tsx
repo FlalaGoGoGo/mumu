@@ -199,7 +199,7 @@ export function ArtFilters({
                           filters.artistId === artist.artist_id ? "opacity-100" : "opacity-0"
                         )}
                       />
-                      <span>{artist.artist_name}</span>
+                      <span>{getCountryFlag(artist.nationality)} {artist.artist_name}</span>
                       <span className="ml-1 text-xs text-muted-foreground">({artistCounts.get(artist.artist_id) || 0})</span>
                     </CommandItem>
                   ))}
