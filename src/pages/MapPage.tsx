@@ -207,19 +207,21 @@ export default function MapPage() {
           </div>
 
           {/* Filter Controls Row */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 overflow-visible flex-nowrap min-w-0">
             <MustVisitFilter
               enabled={mustVisitFilter}
               onToggle={setMustVisitFilter}
               count={mustVisitCount}
             />
-            <LocationFilter
-              availableLocations={availableLocations}
-              selectedCountry={locationCountry}
-              selectedState={locationState}
-              selectedCity={locationCity}
-              onSelectionChange={handleLocationChange}
-            />
+            <div className="shrink min-w-0">
+              <LocationFilter
+                availableLocations={availableLocations}
+                selectedCountry={locationCountry}
+                selectedState={locationState}
+                selectedCity={locationCity}
+                onSelectionChange={handleLocationChange}
+              />
+            </div>
             <DistanceFilter
               maxDistance={maxDistanceFilter}
               onMaxDistanceChange={setMaxDistanceFilter}
