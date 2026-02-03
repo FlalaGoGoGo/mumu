@@ -263,80 +263,71 @@ export default function ExhibitionsPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] md:h-[calc(100vh-73px)] flex flex-col">
-      {/* Sticky Header Area */}
-      <div className="sticky top-0 z-20 bg-background pb-4">
-        <div className="container max-w-7xl mx-auto px-4 pt-6">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-2">
-              {t('exhibitions.title')}
-            </h1>
-            <p className="text-muted-foreground">
-              {t('exhibitions.subtitle')}
-            </p>
-          </div>
-
-          {/* Filters */}
-          <ExhibitionFilters
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            states={states}
-            selectedState={selectedState}
-            onStateChange={setSelectedState}
-            selectedStatus={selectedStatus}
-            onStatusChange={setSelectedStatus}
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            onDateFromChange={setDateFrom}
-            onDateToChange={setDateTo}
-            maxDistance={maxDistance}
-            onMaxDistanceChange={setMaxDistance}
-            hasLocation={hasLocation}
-            onClearFilters={handleClearFilters}
-            hasActiveFilters={hasActiveFilters}
-            activeFilterCount={activeFilterCount}
-            closingSoon={closingSoon}
-            onClosingSoonChange={setClosingSoon}
-            dateSortOrder={dateSortOrder}
-            onDateSortOrderChange={setDateSortOrder}
-            distanceSortOrder={distanceSortOrder}
-            onDistanceSortOrderChange={setDistanceSortOrder}
-          />
-        </div>
-        {/* Bottom shadow for separation */}
-        <div className="h-px bg-border/50 shadow-sm" />
+    <div className="container mx-auto px-4 py-6">
+      {/* Header - scrolls away */}
+      <div className="mb-6">
+        <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-2">
+          {t('exhibitions.title')}
+        </h1>
+        <p className="text-muted-foreground">
+          {t('exhibitions.subtitle')}
+        </p>
       </div>
 
-      {/* Scrollable Results */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="container max-w-7xl mx-auto px-4 py-4">
-          {filteredExhibitions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <ImageOff className="w-12 h-12 text-muted-foreground mb-4" />
-              <h2 className="font-display text-xl font-semibold mb-2">{t('exhibitions.noResults')}</h2>
-              <p className="text-muted-foreground mb-4">
-                {t('exhibitions.noResultsHint')}
-              </p>
-              {hasActiveFilters && (
-                <Button variant="outline" onClick={handleClearFilters}>
-                  {t('common.clearFilters')}
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {filteredExhibitions.map(({ exhibition, distanceFormatted }) => (
-                <ExhibitionCard 
-                  key={exhibition.exhibition_id} 
-                  exhibition={exhibition} 
-                  distance={distanceFormatted}
-                />
-              ))}
-            </div>
+      {/* Sticky Filter Bar with glass effect */}
+      <div className="sticky top-0 z-20 -mx-4 mb-4 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
+        <ExhibitionFilters
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          states={states}
+          selectedState={selectedState}
+          onStateChange={setSelectedState}
+          selectedStatus={selectedStatus}
+          onStatusChange={setSelectedStatus}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
+          maxDistance={maxDistance}
+          onMaxDistanceChange={setMaxDistance}
+          hasLocation={hasLocation}
+          onClearFilters={handleClearFilters}
+          hasActiveFilters={hasActiveFilters}
+          activeFilterCount={activeFilterCount}
+          closingSoon={closingSoon}
+          onClosingSoonChange={setClosingSoon}
+          dateSortOrder={dateSortOrder}
+          onDateSortOrderChange={setDateSortOrder}
+          distanceSortOrder={distanceSortOrder}
+          onDistanceSortOrderChange={setDistanceSortOrder}
+        />
+      </div>
+
+      {/* Results */}
+      {filteredExhibitions.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <ImageOff className="w-12 h-12 text-muted-foreground mb-4" />
+          <h2 className="font-display text-xl font-semibold mb-2">{t('exhibitions.noResults')}</h2>
+          <p className="text-muted-foreground mb-4">
+            {t('exhibitions.noResultsHint')}
+          </p>
+          {hasActiveFilters && (
+            <Button variant="outline" onClick={handleClearFilters}>
+              {t('common.clearFilters')}
+            </Button>
           )}
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {filteredExhibitions.map(({ exhibition, distanceFormatted }) => (
+            <ExhibitionCard 
+              key={exhibition.exhibition_id} 
+              exhibition={exhibition} 
+              distance={distanceFormatted}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
