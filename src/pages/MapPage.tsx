@@ -206,25 +206,29 @@ export default function MapPage() {
             )}
           </div>
 
-          {/* Filter Controls Row */}
+          {/* Filter Controls Row - use flex-wrap with proper gap */}
           <div className="flex flex-wrap items-center gap-2">
             <MustVisitFilter
               enabled={mustVisitFilter}
               onToggle={setMustVisitFilter}
               count={mustVisitCount}
             />
-            <LocationFilter
-              availableLocations={availableLocations}
-              selectedCountry={locationCountry}
-              selectedState={locationState}
-              selectedCity={locationCity}
-              onSelectionChange={handleLocationChange}
-            />
-            <DistanceFilter
-              maxDistance={maxDistanceFilter}
-              onMaxDistanceChange={setMaxDistanceFilter}
-              hasLocation={latitude !== null}
-            />
+            <div className="flex-shrink-0">
+              <LocationFilter
+                availableLocations={availableLocations}
+                selectedCountry={locationCountry}
+                selectedState={locationState}
+                selectedCity={locationCity}
+                onSelectionChange={handleLocationChange}
+              />
+            </div>
+            <div className="flex-shrink-0">
+              <DistanceFilter
+                maxDistance={maxDistanceFilter}
+                onMaxDistanceChange={setMaxDistanceFilter}
+                hasLocation={latitude !== null}
+              />
+            </div>
             <CategoryFilterDropdown 
               selected={categoryFilter} 
               onSelectionChange={setCategoryFilter}

@@ -1,5 +1,6 @@
 import { EnrichedArtwork, getArtworkImageUrl } from '@/types/art';
 import { useLanguage } from '@/lib/i18n';
+import { useCollectedArtworks } from '@/hooks/useCollectedArtworks';
 import {
   Sheet,
   SheetContent,
@@ -9,7 +10,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ExternalLink, Navigation, Eye, EyeOff, User } from 'lucide-react';
+import { ExternalLink, Navigation, Eye, EyeOff, User, Heart } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ArtworkDetailSheetProps {
   artwork: EnrichedArtwork | null;
@@ -25,8 +27,23 @@ export function ArtworkDetailSheet({
   onArtistClick 
 }: ArtworkDetailSheetProps) {
   const { t } = useLanguage();
+  const { isCollected, toggleCollect } = useCollectedArtworks();
 
   if (!artwork) return null;
+
+  const collected = isCollected(artwork.artwork_id);
+
+  const handleCollectToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleCollect({
+      artwork_id: artwork.artwork_id,
+      title: artwork.title,
+      artist_name: artwork.artist_name,
+      year: artwork.year,
+      image_url: getArtworkImageUrl(artwork),
+      museum_name: artwork.museum_name,
+    });
+  };
 
   const handleNavigate = () => {
     // Try museum name first, fallback to coordinates
@@ -76,18 +93,34 @@ export function ArtworkDetailSheet({
               )}
             </div>
 
-            {/* Badges */}
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="capitalize">
-                {artwork.art_type}
-              </Badge>
-              <Badge 
-                variant={artwork.on_view ? "default" : "secondary"}
-                className="flex items-center gap-1"
+            {/* Badges + Collect Button */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="capitalize">
+                  {artwork.art_type}
+                </Badge>
+                <Badge 
+                  variant={artwork.on_view ? "default" : "secondary"}
+                  className="flex items-center gap-1"
+                >
+                  {artwork.on_view ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  {artwork.on_view ? t('art.onView') : t('art.notOnView')}
+                </Badge>
+              </div>
+              
+              {/* Collect/Favorite Button */}
+              <button
+                onClick={handleCollectToggle}
+                className={cn(
+                  "p-2 rounded-full transition-colors flex-shrink-0",
+                  collected 
+                    ? "text-primary bg-primary/10 hover:bg-primary/20" 
+                    : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                )}
+                aria-label={collected ? "Remove from collection" : "Add to collection"}
               >
-                {artwork.on_view ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                {artwork.on_view ? t('art.onView') : t('art.notOnView')}
-              </Badge>
+                <Heart className={cn("w-5 h-5", collected && "fill-current")} />
+              </button>
             </div>
 
             {/* Description */}
