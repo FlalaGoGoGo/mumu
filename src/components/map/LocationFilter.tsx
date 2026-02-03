@@ -130,7 +130,7 @@ export function LocationFilter({
     if (selectedState) parts.push(selectedState);
     if (selectedCity) parts.push(selectedCity);
     
-    if (parts.length === 0) return t('map.state'); // Using 'Location' would need new key
+    if (parts.length === 0) return t('map.region');
     if (parts.length === 1) return parts[0];
     return parts.join(' · ');
   };
@@ -206,7 +206,7 @@ export function LocationFilter({
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <Input
-                  placeholder="Search states..."
+                  placeholder="Search regions..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="h-8 pl-7 text-sm"
@@ -225,7 +225,7 @@ export function LocationFilter({
                   !selectedState && "bg-primary/10 font-medium"
                 )}
               >
-                <span>All States</span>
+                <span>{t('map.allRegions')}</span>
               </button>
               {filteredStates.map(state => (
                 <button
@@ -319,8 +319,8 @@ export function LocationFilter({
             : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground hover:border-accent"
         )}
       >
-        <MapPin className="w-3.5 h-3.5" />
-        <span className="max-w-[150px] truncate">{getButtonLabel()}</span>
+        <MapPin className="w-3.5 h-3.5 shrink-0" />
+        <span className="max-w-[120px] truncate">{getButtonLabel()}</span>
         <ChevronDown className={cn(
           "w-3.5 h-3.5 transition-transform shrink-0",
           isOpen && "rotate-180"
@@ -332,7 +332,7 @@ export function LocationFilter({
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Location
+              {t('map.filterByRegion')}
             </span>
             {hasSelection && (
               <button
