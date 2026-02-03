@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LanguageProvider } from "@/lib/i18n";
+import { ImageLoadProvider } from "@/contexts/ImageLoadContext";
 import { usePreferences } from "@/hooks/usePreferences";
 import Index from "./pages/Index";
 import ArtPage from "./pages/ArtPage";
@@ -50,9 +51,11 @@ function AppWithLanguage() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AppWithLanguage />
+      <ImageLoadProvider>
+        <Toaster />
+        <Sonner />
+        <AppWithLanguage />
+      </ImageLoadProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
