@@ -171,7 +171,7 @@ export function ExhibitionFilters({
   };
 
   return (
-    <div className="flex flex-col gap-4 mb-6">
+    <div className="flex flex-col gap-3">
       {/* Search Row with Sort Controls */}
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-[180px]">
