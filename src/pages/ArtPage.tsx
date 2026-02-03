@@ -55,6 +55,28 @@ export default function ArtPage() {
     return hasVerifiedImage(artwork.artwork_id);
   };
 
+  // Filter artworks without type filter (for type counts)
+  const artworksWithoutTypeFilter = useMemo(() => {
+    return artworks.filter(artwork => {
+      if (filters.artistId && artwork.artist_id !== filters.artistId) {
+        return false;
+      }
+      if (filters.museumId && artwork.museum_id !== filters.museumId) {
+        return false;
+      }
+      if (filters.onViewOnly && !artwork.on_view) {
+        return false;
+      }
+      if (filters.mustSeeOnly && !artwork.highlight) {
+        return false;
+      }
+      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) {
+        return false;
+      }
+      return true;
+    });
+  }, [artworks, filters.artistId, filters.museumId, filters.onViewOnly, filters.mustSeeOnly, filters.hasImageOnly, loadedImageIds]);
+
   // Filter artworks without artist filter (for artist counts)
   const artworksWithoutArtistFilter = useMemo(() => {
     return artworks.filter(artwork => {
@@ -164,6 +186,16 @@ export default function ArtPage() {
       return hasVerifiedLoadedImage(artwork);
     }).length;
   }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.onViewOnly, filters.mustSeeOnly, loadedImageIds]);
+
+  // Compute type counts
+  const typeCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const artwork of artworksWithoutTypeFilter) {
+      const type = artwork.art_type.toLowerCase();
+      counts.set(type, (counts.get(type) || 0) + 1);
+    }
+    return counts;
+  }, [artworksWithoutTypeFilter]);
 
   // Compute artist counts
   const artistCounts = useMemo(() => {
@@ -275,8 +307,10 @@ export default function ArtPage() {
           artTypes={artTypes}
           artistCounts={artistCounts}
           museumCounts={museumCounts}
+          typeCounts={typeCounts}
           totalArtistCount={artworksWithoutArtistFilter.length}
           totalMuseumCount={artworksWithoutMuseumFilter.length}
+          totalTypeCount={artworksWithoutTypeFilter.length}
           onViewCount={onViewCount}
           mustSeeCount={mustSeeCount}
           hasImageCount={hasImageCount}
