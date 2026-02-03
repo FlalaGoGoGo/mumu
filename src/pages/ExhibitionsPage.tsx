@@ -266,16 +266,16 @@ export default function ExhibitionsPage() {
     <div className="container mx-auto px-4 py-6">
       {/* Header - scrolls away */}
       <div className="mb-6">
-        <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-2">
+        <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">
           {t('exhibitions.title')}
         </h1>
-        <p className="text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           {t('exhibitions.subtitle')}
         </p>
       </div>
 
-      {/* Sticky Filter Bar with glass effect */}
-      <div className="sticky top-0 z-20 -mx-4 mb-4 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
+      {/* Filters - identical sticky styling to Art page */}
+      <div className="sticky top-0 z-20 -mx-4 mb-6 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
         <ExhibitionFilters
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
