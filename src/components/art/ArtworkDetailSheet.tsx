@@ -1,4 +1,4 @@
-import { EnrichedArtwork } from '@/types/art';
+import { EnrichedArtwork, getArtworkImageUrl } from '@/types/art';
 import { useLanguage } from '@/lib/i18n';
 import {
   Sheet,
@@ -46,13 +46,15 @@ export function ArtworkDetailSheet({
         <ScrollArea className="h-[calc(100vh-2rem)] pr-4">
           <div className="space-y-6 pb-8">
             {/* Image */}
-            <div className="overflow-hidden rounded-lg border border-border">
-              <img
-                src={artwork.image_url}
-                alt={artwork.title}
-                className="w-full object-contain"
-              />
-            </div>
+            {getArtworkImageUrl(artwork) && (
+              <div className="overflow-hidden rounded-lg border border-border">
+                <img
+                  src={getArtworkImageUrl(artwork)!}
+                  alt={artwork.title}
+                  className="w-full object-contain"
+                />
+              </div>
+            )}
 
             {/* Title & Artist */}
             <div>

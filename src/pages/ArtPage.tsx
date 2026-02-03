@@ -7,7 +7,7 @@ import { ArtistPanel } from '@/components/art/ArtistPanel';
 import { ArtistDrawer } from '@/components/art/ArtistDrawer';
 import { ArtFilters, ArtFiltersState, SortOrder } from '@/components/art/ArtFilters';
 import { ArtworkDetailSheet } from '@/components/art/ArtworkDetailSheet';
-import { EnrichedArtwork, Artist } from '@/types/art';
+import { EnrichedArtwork, Artist, hasReliableImage, getArtworkImageUrl } from '@/types/art';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { User } from 'lucide-react';
@@ -37,9 +37,13 @@ export default function ArtPage() {
     return Array.from(types).sort();
   }, [artworks]);
 
-  // Helper to check if artwork has valid image
+  // Helper to check if artwork has valid image (for display purposes)
+  // Uses cached URL for reliability, falls back to source URL
   const hasValidImage = (artwork: EnrichedArtwork) => {
-    return artwork.image_url && artwork.image_url.trim() !== '';
+    // Prefer cached URL for reliable "Has Image" filtering
+    if (hasReliableImage(artwork)) return true;
+    // Fallback to source URL check (less reliable but better than nothing)
+    return !!(artwork.image_url && artwork.image_url.trim());
   };
 
   // Filter artworks without artist filter (for artist counts)
