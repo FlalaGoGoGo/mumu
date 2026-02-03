@@ -53,6 +53,7 @@ interface ArtFiltersProps {
   museumCounts: Map<string, number>;
   totalArtistCount: number;
   totalMuseumCount: number;
+  onViewCount: number;
   mustSeeCount: number;
   hasImageCount: number;
 }
@@ -69,6 +70,7 @@ export function ArtFilters({
   museumCounts,
   totalArtistCount,
   totalMuseumCount,
+  onViewCount,
   mustSeeCount,
   hasImageCount,
 }: ArtFiltersProps) {
@@ -279,7 +281,7 @@ export function ArtFilters({
             }
           />
           <Label htmlFor="on-view-filter" className="cursor-pointer text-sm">
-            {t('art.onView')}
+            {t('art.onView')} <span className="text-muted-foreground">({onViewCount})</span>
           </Label>
         </div>
 
