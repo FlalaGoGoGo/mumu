@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMuseums } from '@/hooks/useMuseums';
-import { useVisits, useHighlightCompletions, useRemoveVisit } from '@/hooks/usePassport';
-import { useAicHighlights } from '@/hooks/useHighlights';
+import { useVisits, useRemoveVisit } from '@/hooks/usePassport';
+import { useEnrichedArtworks } from '@/hooks/useArtworks';
+import { useCollectedArtworks } from '@/hooks/useCollectedArtworks';
 import { useSavedMuseums } from '@/hooks/useSavedMuseums';
 import { useAchievements } from '@/hooks/useAchievements';
 import { useLanguage } from '@/lib/i18n';
@@ -10,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Check, Trash2, Image as ImageIcon, Flag, Info, Heart, Trophy, ExternalLink, Map as MapIcon } from 'lucide-react';
+import { MapPin, Check, Trash2, Image as ImageIcon, Flag, Info, Heart, Trophy, ExternalLink, Map as MapIcon, Palette } from 'lucide-react';
 import { parseUSState } from '@/lib/parseUSState';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,7 @@ import { PassportCard } from '@/components/passport/PassportCard';
 import { AchievementWall } from '@/components/passport/AchievementWall';
 import { CategoryDetailSheet } from '@/components/passport/CategoryDetailSheet';
 import { NextToUnlock } from '@/components/passport/NextToUnlock';
+import { getArtworkImageUrl } from '@/types/art';
 import type { CategoryProgress } from '@/lib/achievements';
 
 export default function PassportPage() {
@@ -25,8 +27,8 @@ export default function PassportPage() {
   const { t } = useLanguage();
   const { data: museums = [] } = useMuseums();
   const { data: visits = [], isLoading: visitsLoading } = useVisits();
-  const { data: completions = [] } = useHighlightCompletions();
-  const { data: highlights = [] } = useAicHighlights();
+  const { data: enrichedArtworks = [], isLoading: artworksLoading } = useEnrichedArtworks();
+  const { collectedArtworks, collectedCount, removeArtwork } = useCollectedArtworks();
   const removeVisit = useRemoveVisit();
   const { savedMuseums, savedCount, removeMuseum } = useSavedMuseums();
   const { categories, nextToUnlock, stats } = useAchievements();
@@ -35,11 +37,12 @@ export default function PassportPage() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryProgress | null>(null);
 
   const museumMap = new Map(museums.map(m => [m.museum_id, m]));
-  const highlightMap = new Map(highlights.map(h => [h.artic_id, h]));
-
-  const completedHighlights = completions
-    .map(c => highlightMap.get(c.artic_id))
-    .filter(Boolean);
+  
+  // Get collected artwork IDs for lookup
+  const collectedIds = new Set(collectedArtworks.map(a => a.artwork_id));
+  
+  // Filter enriched artworks to only show collected ones
+  const collectedEnrichedArtworks = enrichedArtworks.filter(a => collectedIds.has(a.artwork_id));
 
   // Compute unique US states visited
   const { uniqueStates, hasUnparsableAddresses } = useMemo(() => {
@@ -132,7 +135,7 @@ export default function PassportPage() {
           </div>
           <div className="gallery-card text-center">
             <div className="font-display text-2xl md:text-3xl font-bold text-accent mb-1">
-              {completions.length}
+              {collectedCount}
             </div>
             <div className="text-xs md:text-sm text-muted-foreground flex items-center justify-center gap-1">
               <ImageIcon className="w-3 h-3" />
@@ -323,55 +326,62 @@ export default function PassportPage() {
 
           {/* Artworks Tab */}
           <TabsContent value="artworks" className="mt-0">
-            {completedHighlights.length === 0 ? (
+            {collectedEnrichedArtworks.length === 0 ? (
               <div className="gallery-card text-center py-8">
-                <div className="passport-stamp mx-auto mb-4">
-                  <span>{t('passport.empty')}</span>
-                </div>
+                <Palette className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-muted-foreground mb-4">
-                  {t('passport.noArtworksMarked')}
+                  {t('passport.noArtworksCollected')}
                 </p>
-                <Button onClick={() => navigate('/plan')}>
+                <Button onClick={() => navigate('/art')}>
                   <ImageIcon className="w-4 h-4 mr-2" />
-                  {t('passport.viewPlan')}
+                  {t('passport.browseArt')}
                 </Button>
               </div>
             ) : (
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-1.5">
-                {completedHighlights.map((highlight) => (
-                  <div 
-                    key={highlight!.artic_id} 
-                    className="group relative aspect-square overflow-hidden cursor-pointer border border-accent/60"
-                  >
-                    {highlight!.image_url ? (
-                      <img
-                        src={highlight!.image_url}
-                        alt={highlight!.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-muted flex items-center justify-center">
-                        <ImageIcon className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                    )}
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-2">
-                      <h3 className="font-display text-xs font-semibold text-white leading-tight line-clamp-2">
-                        {highlight!.title}
-                      </h3>
-                      {highlight!.artist && (
+                {collectedEnrichedArtworks.map((artwork) => {
+                  const imageUrl = getArtworkImageUrl(artwork);
+                  return (
+                    <div 
+                      key={artwork.artwork_id} 
+                      className="group relative aspect-square overflow-hidden cursor-pointer border border-accent/60"
+                    >
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={artwork.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-2">
+                        <h3 className="font-display text-xs font-semibold text-white leading-tight line-clamp-2">
+                          {artwork.title}
+                        </h3>
                         <p className="text-[10px] text-white/80 truncate mt-0.5">
-                          {highlight!.artist}
+                          {artwork.artist_name}
                         </p>
-                      )}
-                      {highlight!.year && (
-                        <p className="text-[10px] text-white/60 truncate">
-                          {highlight!.year}
-                        </p>
-                      )}
+                        {artwork.year && (
+                          <p className="text-[10px] text-white/60 truncate">
+                            {artwork.year}
+                          </p>
+                        )}
+                      </div>
+                      {/* Remove button on hover */}
+                      <button
+                        onClick={() => removeArtwork(artwork.artwork_id)}
+                        className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                        aria-label="Remove from collection"
+                      >
+                        <Heart className="w-3 h-3 fill-current" />
+                      </button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </TabsContent>
