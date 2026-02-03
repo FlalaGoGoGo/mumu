@@ -36,6 +36,7 @@ export interface ArtFiltersState {
   museumId: string | null;
   onViewOnly: boolean;
   mustSeeOnly: boolean;
+  hasImageOnly: boolean;
 }
 
 export type SortOrder = 'asc' | 'desc';
@@ -53,6 +54,7 @@ interface ArtFiltersProps {
   totalArtistCount: number;
   totalMuseumCount: number;
   mustSeeCount: number;
+  hasImageCount: number;
 }
 
 export function ArtFilters({
@@ -68,6 +70,7 @@ export function ArtFilters({
   totalArtistCount,
   totalMuseumCount,
   mustSeeCount,
+  hasImageCount,
 }: ArtFiltersProps) {
   const { t } = useLanguage();
   const [artistOpen, setArtistOpen] = useState(false);
@@ -97,7 +100,7 @@ export function ArtFilters({
     [museums, filters.museumId]
   );
 
-  const hasActiveFilters = filters.artType || filters.artistId || filters.museumId || filters.onViewOnly || filters.mustSeeOnly;
+  const hasActiveFilters = filters.artType || filters.artistId || filters.museumId || filters.onViewOnly || filters.mustSeeOnly || filters.hasImageOnly;
 
   const clearFilters = () => {
     onFiltersChange({
@@ -106,13 +109,14 @@ export function ArtFilters({
       museumId: null,
       onViewOnly: false,
       mustSeeOnly: false,
+      hasImageOnly: false,
     });
   };
 
   const removeFilter = (key: keyof ArtFiltersState) => {
     onFiltersChange({
       ...filters,
-      [key]: key === 'onViewOnly' ? false : null,
+      [key]: (key === 'onViewOnly' || key === 'mustSeeOnly' || key === 'hasImageOnly') ? false : null,
     });
   };
 
@@ -275,11 +279,11 @@ export function ArtFilters({
             }
           />
           <Label htmlFor="on-view-filter" className="cursor-pointer text-sm">
-            {t('art.onViewOnly')}
+            {t('art.onView')}
           </Label>
         </div>
 
-        {/* Must-see Toggle */}
+        {/* Must-See Toggle */}
         <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2">
           <Switch
             id="must-see-filter"
@@ -289,7 +293,21 @@ export function ArtFilters({
             }
           />
           <Label htmlFor="must-see-filter" className="cursor-pointer text-sm">
-            {t('art.mustSee')} <span className="text-muted-foreground">({mustSeeCount})</span>
+            {t('art.mustSeeLabel')} <span className="text-muted-foreground">({mustSeeCount})</span>
+          </Label>
+        </div>
+
+        {/* Has Image Toggle */}
+        <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2">
+          <Switch
+            id="has-image-filter"
+            checked={filters.hasImageOnly}
+            onCheckedChange={(checked) =>
+              onFiltersChange({ ...filters, hasImageOnly: checked })
+            }
+          />
+          <Label htmlFor="has-image-filter" className="cursor-pointer text-sm">
+            {t('art.hasImage')} <span className="text-muted-foreground">({hasImageCount})</span>
           </Label>
         </div>
         </div>
@@ -348,7 +366,7 @@ export function ArtFilters({
           )}
           {filters.onViewOnly && (
             <Badge variant="secondary" className="gap-1">
-              {t('art.onViewOnly')}
+              {t('art.onView')}
               <button onClick={() => removeFilter('onViewOnly')} className="ml-1 hover:text-destructive">
                 <X className="h-3 w-3" />
               </button>
@@ -356,8 +374,16 @@ export function ArtFilters({
           )}
           {filters.mustSeeOnly && (
             <Badge variant="secondary" className="gap-1">
-              {t('art.mustSee')}
+              {t('art.mustSeeLabel')}
               <button onClick={() => removeFilter('mustSeeOnly')} className="ml-1 hover:text-destructive">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {filters.hasImageOnly && (
+            <Badge variant="secondary" className="gap-1">
+              {t('art.hasImage')}
+              <button onClick={() => removeFilter('hasImageOnly')} className="ml-1 hover:text-destructive">
                 <X className="h-3 w-3" />
               </button>
             </Badge>

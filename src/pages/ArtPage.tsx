@@ -23,6 +23,7 @@ export default function ArtPage() {
     museumId: null,
     onViewOnly: false,
     mustSeeOnly: false,
+    hasImageOnly: false,
   });
   
   const [selectedArtwork, setSelectedArtwork] = useState<EnrichedArtwork | null>(null);
@@ -35,6 +36,11 @@ export default function ArtPage() {
     const types = new Set(artworks.map(a => a.art_type.toLowerCase()));
     return Array.from(types).sort();
   }, [artworks]);
+
+  // Helper to check if artwork has valid image
+  const hasValidImage = (artwork: EnrichedArtwork) => {
+    return artwork.image_url && artwork.image_url.trim() !== '';
+  };
 
   // Filter artworks without artist filter (for artist counts)
   const artworksWithoutArtistFilter = useMemo(() => {
@@ -51,9 +57,12 @@ export default function ArtPage() {
       if (filters.mustSeeOnly && !artwork.highlight) {
         return false;
       }
+      if (filters.hasImageOnly && !hasValidImage(artwork)) {
+        return false;
+      }
       return true;
     });
-  }, [artworks, filters.artType, filters.museumId, filters.onViewOnly, filters.mustSeeOnly]);
+  }, [artworks, filters.artType, filters.museumId, filters.onViewOnly, filters.mustSeeOnly, filters.hasImageOnly]);
 
   // Filter artworks without museum filter (for museum counts)
   const artworksWithoutMuseumFilter = useMemo(() => {
@@ -70,9 +79,12 @@ export default function ArtPage() {
       if (filters.mustSeeOnly && !artwork.highlight) {
         return false;
       }
+      if (filters.hasImageOnly && !hasValidImage(artwork)) {
+        return false;
+      }
       return true;
     });
-  }, [artworks, filters.artType, filters.artistId, filters.onViewOnly, filters.mustSeeOnly]);
+  }, [artworks, filters.artType, filters.artistId, filters.onViewOnly, filters.mustSeeOnly, filters.hasImageOnly]);
 
   // Compute must-see count (excluding mustSeeOnly filter itself)
   const mustSeeCount = useMemo(() => {
@@ -89,9 +101,34 @@ export default function ArtPage() {
       if (filters.onViewOnly && !artwork.on_view) {
         return false;
       }
+      if (filters.hasImageOnly && !hasValidImage(artwork)) {
+        return false;
+      }
       return artwork.highlight === true;
     }).length;
-  }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.onViewOnly]);
+  }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.onViewOnly, filters.hasImageOnly]);
+
+  // Compute has-image count (excluding hasImageOnly filter itself)
+  const hasImageCount = useMemo(() => {
+    return artworks.filter(artwork => {
+      if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) {
+        return false;
+      }
+      if (filters.artistId && artwork.artist_id !== filters.artistId) {
+        return false;
+      }
+      if (filters.museumId && artwork.museum_id !== filters.museumId) {
+        return false;
+      }
+      if (filters.onViewOnly && !artwork.on_view) {
+        return false;
+      }
+      if (filters.mustSeeOnly && !artwork.highlight) {
+        return false;
+      }
+      return hasValidImage(artwork);
+    }).length;
+  }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.onViewOnly, filters.mustSeeOnly]);
 
   // Compute artist counts
   const artistCounts = useMemo(() => {
@@ -206,6 +243,7 @@ export default function ArtPage() {
           totalArtistCount={artworksWithoutArtistFilter.length}
           totalMuseumCount={artworksWithoutMuseumFilter.length}
           mustSeeCount={mustSeeCount}
+          hasImageCount={hasImageCount}
         />
       </div>
 
