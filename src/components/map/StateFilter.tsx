@@ -41,9 +41,9 @@ export function StateFilter({ availableStates, selectedStates, onSelectionChange
   const hasSelection = selectedStates.length > 0;
 
   const getButtonLabel = () => {
-    if (!hasSelection) return t('map.region');
+    if (!hasSelection) return t('map.state');
     if (selectedStates.length === 1) return selectedStates[0];
-    return `${selectedStates.length} ${t('map.regionsSelected')}`;
+    return `${selectedStates.length} ${t('map.statesSelected')}`;
   };
 
   return (
@@ -71,7 +71,7 @@ export function StateFilter({ availableStates, selectedStates, onSelectionChange
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              {t('map.filterByRegion')}
+              {t('map.filterByState')}
             </span>
             {hasSelection && (
               <button
@@ -88,7 +88,7 @@ export function StateFilter({ availableStates, selectedStates, onSelectionChange
           <div className="max-h-64 overflow-y-auto">
             {availableStates.length === 0 ? (
               <div className="px-3 py-4 text-sm text-muted-foreground text-center">
-                {t('map.noRegionsAvailable')}
+                {t('map.noStatesAvailable')}
               </div>
             ) : (
               availableStates.map((state) => {
