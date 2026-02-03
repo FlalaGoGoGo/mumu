@@ -275,7 +275,7 @@ export default function ExhibitionsPage() {
       </div>
 
       {/* Filters - identical sticky styling to Art page */}
-      <div className="sticky top-0 z-20 -mx-4 mb-6 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
+      <div className="sticky top-0 z-20 -mx-4 mb-4 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
         <ExhibitionFilters
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
