@@ -18,6 +18,7 @@ export interface Artwork {
   art_type: string;
   year: string;
   image_url: string;
+  image_cached_url?: string;
   description: string;
   museum_id: string;
   medium: string;
@@ -34,4 +35,21 @@ export interface EnrichedArtwork extends Artwork {
   museum_address: string | null;
   museum_lat: number;
   museum_lng: number;
+}
+
+// Helper to get the best available image URL for an artwork
+export function getArtworkImageUrl(artwork: { image_cached_url?: string; image_url?: string }): string | null {
+  // Prefer cached URL, fall back to source URL
+  if (artwork.image_cached_url && artwork.image_cached_url.trim()) {
+    return artwork.image_cached_url;
+  }
+  if (artwork.image_url && artwork.image_url.trim()) {
+    return artwork.image_url;
+  }
+  return null;
+}
+
+// Check if artwork has a cached image (reliable for Has Image filter)
+export function hasReliableImage(artwork: { image_cached_url?: string }): boolean {
+  return !!(artwork.image_cached_url && artwork.image_cached_url.trim());
 }

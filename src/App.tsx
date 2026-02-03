@@ -13,6 +13,7 @@ import PassportPage from "./pages/PassportPage";
 import SettingsPage from "./pages/SettingsPage";
 import ExhibitionsPage from "./pages/ExhibitionsPage";
 import ExhibitionDetailPage from "./pages/ExhibitionDetailPage";
+import AdminCacheImagesPage from "./pages/AdminCacheImagesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ function AppWithLanguage() {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/exhibitions" element={<ExhibitionsPage />} />
             <Route path="/exhibitions/:exhibition_id" element={<ExhibitionDetailPage />} />
+            <Route path="/admin/cache-images" element={<AdminCacheImagesPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

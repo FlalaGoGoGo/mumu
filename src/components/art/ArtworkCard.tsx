@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { EnrichedArtwork } from '@/types/art';
+import { useState, useMemo } from 'react';
+import { EnrichedArtwork, getArtworkImageUrl } from '@/types/art';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +12,26 @@ interface ArtworkCardProps {
 export function ArtworkCard({ artwork, onClick, compact = false }: ArtworkCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [useFallback, setUseFallback] = useState(false);
+
+  // Get the best available image URL
+  const imageUrl = useMemo(() => {
+    if (useFallback && artwork.image_url && artwork.image_url.trim()) {
+      // Try source URL as fallback
+      return artwork.image_url;
+    }
+    return getArtworkImageUrl(artwork);
+  }, [artwork.image_cached_url, artwork.image_url, useFallback]);
+
+  const handleImageError = () => {
+    if (!useFallback && artwork.image_url && artwork.image_url.trim() && artwork.image_cached_url) {
+      // If cached URL failed and we have a source URL, try it
+      setUseFallback(true);
+      setImageLoaded(false);
+    } else {
+      setImageError(true);
+    }
+  };
 
   return (
     <button
@@ -22,17 +42,17 @@ export function ArtworkCard({ artwork, onClick, compact = false }: ArtworkCardPr
         {!imageLoaded && !imageError && (
           <div className="absolute inset-0 animate-pulse bg-muted" />
         )}
-        {imageError ? (
+        {imageError || !imageUrl ? (
           <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
             <span className="text-xs">No image</span>
           </div>
         ) : (
           <img
-            src={artwork.image_url}
+            src={imageUrl}
             alt={artwork.title}
             loading="lazy"
             onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
+            onError={handleImageError}
             className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
