@@ -9,6 +9,7 @@ import { ImageLoadProvider } from "@/contexts/ImageLoadContext";
 import { usePreferences } from "@/hooks/usePreferences";
 import Index from "./pages/Index";
 import ArtPage from "./pages/ArtPage";
+import ArtChroniclePage from "./pages/ArtChroniclePage";
 import PlanPage from "./pages/PlanPage";
 import PassportPage from "./pages/PassportPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -33,6 +34,7 @@ function AppWithLanguage() {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/art" element={<ArtPage />} />
+            <Route path="/art-chronicle" element={<ArtChroniclePage />} />
             <Route path="/plan" element={<PlanPage />} />
             <Route path="/passport" element={<PassportPage />} />
             <Route path="/settings" element={<SettingsPage />} />

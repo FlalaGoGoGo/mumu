@@ -7,6 +7,7 @@ import { ArtistPanel } from '@/components/art/ArtistPanel';
 import { ArtistDrawer } from '@/components/art/ArtistDrawer';
 import { ArtFilters, ArtFiltersState, SortOrder } from '@/components/art/ArtFilters';
 import { ArtworkDetailSheet } from '@/components/art/ArtworkDetailSheet';
+import { ScrollButton } from '@/components/art/ScrollButton';
 import { EnrichedArtwork, Artist, getArtworkImageUrl } from '@/types/art';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -297,24 +298,30 @@ export default function ArtPage() {
 
       {/* Filters */}
       <div className="sticky top-0 z-20 -mx-4 mb-6 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
-        <ArtFilters
-          filters={filters}
-          onFiltersChange={setFilters}
-          sortOrder={sortOrder}
-          onSortOrderChange={setSortOrder}
-          artists={availableArtists}
-          museums={availableMuseums}
-          artTypes={artTypes}
-          artistCounts={artistCounts}
-          museumCounts={museumCounts}
-          typeCounts={typeCounts}
-          totalArtistCount={artworksWithoutArtistFilter.length}
-          totalMuseumCount={artworksWithoutMuseumFilter.length}
-          totalTypeCount={artworksWithoutTypeFilter.length}
-          onViewCount={onViewCount}
-          mustSeeCount={mustSeeCount}
-          hasImageCount={hasImageCount}
-        />
+        <div className="flex items-start gap-4">
+          <div className="flex-1 min-w-0">
+            <ArtFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              sortOrder={sortOrder}
+              onSortOrderChange={setSortOrder}
+              artists={availableArtists}
+              museums={availableMuseums}
+              artTypes={artTypes}
+              artistCounts={artistCounts}
+              museumCounts={museumCounts}
+              typeCounts={typeCounts}
+              totalArtistCount={artworksWithoutArtistFilter.length}
+              totalMuseumCount={artworksWithoutMuseumFilter.length}
+              totalTypeCount={artworksWithoutTypeFilter.length}
+              onViewCount={onViewCount}
+              mustSeeCount={mustSeeCount}
+              hasImageCount={hasImageCount}
+            />
+          </div>
+          {/* Art Chronicle Button */}
+          <ScrollButton className="shrink-0 hidden md:flex" />
+        </div>
       </div>
 
       {/* Main Content */}
