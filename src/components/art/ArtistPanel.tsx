@@ -1,5 +1,6 @@
 import { Artist } from '@/types/art';
 import { ExternalLink } from 'lucide-react';
+import { getCountryFlag } from '@/lib/countryFlag';
 import { useLanguage } from '@/lib/i18n';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -58,6 +59,9 @@ export function ArtistPanel({ artist }: ArtistPanelProps) {
         <div className="flex flex-wrap gap-2">
           {artist.nationality && (
             <Badge variant="outline" className="text-xs">
+              {getCountryFlag(artist.nationality) !== '🏛️' && (
+                <span className="mr-1">{getCountryFlag(artist.nationality)}</span>
+              )}
               {artist.nationality}
             </Badge>
           )}
