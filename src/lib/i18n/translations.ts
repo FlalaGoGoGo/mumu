@@ -251,7 +251,7 @@ export const translations = {
     'common.viewDetails': 'View Details',
     
     // Art section
-    'nav.art': 'Art',
+    'nav.art': 'Arts',
     'art.title': 'Art Collection',
     'art.subtitle': 'Explore masterpieces from world-renowned museums',
     'art.selectArtist': 'Select an artist to see details',
@@ -1029,7 +1029,7 @@ export const translations = {
     'common.viewDetails': 'Ver Detalles',
     
     // Art section
-    'nav.art': 'Arte',
+    'nav.art': 'Artes',
     'art.title': 'Colección de Arte',
     'art.subtitle': 'Explora obras maestras de museos de renombre mundial',
     'art.selectArtist': 'Selecciona un artista para ver detalles',
@@ -1271,7 +1271,7 @@ export const translations = {
     'common.viewDetails': 'Voir les Détails',
     
     // Art section
-    'nav.art': 'Art',
+    'nav.art': 'Arts',
     'art.title': 'Collection d\'Art',
     'art.subtitle': 'Explorez les chefs-d\'œuvre des musées de renommée mondiale',
     'art.selectArtist': 'Sélectionnez un artiste pour voir les détails',
@@ -2239,7 +2239,7 @@ export const translations = {
     'common.viewDetails': 'Ver Detalhes',
     
     // Art section
-    'nav.art': 'Arte',
+    'nav.art': 'Artes',
     'art.title': 'Coleção de Arte',
     'art.subtitle': 'Explore obras-primas de museus mundialmente famosos',
     'art.selectArtist': 'Selecione um artista para ver detalhes',
@@ -2481,7 +2481,7 @@ export const translations = {
     'common.viewDetails': 'Vedi Dettagli',
     
     // Art section
-    'nav.art': 'Arte',
+    'nav.art': 'Arti',
     'art.title': 'Collezione d\'Arte',
     'art.subtitle': 'Esplora capolavori da musei di fama mondiale',
     'art.selectArtist': 'Seleziona un artista per vedere i dettagli',
