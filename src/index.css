@@ -402,7 +402,7 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: hsl(348, 45%, 32%);
+  background: hsl(43, 60%, 45%);
   opacity: 0.15;
   animation: user-location-pulse 2s ease-in-out infinite;
 }
@@ -421,7 +421,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: hsl(348, 45%, 32%);
+  background: hsl(43, 60%, 45%);
 }
 
 @keyframes user-location-pulse {

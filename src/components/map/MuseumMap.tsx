@@ -232,7 +232,7 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
       } else {
         accuracyCircleRef.current = L.circle(latLng, {
           radius: accuracy,
-          fillColor: 'hsl(348, 45%, 32%)',
+          fillColor: 'hsl(43, 60%, 45%)',
           fillOpacity: 0.08,
           stroke: false,
         }).addTo(mapRef.current);
