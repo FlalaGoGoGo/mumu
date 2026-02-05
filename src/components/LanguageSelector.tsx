@@ -24,7 +24,6 @@ export function LanguageSelector({ variant = 'default', className = '' }: Langua
       <SelectTrigger 
         className={`${variant === 'compact' ? 'w-auto gap-1.5 px-2' : 'w-[180px]'} bg-background ${className}`}
       >
-        <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <SelectValue>
           {currentLang?.flag} {currentLang?.nativeLabel}
         </SelectValue>
