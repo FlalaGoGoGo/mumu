@@ -1,6 +1,8 @@
 import { EnrichedArtwork, getArtworkImageUrl } from '@/types/art';
 import { useLanguage } from '@/lib/i18n';
 import { useCollectedArtworks } from '@/hooks/useCollectedArtworks';
+import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -10,7 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ExternalLink, Navigation, Eye, EyeOff, User, Heart } from 'lucide-react';
+import { ExternalLink, Navigation, Eye, EyeOff, User, Heart, Volume2, Pause, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ArtworkDetailSheetProps {
@@ -20,20 +22,59 @@ interface ArtworkDetailSheetProps {
   onArtistClick?: (artistId: string) => void;
 }
 
+// Map language to BCP 47 locale codes for speech synthesis
+const languageToLocale: Record<string, string> = {
+  'English': 'en-US',
+  'Simplified Chinese': 'zh-CN',
+  'Traditional Chinese': 'zh-TW',
+  'Spanish': 'es-ES',
+  'French': 'fr-FR',
+  'German': 'de-DE',
+  'Japanese': 'ja-JP',
+  'Korean': 'ko-KR',
+  'Portuguese': 'pt-BR',
+  'Italian': 'it-IT',
+};
+
 export function ArtworkDetailSheet({ 
   artwork, 
   open, 
   onOpenChange,
   onArtistClick 
 }: ArtworkDetailSheetProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { isCollected, toggleCollect } = useCollectedArtworks();
+  
+  const locale = languageToLocale[language] || 'en-US';
+  const { speak, stop, isSpeaking, isPaused, toggle, isSupported } = useSpeechSynthesis({ lang: locale });
+  const [audioState, setAudioState] = useState<'idle' | 'playing' | 'paused'>('idle');
 
-  if (!artwork) return null;
+  // Stop speech when modal closes or artwork changes
+  useEffect(() => {
+    if (!open) {
+      stop();
+      setAudioState('idle');
+    }
+  }, [open, stop]);
 
-  const collected = isCollected(artwork.artwork_id);
+  useEffect(() => {
+    stop();
+    setAudioState('idle');
+  }, [artwork?.artwork_id, stop]);
 
-  const handleCollectToggle = (e: React.MouseEvent) => {
+  // Sync audio state with speech synthesis state
+  useEffect(() => {
+    if (!isSpeaking && !isPaused && audioState !== 'idle') {
+      setAudioState('idle');
+    } else if (isSpeaking && !isPaused) {
+      setAudioState('playing');
+    } else if (isPaused) {
+      setAudioState('paused');
+    }
+  }, [isSpeaking, isPaused, audioState]);
+
+  const handleCollectToggle = useCallback((e: React.MouseEvent) => {
+    if (!artwork) return;
     e.stopPropagation();
     toggleCollect({
       artwork_id: artwork.artwork_id,
@@ -43,15 +84,41 @@ export function ArtworkDetailSheet({
       image_url: getArtworkImageUrl(artwork),
       museum_name: artwork.museum_name,
     });
-  };
+  }, [artwork, toggleCollect]);
 
-  const handleNavigate = () => {
+  const handleNavigate = useCallback(() => {
+    if (!artwork) return;
     // Try museum name first, fallback to coordinates
     const query = artwork.museum_name 
       ? encodeURIComponent(artwork.museum_name)
       : `${artwork.museum_lat},${artwork.museum_lng}`;
     window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
-  };
+  }, [artwork]);
+
+  const handlePlayPause = useCallback(() => {
+    if (!artwork?.description) return;
+    if (audioState === 'idle') {
+      // Start speaking the description
+      speak(artwork.description);
+      setAudioState('playing');
+    } else if (audioState === 'playing') {
+      toggle();
+      setAudioState('paused');
+    } else if (audioState === 'paused') {
+      toggle();
+      setAudioState('playing');
+    }
+  }, [artwork?.description, audioState, speak, toggle]);
+
+  const handleStop = useCallback(() => {
+    stop();
+    setAudioState('idle');
+  }, [stop]);
+
+  // Early return after all hooks
+  if (!artwork) return null;
+
+  const collected = isCollected(artwork.artwork_id);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -132,6 +199,57 @@ export function ArtworkDetailSheet({
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   {artwork.description}
                 </p>
+              </div>
+            )}
+
+            {/* Audio Guide */}
+            {artwork.description && (
+              <div className="border-t border-border pt-4">
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t('art.audioGuide')}
+                </h3>
+                {isSupported ? (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={audioState !== 'idle' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={handlePlayPause}
+                      className="gap-1.5"
+                    >
+                      {audioState === 'playing' ? (
+                        <>
+                          <Pause className="h-3.5 w-3.5" />
+                          {t('art.audioPause')}
+                        </>
+                      ) : audioState === 'paused' ? (
+                        <>
+                          <Volume2 className="h-3.5 w-3.5" />
+                          {t('art.audioResume')}
+                        </>
+                      ) : (
+                        <>
+                          <Volume2 className="h-3.5 w-3.5" />
+                          {t('art.audioPlay')}
+                        </>
+                      )}
+                    </Button>
+                    {audioState !== 'idle' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleStop}
+                        className="gap-1.5 text-muted-foreground hover:text-foreground"
+                      >
+                        <Square className="h-3.5 w-3.5" />
+                        {t('art.audioStop')}
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">
+                    {t('art.audioNotSupported')}
+                  </p>
+                )}
               </div>
             )}
 
