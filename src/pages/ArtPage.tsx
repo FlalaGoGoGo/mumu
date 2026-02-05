@@ -7,6 +7,7 @@ import { ArtistPanel } from '@/components/art/ArtistPanel';
 import { ArtistDrawer } from '@/components/art/ArtistDrawer';
 import { ArtFilters, ArtFiltersState, SortOrder } from '@/components/art/ArtFilters';
 import { ArtworkDetailSheet } from '@/components/art/ArtworkDetailSheet';
+import { ArtistWorksMap } from '@/components/art/ArtistWorksMap';
 
 import { EnrichedArtwork, Artist, getArtworkImageUrl } from '@/types/art';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -375,6 +376,14 @@ export default function ArtPage() {
           )}
         </div>
       </div>
+
+      {/* Artist Works Map - only shown when artist filter is active */}
+      {selectedArtist && filteredArtworks.length > 0 && (
+        <ArtistWorksMap 
+          artworks={filteredArtworks} 
+          artistName={selectedArtist.artist_name} 
+        />
+      )}
 
       {/* Artwork Detail Sheet */}
       <ArtworkDetailSheet
