@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { ExternalLink, Clock, MapPin, Star, Navigation, Heart, Copy, Check } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -20,9 +21,14 @@ interface MuseumCardProps {
 }
 
 export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compact = false, stateCode, distance, showSaveButton = true }: MuseumCardProps) {
+  const navigate = useNavigate();
   const { isSaved, toggleSave } = useSavedMuseums();
   const saved = isSaved(museum.museum_id);
   const [addressCopied, setAddressCopied] = useState(false);
+
+  const handleViewPlan = () => {
+    navigate(`/museum/${museum.museum_id}`);
+  };
 
   const handleCopyAddress = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -242,8 +248,8 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
 
       {/* Actions */}
       <div className="flex flex-col gap-2 mt-auto">
-        {museum.has_full_content && onViewPlan && (
-          <Button onClick={onViewPlan} className="w-full" variant="default">
+        {museum.has_full_content && (
+          <Button onClick={handleViewPlan} className="w-full" variant="default">
             <Star className="w-4 h-4 mr-2" />
             View Highlights & Plan
           </Button>
