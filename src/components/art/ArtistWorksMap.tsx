@@ -1,4 +1,4 @@
- import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
  import L from 'leaflet';
  import 'leaflet/dist/leaflet.css';
  import 'leaflet.markercluster';
@@ -7,10 +7,8 @@
  import 'leaflet.heat';
  import { useNavigate } from 'react-router-dom';
  import { useLanguage } from '@/lib/i18n';
- import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
- import { Button } from '@/components/ui/button';
- import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { MapPin, Flame, ExternalLink } from 'lucide-react';
+import { cn } from '@/lib/utils';
  import type { EnrichedArtwork } from '@/types/art';
  
  // Extend L to include heat
@@ -46,6 +44,32 @@
  
  type ViewMode = 'pins' | 'heat';
  
+// Floating toggle button component
+interface ModeButtonProps {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}
+
+function ModeButton({ active, onClick, icon, label }: ModeButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+        "shadow-sm backdrop-blur-sm",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "bg-background/90 text-primary border border-primary/30 hover:bg-primary/10"
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
  // Create cluster icon matching the app style
  const createClusterIcon = (cluster: L.MarkerCluster) => {
    const count = cluster.getChildCount();
@@ -314,48 +338,37 @@
  
    if (museumGroups.length === 0) {
      return (
-       <Card className="mt-8">
-         <CardHeader className="pb-2">
-           <CardTitle className="text-base font-medium">{t('art.worksOnMap')}</CardTitle>
-         </CardHeader>
-         <CardContent>
-           <div className="flex h-[260px] items-center justify-center text-muted-foreground">
-             {t('art.noLocationData')}
-           </div>
-         </CardContent>
-       </Card>
+      <div className="rounded-lg border border-border bg-card shadow-sm">
+        <div className="flex h-[260px] items-center justify-center text-sm text-muted-foreground">
+          {t('art.noLocationData')}
+        </div>
+      </div>
      );
    }
  
    return (
-     <Card className="mt-8">
-       <CardHeader className="flex flex-row items-center justify-between pb-2">
-         <CardTitle className="text-base font-medium">
-           {t('art.worksOnMap')}
-         </CardTitle>
-         <ToggleGroup
-           type="single"
-           value={viewMode}
-           onValueChange={(value) => value && setViewMode(value as ViewMode)}
-           size="sm"
-           className="gap-0.5"
-         >
-           <ToggleGroupItem value="pins" aria-label={t('art.viewPins')} className="gap-1.5 px-2.5 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-             <MapPin className="h-3.5 w-3.5" />
-             {t('art.viewPins')}
-           </ToggleGroupItem>
-           <ToggleGroupItem value="heat" aria-label={t('art.viewHeat')} className="gap-1.5 px-2.5 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-             <Flame className="h-3.5 w-3.5" />
-             {t('art.viewHeat')}
-           </ToggleGroupItem>
-         </ToggleGroup>
-       </CardHeader>
-       <CardContent className="p-0">
-         <div 
-           ref={containerRef} 
-           className="h-[320px] min-h-[260px] w-full rounded-b-lg"
-         />
-       </CardContent>
-     </Card>
+    <div className="relative rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+      {/* Map container */}
+      <div 
+        ref={containerRef} 
+        className="h-[320px] min-h-[260px] w-full"
+      />
+      
+      {/* Floating toggle buttons - bottom right */}
+      <div className="absolute bottom-4 right-4 z-[1000] flex gap-2">
+        <ModeButton
+          active={viewMode === 'pins'}
+          onClick={() => setViewMode('pins')}
+          icon={<MapPin className="h-3.5 w-3.5" />}
+          label={t('art.viewPins')}
+        />
+        <ModeButton
+          active={viewMode === 'heat'}
+          onClick={() => setViewMode('heat')}
+          icon={<Flame className="h-3.5 w-3.5" />}
+          label={t('art.viewHeat')}
+        />
+      </div>
+    </div>
    );
  }

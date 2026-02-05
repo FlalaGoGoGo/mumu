@@ -374,16 +374,21 @@ export default function ArtPage() {
               </p>
             </div>
           )}
+
+          {/* Artist Works Map - only shown when artist filter is active */}
+          {selectedArtist && filteredArtworks.length > 0 && (
+            <div className="mt-8">
+              <h2 className="mb-4 font-display text-lg font-semibold text-foreground">
+                {t('art.worksOnMap')}
+              </h2>
+              <ArtistWorksMap 
+                artworks={filteredArtworks} 
+                artistName={selectedArtist.artist_name} 
+              />
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Artist Works Map - only shown when artist filter is active */}
-      {selectedArtist && filteredArtworks.length > 0 && (
-        <ArtistWorksMap 
-          artworks={filteredArtworks} 
-          artistName={selectedArtist.artist_name} 
-        />
-      )}
 
       {/* Artwork Detail Sheet */}
       <ArtworkDetailSheet
