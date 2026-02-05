@@ -1,10 +1,10 @@
-import { Map, Route, Stamp, Settings, Palette, Image } from 'lucide-react';
+import { Landmark, Route, Stamp, Settings, Palette, Image } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useLanguage } from '@/lib/i18n';
 import { TranslationKey } from '@/lib/i18n/translations';
 
 const navItems: { to: string; icon: React.ComponentType<{ className?: string }>; labelKey: TranslationKey }[] = [
-  { to: '/', icon: Map, labelKey: 'nav.map' },
+  { to: '/', icon: Landmark, labelKey: 'nav.museums' },
   { to: '/art', icon: Image, labelKey: 'nav.art' },
   { to: '/exhibitions', icon: Palette, labelKey: 'nav.exhibitions' },
   { to: '/passport', icon: Stamp, labelKey: 'nav.passport' },
