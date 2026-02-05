@@ -24,14 +24,6 @@ export function MustVisitFilter({ enabled, onToggle, count }: MustVisitFilterPro
     >
       <Star className={cn("w-3.5 h-3.5", enabled && "fill-current")} />
       <span>{t('map.mustVisit')}</span>
-      {count !== undefined && (
-        <span className={cn(
-          "text-xs tabular-nums",
-          enabled ? "text-primary-foreground/80" : "text-muted-foreground/70"
-        )}>
-          {count}
-        </span>
-      )}
     </button>
   );
 }
