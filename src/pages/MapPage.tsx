@@ -321,6 +321,7 @@ export default function MapPage() {
           selectedMuseum={selectedMuseum}
           onSelectMuseum={setSelectedMuseum}
           userLocation={latitude !== null && longitude !== null ? { latitude, longitude, accuracy } : null}
+          locationFilter={{ country: locationCountry, state: locationState, city: locationCity }}
           className="w-full h-full"
         />
 
