@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
  import 'leaflet.heat';
  import { useNavigate } from 'react-router-dom';
  import { useLanguage } from '@/lib/i18n';
- import { MapPin, Flame, ExternalLink } from 'lucide-react';
+ import { MapPin, Flame, Globe, Plus, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
  import type { EnrichedArtwork } from '@/types/art';
  
@@ -44,20 +44,45 @@ import { cn } from '@/lib/utils';
  
  type ViewMode = 'pins' | 'heat';
  
-// Floating toggle button component
-interface ModeButtonProps {
+ // Control button component (shared for all map controls)
+ interface ControlButtonProps {
+   onClick: () => void;
+   icon: React.ReactNode;
+   label?: string;
+   className?: string;
+ }
+ 
+ function ControlButton({ onClick, icon, label, className }: ControlButtonProps) {
+   return (
+     <button
+       onClick={onClick}
+       className={cn(
+         "flex items-center justify-center",
+         "bg-background/95 text-foreground border border-border",
+         "shadow-sm backdrop-blur-sm hover:bg-accent transition-colors",
+         className
+       )}
+       title={label}
+     >
+       {icon}
+     </button>
+   );
+ }
+ 
+ // Mode toggle button component
+ interface ModeToggleButtonProps {
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
 }
 
-function ModeButton({ active, onClick, icon, label }: ModeButtonProps) {
+ function ModeToggleButton({ active, onClick, icon, label }: ModeToggleButtonProps) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+         "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors",
         "shadow-sm backdrop-blur-sm",
         active
           ? "bg-primary text-primary-foreground"
@@ -168,6 +193,7 @@ function ModeButton({ active, onClick, icon, label }: ModeButtonProps) {
    const mapRef = useRef<L.Map | null>(null);
    const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
    const heatLayerRef = useRef<L.Layer | null>(null);
+   const boundsRef = useRef<L.LatLngBounds | null>(null);
    const [viewMode, setViewMode] = useState<ViewMode>('pins');
  
    // Group artworks by museum
@@ -203,7 +229,7 @@ function ModeButton({ active, onClick, icon, label }: ModeButtonProps) {
      mapRef.current = L.map(containerRef.current, {
        center: [39.8283, -98.5795],
        zoom: 4,
-       zoomControl: true,
+       zoomControl: false, // We'll add custom controls
        scrollWheelZoom: true,
      });
  
@@ -231,6 +257,7 @@ function ModeButton({ active, onClick, icon, label }: ModeButtonProps) {
          mapRef.current = null;
          clusterGroupRef.current = null;
          heatLayerRef.current = null;
+         boundsRef.current = null;
        }
      };
    }, []);
@@ -250,6 +277,7 @@ function ModeButton({ active, onClick, icon, label }: ModeButtonProps) {
  
      // Fit bounds to all museum points
      const bounds = L.latLngBounds(museumGroups.map(g => [g.lat, g.lng]));
+     boundsRef.current = bounds;
      mapRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
  
      if (viewMode === 'pins') {
@@ -336,6 +364,21 @@ function ModeButton({ active, onClick, icon, label }: ModeButtonProps) {
      };
    }, [navigate]);
  
+   // Zoom handlers
+   const handleZoomIn = useCallback(() => {
+     mapRef.current?.zoomIn();
+   }, []);
+ 
+   const handleZoomOut = useCallback(() => {
+     mapRef.current?.zoomOut();
+   }, []);
+ 
+   const handleWorldView = useCallback(() => {
+     if (mapRef.current && boundsRef.current) {
+       mapRef.current.fitBounds(boundsRef.current, { padding: [40, 40], maxZoom: 10 });
+     }
+   }, []);
+ 
    if (museumGroups.length === 0) {
      return (
       <div className="rounded-lg border border-border bg-card shadow-sm">
@@ -354,19 +397,41 @@ function ModeButton({ active, onClick, icon, label }: ModeButtonProps) {
         className="h-[320px] min-h-[260px] w-full"
       />
       
-      {/* Floating toggle buttons - bottom right */}
-      <div className="absolute bottom-4 right-4 z-[1000] flex gap-2">
-        <ModeButton
+      {/* Mode toggle buttons - top left */}
+      <div className="absolute top-3 left-3 z-[1000] flex flex-col gap-1">
+        <ModeToggleButton
           active={viewMode === 'pins'}
           onClick={() => setViewMode('pins')}
           icon={<MapPin className="h-3.5 w-3.5" />}
           label={t('art.viewPins')}
         />
-        <ModeButton
+        <ModeToggleButton
           active={viewMode === 'heat'}
           onClick={() => setViewMode('heat')}
           icon={<Flame className="h-3.5 w-3.5" />}
           label={t('art.viewHeat')}
+        />
+      </div>
+      
+      {/* Zoom controls + Globe - top right */}
+      <div className="absolute top-3 right-3 z-[1000] flex flex-col rounded-md overflow-hidden border border-border shadow-sm">
+        <ControlButton
+          onClick={handleZoomIn}
+          icon={<Plus className="h-4 w-4" />}
+          label={t('map.zoomIn')}
+          className="w-8 h-8 border-b-0 rounded-none"
+        />
+        <ControlButton
+          onClick={handleZoomOut}
+          icon={<Minus className="h-4 w-4" />}
+          label={t('map.zoomOut')}
+          className="w-8 h-8 border-b-0 rounded-none"
+        />
+        <ControlButton
+          onClick={handleWorldView}
+          icon={<Globe className="h-4 w-4" />}
+          label={t('map.worldView')}
+          className="w-8 h-8 rounded-none"
         />
       </div>
     </div>
