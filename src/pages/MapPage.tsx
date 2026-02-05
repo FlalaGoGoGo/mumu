@@ -161,7 +161,9 @@ export default function MapPage() {
   };
 
   const handleViewPlan = () => {
-    navigate('/plan');
+    if (selectedMuseum) {
+      navigate(`/museum/${selectedMuseum.museum_id}`);
+    }
   };
 
   const handleLocationChange = (country: string | null, state: string | null, city: string | null) => {

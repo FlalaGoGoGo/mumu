@@ -9,7 +9,6 @@ const navItems: { to: string; icon: React.ComponentType<{ className?: string }>;
   { to: '/', icon: Map, labelKey: 'nav.map' },
   { to: '/art', icon: Image, labelKey: 'nav.art' },
   { to: '/exhibitions', icon: Palette, labelKey: 'nav.exhibitions' },
-  { to: '/plan', icon: Route, labelKey: 'nav.plan' },
   { to: '/passport', icon: Stamp, labelKey: 'nav.passport' },
   { to: '/settings', icon: Settings, labelKey: 'nav.settings' },
 ];
