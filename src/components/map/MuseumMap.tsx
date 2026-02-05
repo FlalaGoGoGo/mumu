@@ -14,6 +14,7 @@ interface MuseumMapProps {
   selectedMuseum: Museum | null;
   onSelectMuseum: (museum: Museum) => void;
   userLocation?: { latitude: number; longitude: number; accuracy?: number | null } | null;
+  locationFilter?: { country: string | null; state: string | null; city: string | null } | null;
   className?: string;
 }
 
@@ -163,7 +164,7 @@ const createClusterIcon = (cluster: L.MarkerCluster) => {
   });
 };
 
-export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocation, className = '' }: MuseumMapProps) {
+export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocation, locationFilter, className = '' }: MuseumMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
@@ -171,6 +172,7 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
   const accuracyCircleRef = useRef<L.Circle | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [mapReady, setMapReady] = useState(false);
+  const prevLocationFilterRef = useRef<{ country: string | null; state: string | null; city: string | null } | null>(null);
 
   // Initialize map
   useEffect(() => {
@@ -286,6 +288,59 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
       duration: 0.5,
     });
   }, [selectedMuseum]);
+
+  // Auto-zoom when location filter changes
+  useEffect(() => {
+    if (!mapRef.current || !mapReady) return;
+    
+    const prevFilter = prevLocationFilterRef.current;
+    const currentFilter = locationFilter;
+    
+    // Check if filter actually changed (not just initial render)
+    const hasChanged = 
+      prevFilter?.country !== currentFilter?.country ||
+      prevFilter?.state !== currentFilter?.state ||
+      prevFilter?.city !== currentFilter?.city;
+    
+    // Update ref for next comparison
+    prevLocationFilterRef.current = currentFilter ? { ...currentFilter } : null;
+    
+    // Skip if no change or this is the initial render with no filter
+    if (!hasChanged || (prevFilter === null && !currentFilter?.country)) return;
+    
+    // If filter is cleared, reset to default world view
+    if (!currentFilter?.country && !currentFilter?.state && !currentFilter?.city) {
+      const worldBounds = L.latLngBounds(
+        L.latLng(-60, -180),
+        L.latLng(75, 180)
+      );
+      mapRef.current.flyToBounds(worldBounds, {
+        padding: [20, 20],
+        duration: 0.8,
+      });
+      return;
+    }
+    
+    // If we have museums to show, fit bounds to them
+    if (museums.length > 0) {
+      if (museums.length === 1) {
+        // Single museum: fly to it with reasonable zoom
+        mapRef.current.flyTo([museums[0].lat, museums[0].lng], 8, {
+          duration: 0.8,
+        });
+      } else {
+        // Multiple museums: fit bounds
+        const bounds = L.latLngBounds(
+          museums.map(m => L.latLng(m.lat, m.lng))
+        );
+        mapRef.current.flyToBounds(bounds, {
+          padding: [40, 40],
+          maxZoom: 6,
+          duration: 0.8,
+        });
+      }
+    }
+  }, [locationFilter?.country, locationFilter?.state, locationFilter?.city, museums, mapReady]);
 
   const handleZoomToLocation = () => {
     if (!mapRef.current || !userLocation) return;
