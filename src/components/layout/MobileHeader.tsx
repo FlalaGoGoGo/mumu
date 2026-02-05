@@ -1,4 +1,3 @@
-import { Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/lib/i18n';
 import { SUPPORTED_LANGUAGES, Language } from '@/lib/i18n/translations';
@@ -31,8 +30,7 @@ export function MobileHeader() {
       {/* Language Selector */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-1.5">
-            <Globe className="h-4 w-4" />
+          <Button variant="ghost" size="sm">
             <span className="text-sm">{currentLang?.flag} {currentLang?.nativeLabel}</span>
           </Button>
         </DropdownMenuTrigger>
