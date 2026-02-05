@@ -1,4 +1,3 @@
-import { Globe } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -22,10 +21,13 @@ export function LanguageSelector({ variant = 'default', className = '' }: Langua
   return (
     <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
       <SelectTrigger 
-        className={`${variant === 'compact' ? 'w-auto gap-1.5 px-2' : 'w-[180px]'} bg-background ${className}`}
+        className={`${variant === 'compact' ? 'w-auto' : 'w-[180px]'} min-h-[44px] px-4 gap-2 bg-background ${className}`}
       >
-        <SelectValue>
-          {currentLang?.flag} {currentLang?.nativeLabel}
+        <SelectValue className="flex items-center gap-2">
+          <span className="flex items-center gap-2">
+            <span>{currentLang?.flag}</span>
+            <span>{currentLang?.nativeLabel}</span>
+          </span>
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="bg-popover z-[9999]" position="popper" sideOffset={4}>
