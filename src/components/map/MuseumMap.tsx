@@ -352,14 +352,10 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
 
   const handleZoomToGlobal = () => {
     if (!mapRef.current) return;
-    // Fit to world bounds showing all continents
-    const worldBounds = L.latLngBounds(
-      L.latLng(-60, -180), // Southwest corner (avoiding Antarctica)
-      L.latLng(75, 180)    // Northeast corner
-    );
-    mapRef.current.fitBounds(worldBounds, {
+    // Set a fixed world view that fills the map container well
+    // Center on slight north of equator to better frame populated continents
+    mapRef.current.setView([25, 0], 2, {
       animate: true,
-      padding: [20, 20],
     });
   };
 
