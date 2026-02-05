@@ -3,17 +3,18 @@ import { useLanguage } from '@/lib/i18n';
 import { useCollectedArtworks } from '@/hooks/useCollectedArtworks';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useEffect, useState, useCallback } from 'react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { ExternalLink, Navigation, Eye, EyeOff, User, Heart, Volume2, Pause, Square } from 'lucide-react';
-import { cn } from '@/lib/utils';
+ import {
+   Sheet,
+   SheetContent,
+   SheetHeader,
+   SheetTitle,
+ } from '@/components/ui/sheet';
+ import { Badge } from '@/components/ui/badge';
+ import { Button } from '@/components/ui/button';
+ import { ScrollArea } from '@/components/ui/scroll-area';
+ import { Slider } from '@/components/ui/slider';
+ import { ExternalLink, Navigation, Eye, EyeOff, User, Heart, Volume2, Pause, Square } from 'lucide-react';
+ import { cn } from '@/lib/utils';
 
 interface ArtworkDetailSheetProps {
   artwork: EnrichedArtwork | null;
@@ -46,8 +47,11 @@ export function ArtworkDetailSheet({
   const { isCollected, toggleCollect } = useCollectedArtworks();
   
   const locale = languageToLocale[language] || 'en-US';
-  const { speak, stop, isSpeaking, isPaused, toggle, isSupported } = useSpeechSynthesis({ lang: locale });
-  const [audioState, setAudioState] = useState<'idle' | 'playing' | 'paused'>('idle');
+ 
+   const { speak, stop, isSpeaking, isPaused, toggle, seekTo, progress, isSupported } = useSpeechSynthesis({ lang: locale });
+   const [audioState, setAudioState] = useState<'idle' | 'playing' | 'paused'>('idle');
+   const [isDragging, setIsDragging] = useState(false);
+   const [dragValue, setDragValue] = useState(0);
 
   // Stop speech when modal closes or artwork changes
   useEffect(() => {
@@ -202,56 +206,82 @@ export function ArtworkDetailSheet({
               </div>
             )}
 
-            {/* Audio Guide */}
-            {artwork.description && (
-              <div className="border-t border-border pt-4">
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {t('art.audioGuide')}
-                </h3>
-                {isSupported ? (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant={audioState !== 'idle' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={handlePlayPause}
-                      className="gap-1.5"
-                    >
-                      {audioState === 'playing' ? (
-                        <>
-                          <Pause className="h-3.5 w-3.5" />
-                          {t('art.audioPause')}
-                        </>
-                      ) : audioState === 'paused' ? (
-                        <>
-                          <Volume2 className="h-3.5 w-3.5" />
-                          {t('art.audioResume')}
-                        </>
-                      ) : (
-                        <>
-                          <Volume2 className="h-3.5 w-3.5" />
-                          {t('art.audioPlay')}
-                        </>
-                      )}
-                    </Button>
-                    {audioState !== 'idle' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleStop}
-                        className="gap-1.5 text-muted-foreground hover:text-foreground"
-                      >
-                        <Square className="h-3.5 w-3.5" />
-                        {t('art.audioStop')}
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">
-                    {t('art.audioNotSupported')}
-                  </p>
-                )}
-              </div>
-            )}
+ 
+             {/* Audio Guide */}
+             {artwork.description && (
+               <div className="border-t border-border pt-4">
+                 <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                   {t('art.audioGuide')}
+                 </h3>
+                 {isSupported ? (
+                   <div className="space-y-3">
+                     <div className="flex items-center gap-2">
+                       <Button
+                         variant={audioState !== 'idle' ? 'default' : 'outline'}
+                         size="sm"
+                         onClick={handlePlayPause}
+                         className="gap-1.5"
+                       >
+                         {audioState === 'playing' ? (
+                           <>
+                             <Pause className="h-3.5 w-3.5" />
+                             {t('art.audioPause')}
+                           </>
+                         ) : audioState === 'paused' ? (
+                           <>
+                             <Volume2 className="h-3.5 w-3.5" />
+                             {t('art.audioResume')}
+                           </>
+                         ) : (
+                           <>
+                             <Volume2 className="h-3.5 w-3.5" />
+                             {t('art.audioPlay')}
+                           </>
+                         )}
+                       </Button>
+                       {audioState !== 'idle' && (
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={handleStop}
+                           className="gap-1.5 text-muted-foreground hover:text-foreground"
+                         >
+                           <Square className="h-3.5 w-3.5" />
+                           {t('art.audioStop')}
+                         </Button>
+                       )}
+                     </div>
+                     
+                     {/* Progress Slider */}
+                     {audioState !== 'idle' && (
+                       <div className="flex items-center gap-3">
+                         <Slider
+                           value={[isDragging ? dragValue : progress]}
+                           max={100}
+                           step={1}
+                           onValueChange={(values) => {
+                             setIsDragging(true);
+                             setDragValue(values[0]);
+                           }}
+                           onValueCommit={(values) => {
+                             setIsDragging(false);
+                             seekTo(values[0]);
+                           }}
+                           className="flex-1 cursor-pointer"
+                         />
+                         <span className="text-xs font-medium text-muted-foreground w-10 text-right">
+                           {Math.round(isDragging ? dragValue : progress)}%
+                         </span>
+                       </div>
+                     )}
+                   </div>
+                 ) : (
+                   <p className="text-xs text-muted-foreground italic">
+                     {t('art.audioNotSupported')}
+                   </p>
+                 )}
+               </div>
+             )}
 
             {/* Medium & Dimensions */}
             <div className="grid gap-4 sm:grid-cols-2">
