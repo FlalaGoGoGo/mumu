@@ -26,17 +26,15 @@ export function LanguageSelector({ variant = 'default', className = '' }: Langua
       >
         <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <SelectValue>
-          {variant === 'compact' ? currentLang?.nativeLabel : currentLang?.label}
+          {currentLang?.flag} {currentLang?.nativeLabel}
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="bg-popover z-[9999]" position="popper" sideOffset={4}>
         {SUPPORTED_LANGUAGES.map((lang) => (
           <SelectItem key={lang.code} value={lang.code}>
             <span className="flex items-center gap-2">
+              <span>{lang.flag}</span>
               <span>{lang.nativeLabel}</span>
-              {lang.nativeLabel !== lang.label && (
-                <span className="text-muted-foreground text-xs">({lang.label})</span>
-              )}
             </span>
           </SelectItem>
         ))}

@@ -33,7 +33,7 @@ export function MobileHeader() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className="gap-1.5">
             <Globe className="h-4 w-4" />
-            <span className="text-sm">{currentLang?.nativeLabel}</span>
+            <span className="text-sm">{currentLang?.flag} {currentLang?.nativeLabel}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="bg-popover z-50">
@@ -43,10 +43,7 @@ export function MobileHeader() {
               onClick={() => setLanguage(lang.code as Language)}
               className={language === lang.code ? 'bg-accent' : ''}
             >
-              <span>{lang.nativeLabel}</span>
-              {lang.nativeLabel !== lang.label && (
-                <span className="text-muted-foreground text-xs ml-2">({lang.label})</span>
-              )}
+              <span>{lang.flag} {lang.nativeLabel}</span>
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>

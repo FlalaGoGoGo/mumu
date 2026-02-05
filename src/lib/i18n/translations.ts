@@ -2,17 +2,17 @@
 
 export type Language = 'English' | 'Simplified Chinese' | 'Traditional Chinese' | 'Spanish' | 'French' | 'German' | 'Japanese' | 'Korean' | 'Portuguese' | 'Italian';
 
-export const SUPPORTED_LANGUAGES: { code: Language; label: string; nativeLabel: string }[] = [
-  { code: 'English', label: 'English', nativeLabel: 'English' },
-  { code: 'Simplified Chinese', label: 'Simplified Chinese', nativeLabel: '简体中文' },
-  { code: 'Traditional Chinese', label: 'Traditional Chinese', nativeLabel: '繁體中文' },
-  { code: 'Spanish', label: 'Spanish', nativeLabel: 'Español' },
-  { code: 'French', label: 'French', nativeLabel: 'Français' },
-  { code: 'German', label: 'German', nativeLabel: 'Deutsch' },
-  { code: 'Japanese', label: 'Japanese', nativeLabel: '日本語' },
-  { code: 'Korean', label: 'Korean', nativeLabel: '한국어' },
-  { code: 'Portuguese', label: 'Portuguese', nativeLabel: 'Português' },
-  { code: 'Italian', label: 'Italian', nativeLabel: 'Italiano' },
+export const SUPPORTED_LANGUAGES: { code: Language; label: string; nativeLabel: string; flag: string }[] = [
+  { code: 'English', label: 'English', nativeLabel: 'English', flag: '🇺🇸' },
+  { code: 'Simplified Chinese', label: 'Simplified Chinese', nativeLabel: '简体中文', flag: '🇨🇳' },
+  { code: 'Traditional Chinese', label: 'Traditional Chinese', nativeLabel: '繁體中文', flag: '🇨🇳' },
+  { code: 'Spanish', label: 'Spanish', nativeLabel: 'Español', flag: '🇪🇸' },
+  { code: 'French', label: 'French', nativeLabel: 'Français', flag: '🇫🇷' },
+  { code: 'German', label: 'German', nativeLabel: 'Deutsch', flag: '🇩🇪' },
+  { code: 'Japanese', label: 'Japanese', nativeLabel: '日本語', flag: '🇯🇵' },
+  { code: 'Korean', label: 'Korean', nativeLabel: '한국어', flag: '🇰🇷' },
+  { code: 'Portuguese', label: 'Portuguese', nativeLabel: 'Português', flag: '🇵🇹' },
+  { code: 'Italian', label: 'Italian', nativeLabel: 'Italiano', flag: '🇮🇹' },
 ];
 
 export type TranslationKey = keyof typeof translations.English;
