@@ -21,6 +21,7 @@ export const translations = {
   English: {
     // Navigation
     'nav.map': 'Map',
+    'nav.museums': 'Museums',
     'nav.exhibitions': 'Exhibitions',
     'nav.plan': 'Plan',
     'nav.passport': 'Passport',
@@ -304,6 +305,7 @@ export const translations = {
   'Simplified Chinese': {
     // Navigation
     'nav.map': '地图',
+    'nav.museums': '博物馆',
     'nav.exhibitions': '展览',
     'nav.plan': '计划',
     'nav.passport': '护照',
@@ -587,6 +589,7 @@ export const translations = {
   'Traditional Chinese': {
     // Navigation
     'nav.map': '地圖',
+    'nav.museums': '博物館',
     'nav.exhibitions': '展覽',
     'nav.plan': '計劃',
     'nav.passport': '護照',
@@ -867,6 +870,7 @@ export const translations = {
   },
   Spanish: {
     'nav.map': 'Mapa',
+    'nav.museums': 'Museos',
     'nav.exhibitions': 'Exposiciones',
     'nav.plan': 'Planificar',
     'nav.passport': 'Pasaporte',
@@ -1123,6 +1127,7 @@ export const translations = {
   },
   French: {
     'nav.map': 'Carte',
+    'nav.museums': 'Musées',
     'nav.exhibitions': 'Expositions',
     'nav.plan': 'Planifier',
     'nav.passport': 'Passeport',
@@ -1379,6 +1384,7 @@ export const translations = {
   },
   German: {
     'nav.map': 'Karte',
+    'nav.museums': 'Museen',
     'nav.exhibitions': 'Ausstellungen',
     'nav.plan': 'Planen',
     'nav.passport': 'Pass',
@@ -1635,6 +1641,7 @@ export const translations = {
   },
   Japanese: {
     'nav.map': '地図',
+    'nav.museums': '美術館',
     'nav.exhibitions': '展覧会',
     'nav.plan': 'プラン',
     'nav.passport': 'パスポート',
@@ -1891,6 +1898,7 @@ export const translations = {
   },
   Korean: {
     'nav.map': '지도',
+    'nav.museums': '박물관',
     'nav.exhibitions': '전시회',
     'nav.plan': '계획',
     'nav.passport': '여권',
@@ -2147,6 +2155,7 @@ export const translations = {
   },
   Portuguese: {
     'nav.map': 'Mapa',
+    'nav.museums': 'Museus',
     'nav.exhibitions': 'Exposições',
     'nav.plan': 'Planejar',
     'nav.passport': 'Passaporte',
@@ -2403,6 +2412,7 @@ export const translations = {
   },
   Italian: {
     'nav.map': 'Mappa',
+    'nav.museums': 'Musei',
     'nav.exhibitions': 'Mostre',
     'nav.plan': 'Pianifica',
     'nav.passport': 'Passaporto',
