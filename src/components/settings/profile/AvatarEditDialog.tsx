@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Camera } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import mumuLogo from '@/assets/mumu-logo.png';
 
 interface AvatarEditDialogProps {
   open: boolean;
@@ -93,8 +94,8 @@ export function AvatarEditDialog({ open, onOpenChange, currentUrl, onSave }: Ava
             ) : currentUrl ? (
               <img src={currentUrl} alt="Current avatar" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Camera className="w-8 h-8 text-muted-foreground" />
+              <div className="w-full h-full flex items-center justify-center p-4">
+                <img src={mumuLogo} alt="MuMu" className="w-full h-full object-contain" />
               </div>
             )}
           </div>

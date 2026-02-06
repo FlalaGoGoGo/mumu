@@ -2,6 +2,17 @@ import { X } from 'lucide-react';
 import { EligibilityItem } from '@/types/eligibility';
 import { ALL_CATALOG_ITEMS } from '@/lib/eligibilityCatalog';
 
+function calculateAge(dob: string): number {
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 interface EligibilityChipProps {
   item: EligibilityItem;
   onRemove: () => void;
@@ -23,7 +34,7 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onClick }: Eli
 
   return (
     <div
-      className="flex items-start gap-3 px-3 py-2.5 rounded-lg border border-border/60 bg-card/80 text-sm group hover:border-primary/30 transition-colors"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border/60 bg-card/80 text-sm group hover:border-primary/30 transition-colors"
       role="button"
       tabIndex={0}
       onClick={onClick}
@@ -31,7 +42,7 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onClick }: Eli
         if (e.key === 'Enter' || e.key === ' ') onClick?.();
       }}
     >
-      <span className="text-base flex-shrink-0 mt-0.5">{icon}</span>
+      <span className="text-base flex-shrink-0 self-center">{icon}</span>
       <div className="flex-1 min-w-0">
         <span className="text-foreground font-medium">{baseLabel}</span>
         {hasDetails && (
@@ -59,6 +70,11 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onClick }: Eli
             )}
           </div>
         )}
+        {item.date_of_birth && (
+          <div className="mt-1 text-xs text-muted-foreground">
+            Age: {calculateAge(item.date_of_birth)}
+          </div>
+        )}
       </div>
       <button
         type="button"
@@ -66,7 +82,7 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onClick }: Eli
           e.stopPropagation();
           onRemove();
         }}
-        className="flex-shrink-0 p-0.5 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors mt-0.5"
+        className="flex-shrink-0 p-0.5 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors self-center"
         aria-label={`Remove ${baseLabel}`}
       >
         <X className="w-3.5 h-3.5" />
