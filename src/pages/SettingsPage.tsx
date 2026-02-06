@@ -9,6 +9,7 @@ import { useSavedMuseums } from '@/hooks/useSavedMuseums';
 import { usePreferences } from '@/hooks/usePreferences';
 import { useLanguage } from '@/lib/i18n';
 import { SaveStatusIndicator } from '@/components/settings/SaveStatusIndicator';
+import { MyProfileCard, MyProfileContent } from '@/components/settings/MyProfileCard';
 import { ProfileBasicsCard, ProfileBasicsContent } from '@/components/settings/ProfileBasicsCard';
 import { InterestsCard, InterestsContent } from '@/components/settings/InterestsCard';
 import { DiscountsCard, DiscountsContent } from '@/components/settings/DiscountsCard';
@@ -67,12 +68,34 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        {/* A) Personal Preferences */}
+        {/* My Profile */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="font-display text-xl font-semibold text-foreground">{t('settings.personalPreferences')}</h2>
+            <h2 className="font-display text-xl font-semibold text-foreground">{t('profile.myProfile')}</h2>
             <SaveStatusIndicator status={saveStatus} onRetry={retrySave} />
           </div>
+
+          {isMobile ? (
+            <Accordion type="single" collapsible defaultValue="myprofile" className="space-y-3">
+              <AccordionItem value="myprofile" className="rounded-lg border border-border/60 bg-card/80 px-4 shadow-sm">
+                <AccordionTrigger className="hover:no-underline">
+                  <span className="font-display font-semibold">{t('profile.myProfile')}</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <MyProfileContent preferences={preferences} onUpdate={updatePreferences} />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          ) : (
+            <MyProfileCard preferences={preferences} onUpdate={updatePreferences} />
+          )}
+        </section>
+
+        <Separator className="my-8" />
+
+        {/* A) Personal Preferences */}
+        <section className="mb-8">
+          <h2 className="font-display text-xl font-semibold text-foreground mb-5">{t('settings.personalPreferences')}</h2>
 
           {isMobile ? (
             // Mobile: Accordion Layout
