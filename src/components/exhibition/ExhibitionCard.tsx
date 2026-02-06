@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { ExternalLink, ImageOff } from 'lucide-react';
+import { ImageOff } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/lib/i18n';
 import type { Exhibition, ExhibitionStatus } from '@/types/exhibition';
@@ -9,8 +8,8 @@ import type { Exhibition, ExhibitionStatus } from '@/types/exhibition';
 interface ExhibitionCardProps {
   exhibition: Exhibition;
   distance?: string | null;
+  onClick?: () => void;
 }
-
 const statusColors: Record<ExhibitionStatus, string> = {
   Ongoing: 'bg-green-50 text-green-700 border-green-200',
   Upcoming: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -18,13 +17,12 @@ const statusColors: Record<ExhibitionStatus, string> = {
   TBD: 'bg-amber-50 text-amber-700 border-amber-200',
 };
 
-export function ExhibitionCard({ exhibition, distance }: ExhibitionCardProps) {
+export function ExhibitionCard({ exhibition, distance, onClick }: ExhibitionCardProps) {
   const [imageError, setImageError] = useState(false);
   const { t } = useLanguage();
 
   const location = [exhibition.city, exhibition.state].filter(Boolean).join(', ');
 
-  // Map status to translation key
   const getStatusLabel = (status: ExhibitionStatus): string => {
     switch (status) {
       case 'Ongoing': return t('exhibitions.ongoing');
@@ -35,10 +33,24 @@ export function ExhibitionCard({ exhibition, distance }: ExhibitionCardProps) {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick?.();
+    }
+  };
+
   return (
-    <Card className="overflow-hidden flex flex-col h-full bg-card border border-border rounded-sm shadow-[0_1px_3px_hsl(var(--foreground)/0.04)] transition-shadow duration-200 hover:shadow-[0_4px_12px_hsl(var(--foreground)/0.08)]">
-      {/* Cover Image - fixed 16:9 aspect ratio, flush to edges */}
-      <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
+    <Card
+      className="overflow-hidden flex flex-col bg-card border border-border rounded-sm shadow-[0_1px_3px_hsl(var(--foreground)/0.04)] transition-shadow duration-200 hover:shadow-[0_4px_12px_hsl(var(--foreground)/0.08)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+      role="button"
+      aria-label={exhibition.exhibition_name}
+    >
+      {/* Cover Image - fixed height */}
+      <div className="relative w-full h-48 flex-shrink-0">
         {!imageError && exhibition.cover_image_url ? (
           <img
             src={exhibition.cover_image_url}
@@ -54,7 +66,7 @@ export function ExhibitionCard({ exhibition, distance }: ExhibitionCardProps) {
       </div>
 
       <CardContent className="p-3 flex flex-col flex-1">
-        {/* Header with status - right aligned */}
+        {/* Header with status */}
         <div className="flex items-start justify-between gap-2 mb-1.5">
           <h3 className="font-display text-base font-semibold text-foreground leading-tight line-clamp-2">
             {exhibition.exhibition_name}
@@ -67,7 +79,7 @@ export function ExhibitionCard({ exhibition, distance }: ExhibitionCardProps) {
           </Badge>
         </div>
 
-        {/* Museum name with distance on right */}
+        {/* Museum name with distance */}
         <div className="flex items-center justify-between gap-2 mb-0.5">
           <span className="text-xs text-muted-foreground truncate">{exhibition.museum_name}</span>
           {distance !== undefined && (
@@ -76,25 +88,10 @@ export function ExhibitionCard({ exhibition, distance }: ExhibitionCardProps) {
             </span>
           )}
         </div>
-        <p className="text-xs text-muted-foreground mb-1.5">{location}</p>
+        <p className="text-xs text-muted-foreground mb-1.5 line-clamp-1">{location}</p>
 
         {/* Date Label */}
-        <p className="text-sm font-medium text-foreground mb-3">{exhibition.date_label}</p>
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Actions - only Official Page button */}
-        <Button variant="outline" size="sm" className="w-full" asChild>
-          <a
-            href={exhibition.official_url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <ExternalLink className="w-4 h-4 mr-2" />
-            {t('exhibitions.officialPage')}
-          </a>
-        </Button>
+        <p className="text-sm font-medium text-foreground line-clamp-1">{exhibition.date_label}</p>
       </CardContent>
     </Card>
   );
