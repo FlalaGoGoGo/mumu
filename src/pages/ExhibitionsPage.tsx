@@ -6,6 +6,7 @@ import { useMuseums } from '@/hooks/useMuseums';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useLanguage } from '@/lib/i18n';
 import { ExhibitionCard } from '@/components/exhibition/ExhibitionCard';
+import { ExhibitionDetailModal } from '@/components/exhibition/ExhibitionDetailModal';
 import { ExhibitionFilters, DateSortOrder, DistanceSortOrder } from '@/components/exhibition/ExhibitionFilters';
 import { Button } from '@/components/ui/button';
 import { calculateDistance, formatDistance } from '@/lib/distance';
@@ -70,6 +71,8 @@ export default function ExhibitionsPage() {
   const [closingSoon, setClosingSoon] = useState(false);
   const [dateSortOrder, setDateSortOrder] = useState<DateSortOrder>('none');
   const [distanceSortOrder, setDistanceSortOrder] = useState<DistanceSortOrder>('none');
+  const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   const hasLocation = latitude !== null && longitude !== null;
 
@@ -324,10 +327,29 @@ export default function ExhibitionsPage() {
               key={exhibition.exhibition_id} 
               exhibition={exhibition} 
               distance={distanceFormatted}
+              onClick={() => {
+                setSelectedExhibition(exhibition);
+                setIsDetailOpen(true);
+              }}
             />
           ))}
         </div>
       )}
+
+      {/* Detail Modal */}
+      <ExhibitionDetailModal
+        exhibition={selectedExhibition}
+        open={isDetailOpen}
+        onOpenChange={(open) => {
+          setIsDetailOpen(open);
+          if (!open) setSelectedExhibition(null);
+        }}
+        museumWebsiteUrl={
+          selectedExhibition
+            ? museumMap.get(selectedExhibition.museum_id)?.website_url
+            : null
+        }
+      />
     </div>
   );
 }
