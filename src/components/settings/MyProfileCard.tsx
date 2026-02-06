@@ -4,7 +4,7 @@ import { useLanguage } from '@/lib/i18n';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Camera } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { ProfileRow } from './profile/ProfileRow';
 import { AvatarEditDialog } from './profile/AvatarEditDialog';
@@ -21,7 +21,7 @@ function getInitials(nickname: string): string {
 }
 
 function formatLocation(country: string, region: string, city: string): string {
-  return [city, region, country].filter(Boolean).join(', ');
+  return [country, region, city].filter(Boolean).join(', ');
 }
 
 const GENDER_OPTIONS = [
@@ -108,7 +108,7 @@ function AvatarWithOverlay({
         </AvatarFallback>
       </Avatar>
       <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-        <Camera className={`${iconSize} text-white`} />
+        <Pencil className={`${iconSize} text-white`} />
       </div>
     </button>
   );
@@ -232,20 +232,15 @@ export function MyProfileCard({ preferences, onUpdate }: MyProfileCardProps) {
     <>
       <div className="rounded-lg border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow duration-200">
         <div className="px-5 py-5">
-          <div className="flex flex-col md:flex-row gap-6">
-            {/* Left: Avatar + Nickname */}
-            <div className="flex flex-col items-center text-center md:w-48 flex-shrink-0">
-              <div className="mb-3">
-                <AvatarWithOverlay
-                  avatarUrl={profile.avatarUrl}
-                  nickname={profile.nickname}
-                  size="lg"
-                  onClick={() => profile.setAvatarDialogOpen(true)}
-                />
-              </div>
-              <h4 className="font-display text-lg font-semibold text-foreground truncate max-w-full">
-                {profile.nickname || t('profile.noNickname')}
-              </h4>
+        <div className="flex flex-col md:flex-row gap-6">
+            {/* Left: Avatar only */}
+            <div className="flex items-center justify-center md:w-32 flex-shrink-0 py-2">
+              <AvatarWithOverlay
+                avatarUrl={profile.avatarUrl}
+                nickname={profile.nickname}
+                size="lg"
+                onClick={() => profile.setAvatarDialogOpen(true)}
+              />
             </div>
 
             {/* Right: Editable Fields */}
@@ -333,11 +328,6 @@ export function MyProfileContent({ preferences, onUpdate }: MyProfileCardProps) 
             size="sm"
             onClick={() => profile.setAvatarDialogOpen(true)}
           />
-          <div className="min-w-0">
-            <h4 className="font-display text-base font-semibold truncate">
-              {profile.nickname || t('profile.noNickname')}
-            </h4>
-          </div>
         </div>
 
         {/* Nickname */}
