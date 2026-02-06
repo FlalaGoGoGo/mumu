@@ -7,14 +7,13 @@ export type EligibilityType =
   | 'military'
   | 'blue_star'
   | 'library_pass'
-  | 'city_id'
+  | 'city_pass'
   | 'icom'
   | 'reciprocal_museum'
   | 'science_reciprocity'
   | 'employer'
   | 'teacher'
   | 'first_responder'
-  | 'senior'
   | 'local_resident'
   | 'age_based';
 
@@ -24,6 +23,7 @@ export interface EligibilityItem {
   schools?: string[];
   libraries?: string[];
   companies?: string[];
+  cities?: string[]; // For city_pass: CityPASS destination cities
   locations?: string[]; // For local_resident: "City, State, Region" strings
   date_of_birth?: string; // ISO date string for age-based eligibility
 }
@@ -39,7 +39,7 @@ export interface EligibilityCatalogItem {
   label: string;
   icon: string;
   description: string;
-  hasDetails?: 'schools' | 'libraries' | 'companies' | 'date_of_birth' | 'locations';
+  hasDetails?: 'schools' | 'libraries' | 'companies' | 'date_of_birth' | 'locations' | 'cities';
   infoUrl?: string;
 }
 
@@ -74,7 +74,9 @@ function migrateLegacyDiscount(value: string): EligibilityItem | null {
     'ICOM Member': 'icom',
     'Museums for All': 'snap_ebt',
     'Military (active/veteran)': 'military',
-    'None / Not sure': 'local_resident', // map to something or skip
+    'CityPass': 'city_pass',
+    'City ID / Local Cultural Program': 'city_pass',
+    'None / Not sure': 'local_resident',
   };
   const type = mapping[value];
   if (!type || value === 'None / Not sure') return null;
@@ -90,6 +92,7 @@ export function getEligibilityDisplayLabel(item: EligibilityItem, catalog: Eligi
   if (item.schools?.length) details.push(item.schools.join(', '));
   if (item.libraries?.length) details.push(item.libraries.join(', '));
   if (item.companies?.length) details.push(item.companies.join(', '));
+  if (item.cities?.length) details.push(item.cities.join(', '));
   if (item.locations?.length) details.push(item.locations.join(', '));
   
   if (details.length > 0) {

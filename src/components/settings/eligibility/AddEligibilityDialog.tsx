@@ -15,7 +15,7 @@ import {
   TooltipProvider,
 } from '@/components/ui/tooltip';
 import { EligibilityItem, EligibilityType } from '@/types/eligibility';
-import { ELIGIBILITY_CATALOG, COMMON_SCHOOLS, COMMON_LIBRARIES, COMMON_EMPLOYERS } from '@/lib/eligibilityCatalog';
+import { ELIGIBILITY_CATALOG, COMMON_SCHOOLS, COMMON_LIBRARIES, COMMON_EMPLOYERS, CITYPASS_CITIES } from '@/lib/eligibilityCatalog';
 import { DetailEditor } from './DetailEditor';
 import { DateOfBirthEditor } from './DateOfBirthEditor';
 import { LocationDetailEditor } from './LocationDetailEditor';
@@ -71,7 +71,7 @@ export function AddEligibilityDialog({
   const getExistingItem = (type: EligibilityType) =>
     eligibilities.find(e => e.type === type);
 
-  const handleDetailChange = (type: EligibilityType, field: 'schools' | 'libraries' | 'companies' | 'locations', values: string[]) => {
+  const handleDetailChange = (type: EligibilityType, field: 'schools' | 'libraries' | 'companies' | 'locations' | 'cities', values: string[]) => {
     const existing = getExistingItem(type);
     if (existing) {
       onUpdate({ ...existing, [field]: values });
@@ -210,6 +210,16 @@ export function AddEligibilityDialog({
                                 <DateOfBirthEditor
                                   value={existing?.date_of_birth || ''}
                                   onChange={(dob) => handleDobChange(item.type, dob)}
+                                />
+                              )}
+                              {item.hasDetails === 'cities' && (
+                                <DetailEditor
+                                  label="Your Cities"
+                                  placeholder="Search CityPASS cities…"
+                                  addLabel="Add another city"
+                                  options={CITYPASS_CITIES}
+                                  selected={existing?.cities || []}
+                                  onChange={(cities) => handleDetailChange(item.type, 'cities', cities)}
                                 />
                               )}
                               {item.hasDetails === 'locations' && (

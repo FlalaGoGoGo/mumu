@@ -1,5 +1,26 @@
 import { EligibilityCategory, EligibilityCatalogItem } from '@/types/eligibility';
 export { COMMON_SCHOOLS, COMMON_LIBRARIES, COMMON_EMPLOYERS } from '@/lib/eligibilityData';
+
+export const CITYPASS_CITIES = [
+  'Atlanta',
+  'Boston',
+  'Chicago',
+  'Dallas',
+  'Denver',
+  'Houston',
+  'Los Angeles',
+  'New York',
+  'Orlando',
+  'Philadelphia',
+  'San Antonio',
+  'San Diego',
+  'San Francisco',
+  'Seattle',
+  'Southern California',
+  'Tampa Bay',
+  'Toronto',
+];
+
 export const ELIGIBILITY_CATALOG: EligibilityCategory[] = [
   {
     id: 'financial',
@@ -7,7 +28,7 @@ export const ELIGIBILITY_CATALOG: EligibilityCategory[] = [
     items: [
       {
         type: 'snap_ebt',
-        label: 'SNAP / EBT (Museums for All)',
+        label: 'SNAP / EBT Card Holder | Museums for All',
         icon: '🏛️',
         description: 'Free or reduced admission at 900+ museums nationwide',
         infoUrl: 'https://museums4all.org/',
@@ -24,6 +45,20 @@ export const ELIGIBILITY_CATALOG: EligibilityCategory[] = [
         icon: '💳',
         description: 'Free admission on the first full weekend of each month',
         infoUrl: 'https://about.bankofamerica.com/en/making-an-impact/museums-on-us-partners',
+      },
+    ],
+  },
+  {
+    id: 'citypass',
+    label: 'City Tourism Passes',
+    items: [
+      {
+        type: 'city_pass',
+        label: 'CityPass',
+        icon: '🏙️',
+        description: 'Bundled admission to top attractions in major cities',
+        hasDetails: 'cities',
+        infoUrl: 'https://www.citypass.com/',
       },
     ],
   },
@@ -65,16 +100,10 @@ export const ELIGIBILITY_CATALOG: EligibilityCategory[] = [
     items: [
       {
         type: 'library_pass',
-        label: 'Library Card / Museum Pass',
+        label: 'Local Library Card Holder',
         icon: '📚',
         description: 'Free or discounted passes through your library',
         hasDetails: 'libraries',
-      },
-      {
-        type: 'city_id',
-        label: 'City ID / Local Cultural Program',
-        icon: '🏙️',
-        description: 'Local cultural access programs',
       },
     ],
   },
@@ -109,7 +138,7 @@ export const ELIGIBILITY_CATALOG: EligibilityCategory[] = [
     items: [
       {
         type: 'employer',
-        label: 'Company Employee / Corporate Partner',
+        label: 'Company Employee',
         icon: '🏢',
         description: 'Employee benefits or corporate museum partnerships',
         hasDetails: 'companies',
