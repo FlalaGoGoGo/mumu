@@ -59,7 +59,7 @@ function useEligibilityManager(preferences: UserPreferences, onUpdate: (updates:
   );
 
   const removeDetail = useCallback(
-    (type: string, detailType: 'schools' | 'libraries' | 'companies', value: string) => {
+    (type: string, detailType: 'schools' | 'libraries' | 'companies' | 'locations', value: string) => {
       const existing = deserializeEligibilities(preferences.discounts);
       const updated = existing.map(e => {
         if (e.type !== type) return e;

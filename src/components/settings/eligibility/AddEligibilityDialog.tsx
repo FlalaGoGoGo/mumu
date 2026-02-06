@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Check, Plus } from 'lucide-react';
+import { Search, Check, Plus, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,10 +8,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from '@/components/ui/tooltip';
 import { EligibilityItem, EligibilityType } from '@/types/eligibility';
 import { ELIGIBILITY_CATALOG, COMMON_SCHOOLS, COMMON_LIBRARIES, COMMON_EMPLOYERS } from '@/lib/eligibilityCatalog';
 import { DetailEditor } from './DetailEditor';
 import { DateOfBirthEditor } from './DateOfBirthEditor';
+import { LocationDetailEditor } from './LocationDetailEditor';
 
 interface AddEligibilityDialogProps {
   open: boolean;
@@ -64,7 +71,7 @@ export function AddEligibilityDialog({
   const getExistingItem = (type: EligibilityType) =>
     eligibilities.find(e => e.type === type);
 
-  const handleDetailChange = (type: EligibilityType, field: 'schools' | 'libraries' | 'companies', values: string[]) => {
+  const handleDetailChange = (type: EligibilityType, field: 'schools' | 'libraries' | 'companies' | 'locations', values: string[]) => {
     const existing = getExistingItem(type);
     if (existing) {
       onUpdate({ ...existing, [field]: values });
@@ -100,109 +107,140 @@ export function AddEligibilityDialog({
 
         {/* Scrollable list */}
         <div className="flex-1 overflow-y-auto px-5 pb-5" style={{ maxHeight: '60vh' }}>
-          <div className="space-y-5">
-            {filteredCategories.map(category => (
-              <div key={category.id}>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  {category.label}
-                </p>
-                <div className="space-y-1">
-                  {category.items.map(item => {
-                    const isAdded = existingTypes.has(item.type);
-                    const isExpanded = expandedType === item.type;
-                    const existing = getExistingItem(item.type);
+          <TooltipProvider delayDuration={200}>
+            <div className="space-y-5">
+              {filteredCategories.map(category => (
+                <div key={category.id}>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    {category.label}
+                  </p>
+                  <div className="space-y-1">
+                    {category.items.map(item => {
+                      const isAdded = existingTypes.has(item.type);
+                      const isExpanded = expandedType === item.type;
+                      const existing = getExistingItem(item.type);
 
-                    return (
-                      <div key={item.type}>
-                        <button
-                          type="button"
-                          onClick={() => handleToggle(item.type, item.hasDetails)}
-                          className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-3 transition-colors ${
-                            isAdded
-                              ? 'bg-primary/8 border border-primary/20'
-                              : 'hover:bg-accent/30 border border-transparent'
-                          }`}
-                        >
-                          <span className="text-lg flex-shrink-0 self-center">{item.icon}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground">{item.label}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
-                          </div>
-                          <div className="flex-shrink-0 self-center">
-                            {isAdded ? (
-                              <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                                <Check className="w-3 h-3 text-primary-foreground" />
+                      return (
+                        <div key={item.type}>
+                          <div className="flex items-center">
+                            <button
+                              type="button"
+                              onClick={() => handleToggle(item.type, item.hasDetails)}
+                              className={`flex-1 text-left px-3 py-2.5 rounded-lg flex items-center gap-3 transition-colors ${
+                                isAdded
+                                  ? 'bg-primary/8 border border-primary/20'
+                                  : 'hover:bg-accent/30 border border-transparent'
+                              }`}
+                            >
+                              <span className="text-lg flex-shrink-0 self-center leading-none">{item.icon}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground">{item.label}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
                               </div>
-                            ) : (
-                              <div className="w-5 h-5 rounded-full border-2 border-border flex items-center justify-center">
-                                <Plus className="w-3 h-3 text-muted-foreground" />
+                              <div className="flex-shrink-0 self-center">
+                                {isAdded ? (
+                                  <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                    <Check className="w-3 h-3 text-primary-foreground" />
+                                  </div>
+                                ) : (
+                                  <div className="w-5 h-5 rounded-full border-2 border-border flex items-center justify-center">
+                                    <Plus className="w-3 h-3 text-muted-foreground" />
+                                  </div>
+                                )}
                               </div>
+                            </button>
+
+                            {/* Info icon */}
+                            {item.infoUrl && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <a
+                                    href={item.infoUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex-shrink-0 ml-1 p-1.5 rounded-full text-muted-foreground/60 hover:text-primary hover:bg-primary/10 transition-colors"
+                                    aria-label={`Open official site for ${item.label}`}
+                                  >
+                                    <Info className="w-3.5 h-3.5" />
+                                  </a>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-xs">
+                                  Open official site
+                                </TooltipContent>
+                              </Tooltip>
                             )}
                           </div>
-                        </button>
 
-                        {/* Detail editor for items with details */}
-                        {isAdded && item.hasDetails && isExpanded && (
-                          <div className="ml-3">
-                            {item.hasDetails === 'schools' && (
-                              <DetailEditor
-                                label="Your Schools"
-                                placeholder="Search schools…"
-                                addLabel="Add another school"
-                                options={COMMON_SCHOOLS}
-                                selected={existing?.schools || []}
-                                onChange={(schools) => handleDetailChange(item.type, 'schools', schools)}
-                              />
-                            )}
-                            {item.hasDetails === 'libraries' && (
-                              <DetailEditor
-                                label="Your Library Systems"
-                                placeholder="Search library systems…"
-                                addLabel="Add another library"
-                                options={COMMON_LIBRARIES}
-                                selected={existing?.libraries || []}
-                                onChange={(libraries) => handleDetailChange(item.type, 'libraries', libraries)}
-                              />
-                            )}
-                            {item.hasDetails === 'companies' && (
-                              <DetailEditor
-                                label="Your Employers"
-                                placeholder="Search companies…"
-                                addLabel="Add another employer"
-                                options={COMMON_EMPLOYERS}
-                                selected={existing?.companies || []}
-                                onChange={(companies) => handleDetailChange(item.type, 'companies', companies)}
-                                showOtherOption
-                              />
-                            )}
-                            {item.hasDetails === 'date_of_birth' && (
-                              <DateOfBirthEditor
-                                value={existing?.date_of_birth || ''}
-                                onChange={(dob) => handleDobChange(item.type, dob)}
-                              />
-                            )}
-                          </div>
-                        )}
+                          {/* Detail editor for items with details */}
+                          {isAdded && item.hasDetails && isExpanded && (
+                            <div className="ml-3">
+                              {item.hasDetails === 'schools' && (
+                                <DetailEditor
+                                  label="Your Schools"
+                                  placeholder="Search schools…"
+                                  addLabel="Add another school"
+                                  options={COMMON_SCHOOLS}
+                                  selected={existing?.schools || []}
+                                  onChange={(schools) => handleDetailChange(item.type, 'schools', schools)}
+                                />
+                              )}
+                              {item.hasDetails === 'libraries' && (
+                                <DetailEditor
+                                  label="Your Library Systems"
+                                  placeholder="Search library systems…"
+                                  addLabel="Add another library"
+                                  options={COMMON_LIBRARIES}
+                                  selected={existing?.libraries || []}
+                                  onChange={(libraries) => handleDetailChange(item.type, 'libraries', libraries)}
+                                />
+                              )}
+                              {item.hasDetails === 'companies' && (
+                                <DetailEditor
+                                  label="Your Employers"
+                                  placeholder="Search companies…"
+                                  addLabel="Add another employer"
+                                  options={COMMON_EMPLOYERS}
+                                  selected={existing?.companies || []}
+                                  onChange={(companies) => handleDetailChange(item.type, 'companies', companies)}
+                                  showOtherOption
+                                />
+                              )}
+                              {item.hasDetails === 'date_of_birth' && (
+                                <DateOfBirthEditor
+                                  value={existing?.date_of_birth || ''}
+                                  onChange={(dob) => handleDobChange(item.type, dob)}
+                                />
+                              )}
+                              {item.hasDetails === 'locations' && (
+                                <LocationDetailEditor
+                                  selected={existing?.locations || []}
+                                  onChange={(locations) => handleDetailChange(item.type, 'locations', locations)}
+                                />
+                              )}
+                            </div>
+                          )}
 
-                        {/* Show "tap to edit details" hint */}
-                        {isAdded && item.hasDetails && !isExpanded && (
-                          <p className="text-xs text-primary/70 ml-10 mt-0.5 mb-1 cursor-pointer" onClick={() => setExpandedType(item.type)}>
-                            Tap to edit details
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
+                          {/* Show "tap to edit details" hint */}
+                          {isAdded && item.hasDetails && !isExpanded && (
+                            <p className="text-xs text-primary/70 ml-10 mt-0.5 mb-1 cursor-pointer" onClick={() => setExpandedType(item.type)}>
+                              Tap to edit details
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {filteredCategories.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                No eligibility programs match your search.
-              </div>
-            )}
-          </div>
+              {filteredCategories.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No eligibility programs match your search.
+                </div>
+              )}
+            </div>
+          </TooltipProvider>
         </div>
 
         {/* Footer */}

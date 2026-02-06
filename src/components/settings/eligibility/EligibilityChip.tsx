@@ -16,7 +16,7 @@ function calculateAge(dob: string): number {
 interface EligibilityChipProps {
   item: EligibilityItem;
   onRemove: () => void;
-  onRemoveDetail?: (detailType: 'schools' | 'libraries' | 'companies', value: string) => void;
+  onRemoveDetail?: (detailType: 'schools' | 'libraries' | 'companies' | 'locations', value: string) => void;
   onClick?: () => void;
 }
 
@@ -25,10 +25,11 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onClick }: Eli
   const icon = catalogItem?.icon || '🏷️';
   const baseLabel = catalogItem?.label || item.type;
 
-  const details: { type: 'schools' | 'libraries' | 'companies'; values: string[] }[] = [];
+  const details: { type: 'schools' | 'libraries' | 'companies' | 'locations'; values: string[] }[] = [];
   if (item.schools?.length) details.push({ type: 'schools', values: item.schools });
   if (item.libraries?.length) details.push({ type: 'libraries', values: item.libraries });
   if (item.companies?.length) details.push({ type: 'companies', values: item.companies });
+  if (item.locations?.length) details.push({ type: 'locations', values: item.locations });
 
   const hasDetails = details.length > 0;
 
@@ -42,7 +43,7 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onClick }: Eli
         if (e.key === 'Enter' || e.key === ' ') onClick?.();
       }}
     >
-      <span className="text-base flex-shrink-0 self-center">{icon}</span>
+      <span className="text-base flex-shrink-0 self-center leading-none">{icon}</span>
       <div className="flex-1 min-w-0">
         <span className="text-foreground font-medium">{baseLabel}</span>
         {hasDetails && (

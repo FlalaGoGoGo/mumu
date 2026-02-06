@@ -24,6 +24,7 @@ export interface EligibilityItem {
   schools?: string[];
   libraries?: string[];
   companies?: string[];
+  locations?: string[]; // For local_resident: "City, State, Region" strings
   date_of_birth?: string; // ISO date string for age-based eligibility
 }
 
@@ -38,7 +39,8 @@ export interface EligibilityCatalogItem {
   label: string;
   icon: string;
   description: string;
-  hasDetails?: 'schools' | 'libraries' | 'companies' | 'date_of_birth';
+  hasDetails?: 'schools' | 'libraries' | 'companies' | 'date_of_birth' | 'locations';
+  infoUrl?: string;
 }
 
 // Serialize eligibility items for storage in the discounts string[] field
@@ -67,6 +69,8 @@ function migrateLegacyDiscount(value: string): EligibilityItem | null {
   const mapping: Record<string, EligibilityType> = {
     'Student (valid ID)': 'student',
     'Bank of America (Museums on Us)': 'bofa_museums_on_us',
+    'Bank of America — Museums on Us': 'bofa_museums_on_us',
+    'Bank of America Card Holder | Museum on US': 'bofa_museums_on_us',
     'ICOM Member': 'icom',
     'Museums for All': 'snap_ebt',
     'Military (active/veteran)': 'military',
@@ -86,6 +90,7 @@ export function getEligibilityDisplayLabel(item: EligibilityItem, catalog: Eligi
   if (item.schools?.length) details.push(item.schools.join(', '));
   if (item.libraries?.length) details.push(item.libraries.join(', '));
   if (item.companies?.length) details.push(item.companies.join(', '));
+  if (item.locations?.length) details.push(item.locations.join(', '));
   
   if (details.length > 0) {
     return `${baseLabel} — ${details.join('; ')}`;
