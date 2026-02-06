@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Country, State, City, ICountry, IState, ICity } from 'country-state-city';
+import { Country, State, City } from 'country-state-city';
 import { useLanguage } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,6 @@ import {
 import { X, Check, ChevronsUpDown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface LocationEditDialogProps {
   open: boolean;
@@ -36,6 +35,37 @@ interface LocationEditDialogProps {
   region: string;
   city: string;
   onSave: (loc: { location_country: string; location_region: string; location_city: string }) => void;
+}
+
+/** Returns a dynamic label for the state/province step based on region */
+function getStep2Label(countryCode: string, t: (key: any) => string): string {
+  switch (countryCode) {
+    case 'US': return t('profile.stateLabel');
+    case 'CN': return t('profile.provinceLabel');
+    case 'CA': return t('profile.provinceLabel');
+    case 'AU': return t('profile.stateTerritoryLabel');
+    default: return t('profile.region');
+  }
+}
+
+function getStep2Placeholder(countryCode: string, t: (key: any) => string): string {
+  switch (countryCode) {
+    case 'US': return t('profile.selectState');
+    case 'CN': return t('profile.selectProvince');
+    case 'CA': return t('profile.selectProvince');
+    case 'AU': return t('profile.selectStateTerritory');
+    default: return t('profile.selectRegion');
+  }
+}
+
+function getStep2SearchPlaceholder(countryCode: string, t: (key: any) => string): string {
+  switch (countryCode) {
+    case 'US': return t('profile.searchState');
+    case 'CN': return t('profile.searchProvince');
+    case 'CA': return t('profile.searchProvince');
+    case 'AU': return t('profile.searchStateTerritory');
+    default: return t('profile.searchRegion');
+  }
 }
 
 // Searchable combobox for selecting from a list
@@ -63,7 +93,7 @@ function SearchableSelect({
   return (
     <div className="space-y-1.5">
       <Label className="text-sm">{label}</Label>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
@@ -81,27 +111,25 @@ function SearchableSelect({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-50" align="start">
+        <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[9200]" align="start">
           <Command>
             <CommandInput placeholder={searchPlaceholder} />
-            <CommandList>
+            <CommandList className="max-h-[280px] overflow-y-auto">
               <CommandEmpty>{emptyText}</CommandEmpty>
               <CommandGroup>
-                <ScrollArea className="max-h-[200px]">
-                  {items.map((item) => (
-                    <CommandItem
-                      key={item.value}
-                      value={item.label}
-                      onSelect={() => {
-                        onChange(item.value);
-                        setOpen(false);
-                      }}
-                    >
-                      <Check className={cn("mr-2 h-4 w-4", value === item.value ? "opacity-100" : "opacity-0")} />
-                      {item.label}
-                    </CommandItem>
-                  ))}
-                </ScrollArea>
+                {items.map((item) => (
+                  <CommandItem
+                    key={item.value}
+                    value={item.label}
+                    onSelect={() => {
+                      onChange(item.value);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check className={cn("mr-2 h-4 w-4", value === item.value ? "opacity-100" : "opacity-0")} />
+                    {item.label}
+                  </CommandItem>
+                ))}
               </CommandGroup>
             </CommandList>
           </Command>
@@ -197,13 +225,19 @@ export function LocationEditDialog({
     onOpenChange(false);
   };
 
+  // Dynamic labels for Step 2
+  const step2Label = selectedCountryCode ? getStep2Label(selectedCountryCode, t) : t('profile.region');
+  const step2Placeholder = selectedCountryCode ? getStep2Placeholder(selectedCountryCode, t) : t('profile.selectRegion');
+  const step2SearchPlaceholder = selectedCountryCode ? getStep2SearchPlaceholder(selectedCountryCode, t) : t('profile.searchRegion');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-sm z-[9100]">
         <DialogHeader>
           <DialogTitle className="font-display">{t('profile.editLocation')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          {/* Step 1: Region (Country) — always visible */}
           <SearchableSelect
             label={t('profile.country')}
             placeholder={t('profile.selectCountry')}
@@ -213,44 +247,45 @@ export function LocationEditDialog({
             value={selectedCountryCode}
             onChange={handleCountryChange}
           />
-          <SearchableSelect
-            label={t('profile.region')}
-            placeholder={t('profile.selectRegion')}
-            searchPlaceholder={t('profile.searchRegion')}
-            emptyText={t('profile.noRegionFound')}
-            items={states}
-            value={selectedStateCode}
-            onChange={handleStateChange}
-            disabled={!selectedCountryCode}
-          />
-          {cities.length > 0 ? (
+
+          {/* Step 2: State/Province — only after region selected */}
+          {selectedCountryCode && states.length > 0 && (
             <SearchableSelect
-              label={t('profile.city')}
-              placeholder={t('profile.selectCity')}
-              searchPlaceholder={t('profile.searchCity')}
-              emptyText={t('profile.noCityFound')}
-              items={cities}
-              value={selectedCityName}
-              onChange={setSelectedCityName}
-              disabled={!selectedStateCode}
+              label={step2Label}
+              placeholder={step2Placeholder}
+              searchPlaceholder={step2SearchPlaceholder}
+              emptyText={t('profile.noRegionFound')}
+              items={states}
+              value={selectedStateCode}
+              onChange={handleStateChange}
             />
-          ) : selectedStateCode ? (
-            <div className="space-y-1.5">
-              <Label className="text-sm">{t('profile.city')}</Label>
-              <Input
-                value={selectedCityName}
-                onChange={(e) => setSelectedCityName(e.target.value)}
-                placeholder={t('profile.cityPlaceholder')}
-                maxLength={60}
-              />
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              <Label className="text-sm text-muted-foreground">{t('profile.city')}</Label>
-              <Button variant="outline" disabled className="w-full justify-start font-normal text-muted-foreground h-10">
-                {t('profile.selectCity')}
-              </Button>
-            </div>
+          )}
+
+          {/* Step 3: City — only after state/province selected */}
+          {selectedCountryCode && selectedStateCode && (
+            <>
+              {cities.length > 0 ? (
+                <SearchableSelect
+                  label={t('profile.city')}
+                  placeholder={t('profile.selectCity')}
+                  searchPlaceholder={t('profile.searchCity')}
+                  emptyText={t('profile.noCityFound')}
+                  items={cities}
+                  value={selectedCityName}
+                  onChange={setSelectedCityName}
+                />
+              ) : (
+                <div className="space-y-1.5">
+                  <Label className="text-sm">{t('profile.city')}</Label>
+                  <Input
+                    value={selectedCityName}
+                    onChange={(e) => setSelectedCityName(e.target.value)}
+                    placeholder={t('profile.cityPlaceholder')}
+                    maxLength={60}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
         <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -260,7 +295,7 @@ export function LocationEditDialog({
           </Button>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
-            <Button onClick={handleSave}>{t('common.save')}</Button>
+            <Button onClick={handleSave} disabled={!selectedCountryCode}>{t('common.save')}</Button>
           </div>
         </DialogFooter>
       </DialogContent>
