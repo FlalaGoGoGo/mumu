@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/i18n';
 import { ExhibitionLocationFilter, type ExhibitionLocation } from './ExhibitionLocationFilter';
 import { ExhibitionStatusFilter } from './ExhibitionStatusFilter';
+import { ExhibitionViewToggle, type ExhibitionView } from './ExhibitionViewToggle';
 import type { ExhibitionStatus } from '@/types/exhibition';
 
 type DatePreset = 'this-week' | 'this-month' | 'next-30-days' | null;
@@ -87,6 +88,9 @@ interface ExhibitionFiltersProps {
   onDateSortOrderChange: (value: DateSortOrder) => void;
   distanceSortOrder: DistanceSortOrder;
   onDistanceSortOrderChange: (value: DistanceSortOrder) => void;
+  // View toggle
+  currentView: ExhibitionView;
+  onViewChange: (view: ExhibitionView) => void;
 }
 
 export function ExhibitionFilters({
@@ -114,6 +118,8 @@ export function ExhibitionFilters({
   onDateSortOrderChange,
   distanceSortOrder,
   onDistanceSortOrderChange,
+  currentView,
+  onViewChange,
 }: ExhibitionFiltersProps) {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
@@ -213,6 +219,9 @@ export function ExhibitionFilters({
             </Button>
           </CollapsibleTrigger>
         </Collapsible>
+
+        {/* View Toggle */}
+        <ExhibitionViewToggle view={currentView} onViewChange={onViewChange} />
 
         {/* Date Sort Icon Button */}
         <TooltipProvider delayDuration={300}>
