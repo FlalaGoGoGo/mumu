@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Loader2, ImageOff } from 'lucide-react';
 import { addDays } from 'date-fns';
 import { useExhibitions } from '@/hooks/useExhibitions';
@@ -9,22 +9,27 @@ import { useLanguage } from '@/lib/i18n';
 import { ExhibitionCard } from '@/components/exhibition/ExhibitionCard';
 import { ExhibitionDetailModal } from '@/components/exhibition/ExhibitionDetailModal';
 import { ExhibitionFilters, DateSortOrder, DistanceSortOrder } from '@/components/exhibition/ExhibitionFilters';
+import { ExhibitionMap } from '@/components/exhibition/ExhibitionMap';
+import { ExhibitionMuseumDrawer } from '@/components/exhibition/ExhibitionMuseumDrawer';
 import { Button } from '@/components/ui/button';
 import { calculateDistance, formatDistance } from '@/lib/distance';
 import type { Exhibition, ExhibitionStatus } from '@/types/exhibition';
 import type { ExhibitionLocation } from '@/components/exhibition/ExhibitionLocationFilter';
+import type { ExhibitionView } from '@/components/exhibition/ExhibitionViewToggle';
+import type { Museum } from '@/types/museum';
 
 const USER_VISIBLE_STATUSES: ExhibitionStatus[] = ['Ongoing', 'Upcoming', 'Past'];
-
-// Sort priority: Ongoing -> Upcoming -> TBD -> Past
-const STATUS_PRIORITY: Record<ExhibitionStatus, number> = {
-  Ongoing: 0,
-  Upcoming: 1,
-  TBD: 2,
-  Past: 3,
-};
-
+const STATUS_PRIORITY: Record<ExhibitionStatus, number> = { Ongoing: 0, Upcoming: 1, TBD: 2, Past: 3 };
 const MAX_DISTANCE_VALUE = 500;
+const VIEW_STORAGE_KEY = 'mumu-exhibitions-view';
+
+function getStoredView(): ExhibitionView {
+  try {
+    const v = localStorage.getItem(VIEW_STORAGE_KEY);
+    if (v === 'map' || v === 'card') return v;
+  } catch {}
+  return 'card';
+}
 
 export default function ExhibitionsPage() {
   const { data: exhibitions, isLoading: exhibitionsLoading, error: exhibitionsError } = useExhibitions();
@@ -46,149 +51,128 @@ export default function ExhibitionsPage() {
   const [distanceSortOrder, setDistanceSortOrder] = useState<DistanceSortOrder>('none');
   const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [currentView, setCurrentView] = useState<ExhibitionView>(getStoredView);
+
+  // Map drawer state
+  const [selectedMuseumGroup, setSelectedMuseumGroup] = useState<{ museum: Museum; exhibitions: Exhibition[] } | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Persist view
+  useEffect(() => {
+    localStorage.setItem(VIEW_STORAGE_KEY, currentView);
+  }, [currentView]);
 
   const hasGeoLocation = latitude !== null && longitude !== null;
   const hasHomeBase = !!(preferences.location_country && preferences.location_city);
-
-  // Use GPS location first, fall back to Home Base
-  const effectiveLat = latitude ?? (hasHomeBase ? null : null); // Home Base doesn't have coords, so we only use GPS
+  const effectiveLat = latitude ?? null;
   const effectiveLng = longitude ?? null;
   const hasLocation = effectiveLat !== null && effectiveLng !== null;
 
-  // Create museum lookup map
+  // Museum lookup
   const museumMap = useMemo(() => {
-    if (!museums) return new Map();
+    if (!museums) return new Map<string, Museum>();
     return new Map(museums.map(m => [m.museum_id, m]));
   }, [museums]);
 
-  // Build available locations from exhibitions + museums (for the cascading filter)
+  // Available locations for cascading filter
   const availableLocations = useMemo((): ExhibitionLocation[] => {
     if (!exhibitions) return [];
     const locationSet = new Map<string, ExhibitionLocation>();
-
     exhibitions.forEach(exhibition => {
       const museum = museumMap.get(exhibition.museum_id);
       const country = museum?.country || 'Unknown';
       const state = museum?.state || exhibition.state || null;
       const city = exhibition.city || museum?.city || 'Unknown';
       const key = `${country}|${state}|${city}`;
-
-      if (!locationSet.has(key)) {
-        locationSet.set(key, { country, state, city });
-      }
+      if (!locationSet.has(key)) locationSet.set(key, { country, state, city });
     });
-
     return Array.from(locationSet.values());
   }, [exhibitions, museumMap]);
 
-  // Calculate distances for each exhibition
+  // Exhibitions with distance
   const exhibitionsWithDistance = useMemo(() => {
     if (!exhibitions) return [];
-
     return exhibitions.map(exhibition => {
       const museum = museumMap.get(exhibition.museum_id);
       let distance: number | null = null;
       let distanceFormatted: string | null = null;
-
       if (hasLocation && museum) {
         distance = calculateDistance(effectiveLat!, effectiveLng!, museum.lat, museum.lng);
         distanceFormatted = formatDistance(distance);
       }
-
       return { exhibition, distance, distanceFormatted, museum };
     });
   }, [exhibitions, museumMap, hasLocation, effectiveLat, effectiveLng]);
 
-  // Filter and sort exhibitions
+  // Filter and sort
   const filteredExhibitions = useMemo(() => {
     if (!exhibitionsWithDistance.length) return [];
-
     let filtered = exhibitionsWithDistance;
 
-    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        ({ exhibition }) =>
-          exhibition.exhibition_name.toLowerCase().includes(query) ||
-          exhibition.museum_name.toLowerCase().includes(query)
+      filtered = filtered.filter(({ exhibition }) =>
+        exhibition.exhibition_name.toLowerCase().includes(query) ||
+        exhibition.museum_name.toLowerCase().includes(query)
       );
     }
 
-    // Location filter (Region → State/Province → City)
     if (selectedRegion) {
       filtered = filtered.filter(({ museum, exhibition }) => {
         const country = museum?.country || 'Unknown';
         if (country !== selectedRegion) return false;
-
         if (selectedStateProvince) {
           const state = museum?.state || exhibition.state || null;
           if (state !== selectedStateProvince) return false;
-
           if (selectedCity) {
             const city = exhibition.city || museum?.city || 'Unknown';
             if (city !== selectedCity) return false;
           }
         }
-
         return true;
       });
     }
 
-    // Status filter (multi-select)
     if (selectedStatuses.length > 0 && selectedStatuses.length < USER_VISIBLE_STATUSES.length) {
       filtered = filtered.filter(({ exhibition }) => selectedStatuses.includes(exhibition.status));
     }
 
-    // Date range filter
     if (dateFrom || dateTo) {
       filtered = filtered.filter(({ exhibition }) => {
         const { start_date, end_date } = exhibition;
         if (!start_date && !end_date) return false;
-
         const rangeStart = dateFrom?.getTime() ?? 0;
         const rangeEnd = dateTo?.getTime() ?? Number.MAX_SAFE_INTEGER;
         const exhibitStart = start_date?.getTime() ?? 0;
         const exhibitEnd = end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
-
         return exhibitStart <= rangeEnd && exhibitEnd >= rangeStart;
       });
     }
 
-    // Closing Soon filter
     if (closingSoon) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const closingSoonCutoff = addDays(today, 14);
-
       filtered = filtered.filter(({ exhibition }) => {
         if (!exhibition.end_date) return false;
         return exhibition.end_date >= today && exhibition.end_date <= closingSoonCutoff;
       });
     }
 
-    // Distance filter
     if (hasLocation && maxDistance < MAX_DISTANCE_VALUE) {
-      filtered = filtered.filter(({ distance }) => {
-        return distance !== null && distance <= maxDistance;
-      });
+      filtered = filtered.filter(({ distance }) => distance !== null && distance <= maxDistance);
     }
 
-    // Sorting
     const sortedFiltered = [...filtered].sort((a, b) => {
-      // Distance sort (primary)
       if (distanceSortOrder !== 'none' && hasLocation) {
         const distA = a.distance ?? Number.MAX_SAFE_INTEGER;
         const distB = b.distance ?? Number.MAX_SAFE_INTEGER;
         const distDiff = distanceSortOrder === 'asc' ? distA - distB : distB - distA;
         if (distDiff !== 0) return distDiff;
       }
-
-      // Date sort (secondary)
       if (dateSortOrder !== 'none') {
         const dateA = a.exhibition.start_date?.getTime();
         const dateB = b.exhibition.start_date?.getTime();
-
         if (dateA === undefined && dateB === undefined) {
           const hasDatesA = a.exhibition.start_date || a.exhibition.end_date;
           const hasDatesB = b.exhibition.start_date || b.exhibition.end_date;
@@ -198,28 +182,23 @@ export default function ExhibitionsPage() {
         }
         if (dateA === undefined) return 1;
         if (dateB === undefined) return -1;
-
         const dateDiff = dateSortOrder === 'asc' ? dateA - dateB : dateB - dateA;
         if (dateDiff !== 0) return dateDiff;
       }
-
-      // Default: status-based sorting
       const statusDiff = STATUS_PRIORITY[a.exhibition.status] - STATUS_PRIORITY[b.exhibition.status];
       if (statusDiff !== 0) return statusDiff;
-
       if (a.exhibition.status === 'Ongoing') {
         const aEnd = a.exhibition.end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
         const bEnd = b.exhibition.end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
         return aEnd - bEnd;
       }
-
       return 0;
     });
 
     return sortedFiltered;
   }, [exhibitionsWithDistance, searchQuery, selectedRegion, selectedStateProvince, selectedCity, selectedStatuses, dateFrom, dateTo, maxDistance, hasLocation, closingSoon, dateSortOrder, distanceSortOrder]);
 
-  // Count active filters
+  // Filter count
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (selectedRegion) count++;
@@ -250,6 +229,29 @@ export default function ExhibitionsPage() {
     setSelectedStateProvince(stateProvince);
     setSelectedCity(city);
   };
+
+  const handleSelectMuseumGroup = useCallback((group: { museum: Museum; exhibitions: Exhibition[] }) => {
+    setSelectedMuseumGroup(group);
+    setIsDrawerOpen(true);
+  }, []);
+
+  const handleDrawerExhibitionClick = useCallback((exhibition: Exhibition) => {
+    setSelectedExhibition(exhibition);
+    setIsDetailOpen(true);
+  }, []);
+
+  const getDistanceForExhibition = useCallback((exhibition: Exhibition) => {
+    const entry = exhibitionsWithDistance.find(e => e.exhibition.exhibition_id === exhibition.exhibition_id);
+    return entry?.distanceFormatted ?? null;
+  }, [exhibitionsWithDistance]);
+
+  // Filtered exhibitions as plain array for map
+  const filteredExhibitionsList = useMemo(
+    () => filteredExhibitions.map(e => e.exhibition),
+    [filteredExhibitions]
+  );
+
+  const userLocation = hasGeoLocation ? { latitude: latitude!, longitude: longitude! } : null;
 
   const isLoading = exhibitionsLoading || museumsLoading;
 
@@ -310,40 +312,63 @@ export default function ExhibitionsPage() {
           onDateSortOrderChange={setDateSortOrder}
           distanceSortOrder={distanceSortOrder}
           onDistanceSortOrderChange={setDistanceSortOrder}
+          currentView={currentView}
+          onViewChange={setCurrentView}
         />
       </div>
 
-      {/* Results */}
-      {filteredExhibitions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <ImageOff className="w-12 h-12 text-muted-foreground mb-4" />
-          <h2 className="font-display text-xl font-semibold mb-2">{t('exhibitions.noResults')}</h2>
-          <p className="text-muted-foreground mb-4">
-            {t('exhibitions.noResultsHint')}
-          </p>
-          {hasActiveFilters && (
-            <Button variant="outline" onClick={handleClearFilters}>
-              {t('common.clearFilters')}
-            </Button>
+      {/* Card View */}
+      {currentView === 'card' && (
+        <>
+          {filteredExhibitions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <ImageOff className="w-12 h-12 text-muted-foreground mb-4" />
+              <h2 className="font-display text-xl font-semibold mb-2">{t('exhibitions.noResults')}</h2>
+              <p className="text-muted-foreground mb-4">{t('exhibitions.noResultsHint')}</p>
+              {hasActiveFilters && (
+                <Button variant="outline" onClick={handleClearFilters}>
+                  {t('common.clearFilters')}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {filteredExhibitions.map(({ exhibition, distanceFormatted }) => (
+                <ExhibitionCard
+                  key={exhibition.exhibition_id}
+                  exhibition={exhibition}
+                  distance={distanceFormatted}
+                  onClick={() => {
+                    setSelectedExhibition(exhibition);
+                    setIsDetailOpen(true);
+                  }}
+                />
+              ))}
+            </div>
           )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {filteredExhibitions.map(({ exhibition, distanceFormatted }) => (
-            <ExhibitionCard
-              key={exhibition.exhibition_id}
-              exhibition={exhibition}
-              distance={distanceFormatted}
-              onClick={() => {
-                setSelectedExhibition(exhibition);
-                setIsDetailOpen(true);
-              }}
-            />
-          ))}
-        </div>
+        </>
       )}
 
-      {/* Detail Modal */}
+      {/* Map View */}
+      {currentView === 'map' && (
+        <ExhibitionMap
+          exhibitions={filteredExhibitionsList}
+          museumMap={museumMap}
+          onSelectMuseum={handleSelectMuseumGroup}
+          userLocation={userLocation}
+        />
+      )}
+
+      {/* Museum Exhibitions Drawer (Map View) */}
+      <ExhibitionMuseumDrawer
+        group={selectedMuseumGroup}
+        isOpen={isDrawerOpen}
+        onClose={() => { setIsDrawerOpen(false); setSelectedMuseumGroup(null); }}
+        onExhibitionClick={handleDrawerExhibitionClick}
+        getDistance={getDistanceForExhibition}
+      />
+
+      {/* Exhibition Detail Modal */}
       <ExhibitionDetailModal
         exhibition={selectedExhibition}
         open={isDetailOpen}
