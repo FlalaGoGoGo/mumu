@@ -1,17 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Search, SlidersHorizontal, X, CalendarIcon, CalendarArrowUp, CalendarArrowDown, MapPin, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, SlidersHorizontal, X, CalendarIcon, MapPin, ArrowUp, ArrowDown } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Popover,
   PopoverContent,
@@ -61,6 +54,8 @@ function matchesPreset(from: Date | undefined, to: Date | undefined, preset: Dat
 export type DateSortOrder = 'none' | 'asc' | 'desc';
 export type DistanceSortOrder = 'none' | 'asc' | 'desc';
 
+const USER_VISIBLE_STATUSES: ExhibitionStatus[] = ['Ongoing', 'Upcoming', 'Past'];
+
 interface ExhibitionFiltersProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
@@ -70,9 +65,9 @@ interface ExhibitionFiltersProps {
   selectedStateProvince: string | null;
   selectedCity: string | null;
   onLocationChange: (region: string | null, stateProvince: string | null, city: string | null) => void;
-  // Status filter
-  selectedStatus: string;
-  onStatusChange: (value: string) => void;
+  // Status filter (multi-select)
+  selectedStatuses: ExhibitionStatus[];
+  onStatusesChange: (value: ExhibitionStatus[]) => void;
   // Date range
   dateFrom: Date | undefined;
   dateTo: Date | undefined;
@@ -95,6 +90,15 @@ interface ExhibitionFiltersProps {
   onDistanceSortOrderChange: (value: DistanceSortOrder) => void;
 }
 
+function getStatusLabelKey(status: ExhibitionStatus): string {
+  switch (status) {
+    case 'Ongoing': return 'exhibitions.ongoing';
+    case 'Upcoming': return 'exhibitions.upcoming';
+    case 'Past': return 'exhibitions.past';
+    default: return status;
+  }
+}
+
 export function ExhibitionFilters({
   searchQuery,
   onSearchChange,
@@ -103,8 +107,8 @@ export function ExhibitionFilters({
   selectedStateProvince,
   selectedCity,
   onLocationChange,
-  selectedStatus,
-  onStatusChange,
+  selectedStatuses,
+  onStatusesChange,
   dateFrom,
   dateTo,
   onDateFromChange,
@@ -124,14 +128,6 @@ export function ExhibitionFilters({
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [activePreset, setActivePreset] = useState<DatePreset>(null);
-
-  // Status options — TBD is hidden from users
-  const STATUS_OPTIONS: { value: ExhibitionStatus | 'all'; labelKey: string }[] = [
-    { value: 'all', labelKey: 'exhibitions.allStatuses' },
-    { value: 'Ongoing', labelKey: 'exhibitions.ongoing' },
-    { value: 'Upcoming', labelKey: 'exhibitions.upcoming' },
-    { value: 'Past', labelKey: 'exhibitions.past' },
-  ];
 
   // Check if current dates match a preset
   useEffect(() => {
@@ -196,6 +192,28 @@ export function ExhibitionFilters({
     return 'Sort by date';
   };
 
+  const handleStatusToggle = (status: ExhibitionStatus) => {
+    const isSelected = selectedStatuses.includes(status);
+    if (isSelected) {
+      // Don't allow deselecting all — re-select defaults
+      const newStatuses = selectedStatuses.filter(s => s !== status);
+      if (newStatuses.length === 0) {
+        onStatusesChange(['Ongoing', 'Upcoming']);
+      } else {
+        onStatusesChange(newStatuses);
+      }
+    } else {
+      onStatusesChange([...selectedStatuses, status]);
+    }
+  };
+
+  // Check if statuses differ from default (Ongoing + Upcoming)
+  const isStatusNonDefault = !(
+    selectedStatuses.length === 2 &&
+    selectedStatuses.includes('Ongoing') &&
+    selectedStatuses.includes('Upcoming')
+  );
+
   return (
     <div className="flex flex-col gap-3">
       {/* Search Row with Sort Controls */}
@@ -210,15 +228,6 @@ export function ExhibitionFilters({
             className="pl-10"
           />
         </div>
-
-        {/* Location Filter */}
-        <ExhibitionLocationFilter
-          availableLocations={availableLocations}
-          selectedRegion={selectedRegion}
-          selectedStateProvince={selectedStateProvince}
-          selectedCity={selectedCity}
-          onSelectionChange={onLocationChange}
-        />
 
         {/* Filters toggle */}
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -302,22 +311,44 @@ export function ExhibitionFilters({
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleContent>
           <div className="p-4 bg-muted/50 rounded-lg border space-y-4">
+            {/* Status multi-select chips */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">{t('exhibitions.status')}</label>
+              <div className="flex flex-wrap gap-2">
+                {USER_VISIBLE_STATUSES.map((status) => {
+                  const isSelected = selectedStatuses.includes(status);
+                  return (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusToggle(status)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all border",
+                        isSelected
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      {t(getStatusLabelKey(status) as any)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Status Filter */}
+              {/* Location Filter (inside panel) */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">{t('exhibitions.status')}</label>
-                <Select value={selectedStatus} onValueChange={onStatusChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('exhibitions.allStatuses')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUS_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {t(option.labelKey as any)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="text-sm font-medium text-foreground">
+                  {t('exhibitions.location' as any) || 'Location'}
+                </label>
+                <ExhibitionLocationFilter
+                  availableLocations={availableLocations}
+                  selectedRegion={selectedRegion}
+                  selectedStateProvince={selectedStateProvince}
+                  selectedCity={selectedCity}
+                  onSelectionChange={onLocationChange}
+                  fullWidth
+                />
               </div>
 
               {/* Date From */}

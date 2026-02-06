@@ -17,6 +17,8 @@ interface ExhibitionLocationFilterProps {
   selectedStateProvince: string | null;
   selectedCity: string | null;
   onSelectionChange: (region: string | null, stateProvince: string | null, city: string | null) => void;
+  /** When true, button fills parent width */
+  fullWidth?: boolean;
 }
 
 type Level = 'region' | 'state' | 'city';
@@ -41,6 +43,7 @@ export function ExhibitionLocationFilter({
   selectedStateProvince,
   selectedCity,
   onSelectionChange,
+  fullWidth = false,
 }: ExhibitionLocationFilterProps) {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
@@ -335,7 +338,7 @@ export function ExhibitionLocationFilter({
   };
 
   return (
-    <div className="relative flex-shrink-0" ref={dropdownRef}>
+    <div className={cn("relative", fullWidth ? "w-full" : "flex-shrink-0")} ref={dropdownRef}>
       <button
         onClick={() => {
           setIsOpen(!isOpen);
@@ -348,13 +351,14 @@ export function ExhibitionLocationFilter({
         className={cn(
           "inline-flex items-center gap-1.5 h-10 px-3 rounded-md text-sm font-medium transition-all",
           "border focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+          fullWidth && "w-full",
           hasSelection
             ? "bg-primary/10 text-primary border-primary/30"
             : "bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground"
         )}
       >
         <MapPin className="w-4 h-4 flex-shrink-0" />
-        <span className="max-w-[160px] truncate">{getButtonLabel()}</span>
+        <span className={cn("truncate", fullWidth ? "flex-1 text-left" : "max-w-[160px]")}>{getButtonLabel()}</span>
         {hasSelection && (
           <X
             className="w-3.5 h-3.5 flex-shrink-0 hover:text-destructive"

@@ -14,6 +14,8 @@ import { calculateDistance, formatDistance } from '@/lib/distance';
 import type { Exhibition, ExhibitionStatus } from '@/types/exhibition';
 import type { ExhibitionLocation } from '@/components/exhibition/ExhibitionLocationFilter';
 
+const USER_VISIBLE_STATUSES: ExhibitionStatus[] = ['Ongoing', 'Upcoming', 'Past'];
+
 // Sort priority: Ongoing -> Upcoming -> TBD -> Past
 const STATUS_PRIORITY: Record<ExhibitionStatus, number> = {
   Ongoing: 0,
@@ -35,7 +37,7 @@ export default function ExhibitionsPage() {
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedStateProvince, setSelectedStateProvince] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedStatuses, setSelectedStatuses] = useState<ExhibitionStatus[]>(['Ongoing', 'Upcoming']);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [maxDistance, setMaxDistance] = useState(MAX_DISTANCE_VALUE);
@@ -133,9 +135,9 @@ export default function ExhibitionsPage() {
       });
     }
 
-    // Status filter
-    if (selectedStatus !== 'all') {
-      filtered = filtered.filter(({ exhibition }) => exhibition.status === selectedStatus);
+    // Status filter (multi-select)
+    if (selectedStatuses.length > 0 && selectedStatuses.length < USER_VISIBLE_STATUSES.length) {
+      filtered = filtered.filter(({ exhibition }) => selectedStatuses.includes(exhibition.status));
     }
 
     // Date range filter
@@ -215,19 +217,19 @@ export default function ExhibitionsPage() {
     });
 
     return sortedFiltered;
-  }, [exhibitionsWithDistance, searchQuery, selectedRegion, selectedStateProvince, selectedCity, selectedStatus, dateFrom, dateTo, maxDistance, hasLocation, closingSoon, dateSortOrder, distanceSortOrder]);
+  }, [exhibitionsWithDistance, searchQuery, selectedRegion, selectedStateProvince, selectedCity, selectedStatuses, dateFrom, dateTo, maxDistance, hasLocation, closingSoon, dateSortOrder, distanceSortOrder]);
 
   // Count active filters
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (selectedRegion) count++;
-    if (selectedStatus !== 'all') count++;
+    if (selectedStatuses.length > 0 && selectedStatuses.length < USER_VISIBLE_STATUSES.length) count++;
     if (dateFrom) count++;
     if (dateTo) count++;
     if (hasLocation && maxDistance < MAX_DISTANCE_VALUE) count++;
     if (closingSoon) count++;
     return count;
-  }, [selectedRegion, selectedStatus, dateFrom, dateTo, maxDistance, hasLocation, closingSoon]);
+  }, [selectedRegion, selectedStatuses, dateFrom, dateTo, maxDistance, hasLocation, closingSoon]);
 
   const hasActiveFilters = searchQuery !== '' || activeFilterCount > 0;
 
@@ -236,7 +238,7 @@ export default function ExhibitionsPage() {
     setSelectedRegion(null);
     setSelectedStateProvince(null);
     setSelectedCity(null);
-    setSelectedStatus('all');
+    setSelectedStatuses(['Ongoing', 'Upcoming']);
     setDateFrom(undefined);
     setDateTo(undefined);
     setMaxDistance(MAX_DISTANCE_VALUE);
@@ -291,8 +293,8 @@ export default function ExhibitionsPage() {
           selectedStateProvince={selectedStateProvince}
           selectedCity={selectedCity}
           onLocationChange={handleLocationChange}
-          selectedStatus={selectedStatus}
-          onStatusChange={setSelectedStatus}
+          selectedStatuses={selectedStatuses}
+          onStatusesChange={setSelectedStatuses}
           dateFrom={dateFrom}
           dateTo={dateTo}
           onDateFromChange={setDateFrom}
