@@ -10,9 +10,10 @@ interface DetailEditorProps {
   options: string[];
   selected: string[];
   onChange: (selected: string[]) => void;
+  showOtherOption?: boolean;
 }
 
-export function DetailEditor({ label, placeholder, addLabel, options, selected, onChange }: DetailEditorProps) {
+export function DetailEditor({ label, placeholder, addLabel, options, selected, onChange, showOtherOption }: DetailEditorProps) {
   const [search, setSearch] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customValue, setCustomValue] = useState('');
@@ -83,6 +84,15 @@ export function DetailEditor({ label, placeholder, addLabel, options, selected, 
 
       {(search || filtered.length > 0) && (
         <div className="max-h-[140px] overflow-y-auto space-y-0.5 rounded-md border border-border/40 bg-popover">
+          {showOtherOption && !search && (
+            <button
+              type="button"
+              onClick={() => setShowCustomInput(true)}
+              className="w-full text-left px-3 py-1.5 text-sm text-primary font-medium hover:bg-accent/50 transition-colors border-b border-border/30"
+            >
+              Other / Not listed — type your company
+            </button>
+          )}
           {filtered.map(option => (
             <button
               key={option}

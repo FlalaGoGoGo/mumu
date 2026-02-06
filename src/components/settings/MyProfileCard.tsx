@@ -5,6 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pencil } from 'lucide-react';
+import mumuLogo from '@/assets/mumu-logo.png';
 import { toast } from '@/hooks/use-toast';
 import { ProfileRow } from './profile/ProfileRow';
 import { AvatarEditDialog } from './profile/AvatarEditDialog';
@@ -128,9 +129,15 @@ function AvatarWithOverlay({
   return (
     <button onClick={onClick} className="group relative flex-shrink-0">
       <Avatar className={`${sizeClasses} border-2 border-border`}>
-        {avatarUrl ? <AvatarImage src={avatarUrl} alt={nickname || 'Avatar'} /> : null}
-        <AvatarFallback className={`bg-primary/10 text-primary ${textSize} font-display font-semibold`}>
-          {getInitials(nickname)}
+        {avatarUrl ? (
+          <AvatarImage src={avatarUrl} alt={nickname || 'Avatar'} />
+        ) : null}
+        <AvatarFallback className="bg-muted p-2">
+          <img
+            src={mumuLogo}
+            alt="MuMu"
+            className="w-full h-full object-contain"
+          />
         </AvatarFallback>
       </Avatar>
       <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

@@ -15,7 +15,8 @@ export type EligibilityType =
   | 'teacher'
   | 'first_responder'
   | 'senior'
-  | 'local_resident';
+  | 'local_resident'
+  | 'age_based';
 
 export interface EligibilityItem {
   type: EligibilityType;
@@ -23,6 +24,7 @@ export interface EligibilityItem {
   schools?: string[];
   libraries?: string[];
   companies?: string[];
+  date_of_birth?: string; // ISO date string for age-based eligibility
 }
 
 export interface EligibilityCategory {
@@ -36,7 +38,7 @@ export interface EligibilityCatalogItem {
   label: string;
   icon: string;
   description: string;
-  hasDetails?: 'schools' | 'libraries' | 'companies';
+  hasDetails?: 'schools' | 'libraries' | 'companies' | 'date_of_birth';
 }
 
 // Serialize eligibility items for storage in the discounts string[] field
