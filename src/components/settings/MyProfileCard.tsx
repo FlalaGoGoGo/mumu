@@ -9,6 +9,13 @@ import { toast } from '@/hooks/use-toast';
 import { ProfileRow } from './profile/ProfileRow';
 import { AvatarEditDialog } from './profile/AvatarEditDialog';
 import { LocationEditDialog } from './profile/LocationEditDialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface MyProfileCardProps {
   preferences: UserPreferences;
@@ -46,14 +53,13 @@ function useProfileEditing(preferences: MyProfileCardProps['preferences'], onUpd
 
   const nickname = preferences.nickname || '';
   const avatarUrl = preferences.avatar_url || '';
-  const pronouns = preferences.gender || ''; // reuse gender field for pronouns
+  const pronouns = preferences.gender || '';
   const locationStr = formatLocation(
     preferences.location_country || '',
     preferences.location_region || '',
     preferences.location_city || ''
   );
 
-  // Check if this is a custom pronoun (not in predefined list)
   const isCustomPronoun = pronouns && !PRONOUN_OPTIONS.some(p => p.value === pronouns);
   
   const pronounsLabel = pronouns
@@ -172,8 +178,8 @@ function NicknameEditor({
   );
 }
 
-// Pronouns inline editor
-function PronounsEditor({
+// Pronouns dropdown editor
+function PronounsDropdown({
   currentPronouns,
   customValue,
   onCustomChange,
@@ -188,47 +194,50 @@ function PronounsEditor({
   onCancel: () => void;
   t: (key: any) => string;
 }) {
-  const [showCustomInput, setShowCustomInput] = useState(
-    currentPronouns === 'Custom' || 
-    (currentPronouns && !PRONOUN_OPTIONS.some(p => p.value === currentPronouns))
-  );
+  const isCustom = currentPronouns === 'Custom' || 
+    (currentPronouns && !PRONOUN_OPTIONS.some(p => p.value === currentPronouns));
+  const [showCustom, setShowCustom] = useState(!!isCustom);
+
+  const selectValue = isCustom ? 'Custom' : (currentPronouns || '__none__');
 
   return (
     <div className="py-2 border-b border-border/40">
       <p className="text-xs text-muted-foreground mb-1.5">{t('profile.pronouns')}</p>
-      <div className="flex items-center gap-2 flex-wrap">
-        {PRONOUN_OPTIONS.map((opt) => (
-          <Button
-            key={opt.value}
-            variant={
-              opt.value === 'Custom'
-                ? showCustomInput ? 'default' : 'outline'
-                : currentPronouns === opt.value ? 'default' : 'outline'
+      <div className="flex items-center gap-2">
+        <Select
+          value={selectValue}
+          onValueChange={(val) => {
+            if (val === 'Custom') {
+              setShowCustom(true);
+            } else {
+              setShowCustom(false);
+              onSelect(val);
             }
-            size="sm"
-            className="h-8 text-xs rounded-full"
-            onClick={() => {
-              if (opt.value === 'Custom') {
-                setShowCustomInput(true);
-              } else {
-                setShowCustomInput(false);
-                onSelect(opt.value);
-              }
-            }}
-          >
-            {t(opt.labelKey)}
-          </Button>
-        ))}
-        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={onCancel}>{t('common.cancel')}</Button>
+          }}
+        >
+          <SelectTrigger className="w-full min-h-[36px] h-9 text-sm bg-background">
+            <SelectValue placeholder={t('profile.selectPronouns')} />
+          </SelectTrigger>
+          <SelectContent className="bg-popover z-[9999]" position="popper" sideOffset={4}>
+            {PRONOUN_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {t(opt.labelKey)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button variant="ghost" size="sm" className="h-9 text-xs flex-shrink-0" onClick={onCancel}>
+          {t('common.cancel')}
+        </Button>
       </div>
-      {showCustomInput && (
+      {showCustom && (
         <div className="flex items-center gap-2 mt-2">
           <Input
             value={customValue}
             onChange={(e) => onCustomChange(e.target.value)}
             maxLength={20}
             placeholder={t('profile.customPronounsPlaceholder')}
-            className="h-8 text-sm max-w-[200px]"
+            className="h-8 text-sm"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter' && customValue.trim()) {
@@ -333,7 +342,7 @@ export function MyProfileCard({ preferences, onUpdate }: MyProfileCardProps) {
 
               {/* Pronouns */}
               {profile.editingPronouns ? (
-                <PronounsEditor
+                <PronounsDropdown
                   currentPronouns={profile.pronouns}
                   customValue={profile.customPronounValue}
                   onCustomChange={profile.setCustomPronounValue}
@@ -420,7 +429,7 @@ export function MyProfileContent({ preferences, onUpdate }: MyProfileCardProps) 
 
         {/* Pronouns */}
         {profile.editingPronouns ? (
-          <PronounsEditor
+          <PronounsDropdown
             currentPronouns={profile.pronouns}
             customValue={profile.customPronounValue}
             onCustomChange={profile.setCustomPronounValue}

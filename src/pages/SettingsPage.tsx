@@ -39,9 +39,7 @@ export default function SettingsPage() {
   const { clearAll: clearSavedMuseums } = useSavedMuseums();
 
   const handleClearData = () => {
-    // Clear saved museums from localStorage
     clearSavedMuseums();
-    // Clear all other localStorage
     localStorage.clear();
     resetPreferences();
     window.location.reload();
@@ -57,17 +55,17 @@ export default function SettingsPage() {
 
   return (
     <ScrollArea className="h-[calc(100vh-80px)] md:h-[calc(100vh-73px)]">
-      <div className="container max-w-4xl py-6 md:py-8 px-4">
+      <div className="container max-w-2xl py-6 md:py-8 px-4">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground">
             {t('settings.title')}
           </h1>
         </div>
 
         {/* My Profile */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-5">
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl font-semibold text-foreground">{t('profile.myProfile')}</h2>
             <SaveStatusIndicator status={saveStatus} onRetry={retrySave} />
           </div>
@@ -88,14 +86,13 @@ export default function SettingsPage() {
           )}
         </section>
 
-        <Separator className="my-8" />
+        <Separator className="my-6" />
 
-        {/* A) Personal Preferences */}
-        <section className="mb-8">
-          <h2 className="font-display text-xl font-semibold text-foreground mb-5">{t('settings.personalPreferences')}</h2>
+        {/* Personal Preferences - single column */}
+        <section className="mb-6">
+          <h2 className="font-display text-xl font-semibold text-foreground mb-4">{t('settings.personalPreferences')}</h2>
 
           {isMobile ? (
-            // Mobile: Accordion Layout
             <Accordion type="single" collapsible defaultValue="profile" className="space-y-3">
               <AccordionItem value="profile" className="rounded-lg border border-border/60 bg-card/80 px-4 shadow-sm">
                 <AccordionTrigger className="hover:no-underline">
@@ -103,15 +100,6 @@ export default function SettingsPage() {
                 </AccordionTrigger>
                 <AccordionContent>
                   <ProfileBasicsContent preferences={preferences} onUpdate={updatePreferences} />
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="interests" className="rounded-lg border border-border/60 bg-card/80 px-4 shadow-sm">
-                <AccordionTrigger className="hover:no-underline">
-                  <span className="font-display font-semibold">{t('settings.interests')}</span>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <InterestsContent preferences={preferences} onUpdate={updatePreferences} />
                 </AccordionContent>
               </AccordionItem>
 
@@ -123,31 +111,37 @@ export default function SettingsPage() {
                   <DiscountsContent preferences={preferences} onUpdate={updatePreferences} />
                 </AccordionContent>
               </AccordionItem>
+
+              <AccordionItem value="interests" className="rounded-lg border border-border/60 bg-card/80 px-4 shadow-sm">
+                <AccordionTrigger className="hover:no-underline">
+                  <span className="font-display font-semibold">{t('settings.interests')}</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <InterestsContent preferences={preferences} onUpdate={updatePreferences} />
+                </AccordionContent>
+              </AccordionItem>
             </Accordion>
           ) : (
-            // Desktop: Grid Layout
-            <div className="space-y-5">
-              <div className="grid grid-cols-2 gap-5">
-                <ProfileBasicsCard preferences={preferences} onUpdate={updatePreferences} />
-                <DiscountsCard preferences={preferences} onUpdate={updatePreferences} />
-              </div>
+            <div className="space-y-4">
+              <ProfileBasicsCard preferences={preferences} onUpdate={updatePreferences} />
+              <DiscountsCard preferences={preferences} onUpdate={updatePreferences} />
               <InterestsCard preferences={preferences} onUpdate={updatePreferences} />
             </div>
           )}
         </section>
 
-        <Separator className="my-8" />
+        <Separator className="my-6" />
 
-        {/* B) Notifications */}
-        <section className="mb-8">
-          <h2 className="font-display text-lg font-semibold mb-4">{t('settings.notifications')}</h2>
-          <div className="rounded-lg border border-border/60 bg-card/80 p-5 shadow-sm space-y-4">
+        {/* Notifications */}
+        <section className="mb-6">
+          <h2 className="font-display text-lg font-semibold mb-3">{t('settings.notifications')}</h2>
+          <div className="rounded-lg border border-border/60 bg-card/80 p-4 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="visit-reminders" className="text-base cursor-pointer">
+                <Label htmlFor="visit-reminders" className="text-sm cursor-pointer">
                   {t('settings.visitReminders')}
                 </Label>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {t('settings.visitRemindersDescription')}
                 </p>
               </div>
@@ -161,10 +155,10 @@ export default function SettingsPage() {
             {preferences.remind_free_days && (
               <div className="flex items-center justify-between pt-2 border-t border-border/40">
                 <div className="space-y-0.5">
-                  <Label htmlFor="free-day-notify" className="text-base cursor-pointer">
+                  <Label htmlFor="free-day-notify" className="text-sm cursor-pointer">
                     {t('settings.freeDayNotifications')}
                   </Label>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {t('settings.freeDayNotificationsDescription')}
                   </p>
                 </div>
@@ -178,15 +172,15 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <Separator className="my-8" />
+        <Separator className="my-6" />
 
-        {/* C) Data & Privacy */}
-        <section className="mb-8">
-          <h2 className="font-display text-lg font-semibold mb-4">{t('settings.dataPrivacy')}</h2>
-          <div className="rounded-lg border border-border/60 bg-card/80 p-5 shadow-sm">
+        {/* Data & Privacy */}
+        <section className="mb-6">
+          <h2 className="font-display text-lg font-semibold mb-3">{t('settings.dataPrivacy')}</h2>
+          <div className="rounded-lg border border-border/60 bg-card/80 p-4 shadow-sm">
             <div>
-              <h3 className="font-medium mb-1">{t('settings.yourData')}</h3>
-              <p className="text-sm text-muted-foreground mb-4">
+              <h3 className="font-medium mb-1 text-sm">{t('settings.yourData')}</h3>
+              <p className="text-xs text-muted-foreground mb-3">
                 {t('settings.dataDescription')}
               </p>
               <AlertDialog>
@@ -215,21 +209,21 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <Separator className="my-8" />
+        <Separator className="my-6" />
 
         {/* About */}
-        <section className="mb-8">
-          <h2 className="font-display text-lg font-semibold mb-4">{t('settings.about')}</h2>
-          <div className="rounded-lg border border-border/60 bg-card/80 p-5 shadow-sm">
-            <div className="flex items-start gap-4">
+        <section className="mb-6">
+          <h2 className="font-display text-lg font-semibold mb-3">{t('settings.about')}</h2>
+          <div className="rounded-lg border border-border/60 bg-card/80 p-4 shadow-sm">
+            <div className="flex items-start gap-3">
               <img 
                 src={mumuLogo} 
                 alt="MuMu" 
-                className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                className="w-10 h-10 rounded-full object-cover flex-shrink-0"
               />
               <div>
-                <h3 className="font-display text-lg font-semibold">{t('app.title')}</h3>
-                <p className="text-sm text-muted-foreground mb-3">
+                <h3 className="font-display text-base font-semibold">{t('app.title')}</h3>
+                <p className="text-xs text-muted-foreground mb-2">
                   {t('settings.aboutDescription')}
                 </p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -242,43 +236,27 @@ export default function SettingsPage() {
         </section>
 
         {/* Contact Us */}
-        <section className="mb-8">
-          <h2 className="font-display text-lg font-semibold mb-4">{t('settings.contactUs')}</h2>
-          <div className="rounded-lg border border-border/60 bg-card/80 p-5 shadow-sm">
-            <div className="space-y-3">
+        <section className="mb-6">
+          <h2 className="font-display text-lg font-semibold mb-3">{t('settings.contactUs')}</h2>
+          <div className="rounded-lg border border-border/60 bg-card/80 p-4 shadow-sm">
+            <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <span className="text-sm">{t('settings.creator')}: <span className="font-medium">Flala</span></span>
               </div>
-              <a 
-                href="tel:+12067417374" 
-                className="flex items-center gap-3 text-sm hover:text-primary transition-colors"
-              >
+              <a href="tel:+12067417374" className="flex items-center gap-3 text-sm hover:text-primary transition-colors">
                 <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <span>+1 (206) 741-7374</span>
               </a>
-              <a 
-                href="mailto:flalaz@uw.edu" 
-                className="flex items-center gap-3 text-sm hover:text-primary transition-colors"
-              >
+              <a href="mailto:flalaz@uw.edu" className="flex items-center gap-3 text-sm hover:text-primary transition-colors">
                 <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <span>flalaz@uw.edu</span>
               </a>
-              <a 
-                href="https://www.linkedin.com/in/flala/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 text-sm hover:text-primary transition-colors"
-              >
+              <a href="https://www.linkedin.com/in/flala/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm hover:text-primary transition-colors">
                 <Linkedin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <span>linkedin.com/in/flala</span>
               </a>
-              <a 
-                href="https://github.com/FlalaGoGoGo" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 text-sm hover:text-primary transition-colors"
-              >
+              <a href="https://github.com/FlalaGoGoGo" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm hover:text-primary transition-colors">
                 <Github className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <span>github.com/FlalaGoGoGo</span>
               </a>
@@ -287,18 +265,14 @@ export default function SettingsPage() {
         </section>
 
         {/* Credits */}
-        <section>
-          <h2 className="font-display text-lg font-semibold mb-4">{t('settings.credits')}</h2>
-          <div className="rounded-lg border border-border/60 bg-card/80 p-5 shadow-sm">
-            <p className="text-sm text-muted-foreground mb-3">
+        <section className="mb-4">
+          <h2 className="font-display text-lg font-semibold mb-3">{t('settings.credits')}</h2>
+          <div className="rounded-lg border border-border/60 bg-card/80 p-4 shadow-sm">
+            <p className="text-xs text-muted-foreground mb-2">
               {t('settings.creditsDescription')}
             </p>
             <Button variant="outline" size="sm" asChild>
-              <a 
-                href="https://api.artic.edu/docs/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-              >
+              <a href="https://api.artic.edu/docs/" target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="w-4 h-4 mr-2" />
                 {t('settings.aicApiDocs')}
               </a>
