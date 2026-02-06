@@ -60,12 +60,9 @@ export default function SettingsPage() {
       <div className="container max-w-4xl py-6 md:py-8 px-4">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
+          <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground">
             {t('settings.title')}
           </h1>
-          <p className="text-muted-foreground">
-            {t('settings.subtitle')}
-          </p>
         </div>
 
         {/* My Profile */}
