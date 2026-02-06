@@ -20,15 +20,18 @@ function getInitials(nickname: string): string {
   return nickname.trim().charAt(0).toUpperCase();
 }
 
+/** Display location as City, State/Province, Region */
 function formatLocation(country: string, region: string, city: string): string {
-  return [country, region, city].filter(Boolean).join(', ');
+  return [city, region, country].filter(Boolean).join(', ');
 }
 
-const GENDER_OPTIONS = [
-  { value: 'Female', labelKey: 'profile.female' as const },
-  { value: 'Male', labelKey: 'profile.male' as const },
-  { value: 'Non-binary', labelKey: 'profile.nonBinary' as const },
+const PRONOUN_OPTIONS = [
+  { value: 'He/Him', labelKey: 'profile.heHim' as const },
+  { value: 'She/Her', labelKey: 'profile.sheHer' as const },
+  { value: 'They/Them', labelKey: 'profile.theyThem' as const },
+  { value: 'Use my name only', labelKey: 'profile.useMyName' as const },
   { value: 'Prefer not to say', labelKey: 'profile.preferNotToSay' as const },
+  { value: 'Custom', labelKey: 'profile.customPronouns' as const },
 ];
 
 // Shared profile editing logic
@@ -38,21 +41,27 @@ function useProfileEditing(preferences: MyProfileCardProps['preferences'], onUpd
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameValue, setNicknameValue] = useState('');
-  const [editingGender, setEditingGender] = useState(false);
+  const [editingPronouns, setEditingPronouns] = useState(false);
+  const [customPronounValue, setCustomPronounValue] = useState('');
 
   const nickname = preferences.nickname || '';
   const avatarUrl = preferences.avatar_url || '';
-  const gender = preferences.gender || '';
+  const pronouns = preferences.gender || ''; // reuse gender field for pronouns
   const locationStr = formatLocation(
     preferences.location_country || '',
     preferences.location_region || '',
     preferences.location_city || ''
   );
 
-  const genderLabel = gender
-    ? GENDER_OPTIONS.find(g => g.value === gender)
-      ? t(GENDER_OPTIONS.find(g => g.value === gender)!.labelKey)
-      : gender
+  // Check if this is a custom pronoun (not in predefined list)
+  const isCustomPronoun = pronouns && !PRONOUN_OPTIONS.some(p => p.value === pronouns);
+  
+  const pronounsLabel = pronouns
+    ? (isCustomPronoun
+        ? pronouns
+        : PRONOUN_OPTIONS.find(p => p.value === pronouns)
+          ? t(PRONOUN_OPTIONS.find(p => p.value === pronouns)!.labelKey)
+          : pronouns)
     : '';
 
   const startEditNickname = () => {
@@ -71,15 +80,26 @@ function useProfileEditing(preferences: MyProfileCardProps['preferences'], onUpd
     toast({ title: t('profile.profileUpdated') });
   };
 
+  const startEditPronouns = () => {
+    if (isCustomPronoun) {
+      setCustomPronounValue(pronouns);
+    } else {
+      setCustomPronounValue('');
+    }
+    setEditingPronouns(true);
+  };
+
   return {
     t,
     avatarDialogOpen, setAvatarDialogOpen,
     locationDialogOpen, setLocationDialogOpen,
     editingNickname, setEditingNickname,
     nicknameValue, setNicknameValue,
-    editingGender, setEditingGender,
-    nickname, avatarUrl, gender, locationStr, genderLabel,
-    startEditNickname, saveNickname,
+    editingPronouns, setEditingPronouns,
+    customPronounValue, setCustomPronounValue,
+    nickname, avatarUrl, pronouns, locationStr, pronounsLabel,
+    isCustomPronoun,
+    startEditNickname, saveNickname, startEditPronouns,
   };
 }
 
@@ -152,35 +172,82 @@ function NicknameEditor({
   );
 }
 
-// Gender inline editor
-function GenderEditor({
-  currentGender,
+// Pronouns inline editor
+function PronounsEditor({
+  currentPronouns,
+  customValue,
+  onCustomChange,
   onSelect,
   onCancel,
   t,
 }: {
-  currentGender: string;
+  currentPronouns: string;
+  customValue: string;
+  onCustomChange: (v: string) => void;
   onSelect: (value: string) => void;
   onCancel: () => void;
   t: (key: any) => string;
 }) {
+  const [showCustomInput, setShowCustomInput] = useState(
+    currentPronouns === 'Custom' || 
+    (currentPronouns && !PRONOUN_OPTIONS.some(p => p.value === currentPronouns))
+  );
+
   return (
     <div className="py-2 border-b border-border/40">
-      <p className="text-xs text-muted-foreground mb-1.5">{t('profile.gender')}</p>
+      <p className="text-xs text-muted-foreground mb-1.5">{t('profile.pronouns')}</p>
       <div className="flex items-center gap-2 flex-wrap">
-        {GENDER_OPTIONS.map((opt) => (
+        {PRONOUN_OPTIONS.map((opt) => (
           <Button
             key={opt.value}
-            variant={currentGender === opt.value ? 'default' : 'outline'}
+            variant={
+              opt.value === 'Custom'
+                ? showCustomInput ? 'default' : 'outline'
+                : currentPronouns === opt.value ? 'default' : 'outline'
+            }
             size="sm"
             className="h-8 text-xs rounded-full"
-            onClick={() => onSelect(opt.value)}
+            onClick={() => {
+              if (opt.value === 'Custom') {
+                setShowCustomInput(true);
+              } else {
+                setShowCustomInput(false);
+                onSelect(opt.value);
+              }
+            }}
           >
             {t(opt.labelKey)}
           </Button>
         ))}
         <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={onCancel}>{t('common.cancel')}</Button>
       </div>
+      {showCustomInput && (
+        <div className="flex items-center gap-2 mt-2">
+          <Input
+            value={customValue}
+            onChange={(e) => onCustomChange(e.target.value)}
+            maxLength={20}
+            placeholder={t('profile.customPronounsPlaceholder')}
+            className="h-8 text-sm max-w-[200px]"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && customValue.trim()) {
+                onSelect(customValue.trim());
+              }
+            }}
+          />
+          <Button 
+            size="sm" 
+            className="h-8 px-3 text-xs" 
+            onClick={() => {
+              if (customValue.trim()) onSelect(customValue.trim());
+            }}
+            disabled={!customValue.trim()}
+          >
+            {t('common.save')}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -264,31 +331,33 @@ export function MyProfileCard({ preferences, onUpdate }: MyProfileCardProps) {
                 />
               )}
 
-              {/* Gender */}
-              {profile.editingGender ? (
-                <GenderEditor
-                  currentGender={profile.gender}
+              {/* Pronouns */}
+              {profile.editingPronouns ? (
+                <PronounsEditor
+                  currentPronouns={profile.pronouns}
+                  customValue={profile.customPronounValue}
+                  onCustomChange={profile.setCustomPronounValue}
                   onSelect={(value) => {
                     onUpdate({ gender: value });
-                    profile.setEditingGender(false);
+                    profile.setEditingPronouns(false);
                     toast({ title: t('profile.profileUpdated') });
                   }}
-                  onCancel={() => profile.setEditingGender(false)}
+                  onCancel={() => profile.setEditingPronouns(false)}
                   t={t}
                 />
               ) : (
                 <ProfileRow
-                  label={t('profile.gender')}
-                  value={profile.genderLabel}
+                  label={t('profile.pronouns')}
+                  value={profile.pronounsLabel}
                   placeholder={t('profile.notSet')}
-                  onEdit={() => profile.setEditingGender(true)}
+                  onEdit={profile.startEditPronouns}
                   editLabel={t('common.edit')}
                 />
               )}
 
-              {/* Location */}
+              {/* Home Base */}
               <ProfileRow
-                label={t('profile.location')}
+                label={t('profile.homeBase')}
                 value={profile.locationStr}
                 placeholder={t('profile.notSet')}
                 onEdit={() => profile.setLocationDialogOpen(true)}
@@ -349,31 +418,33 @@ export function MyProfileContent({ preferences, onUpdate }: MyProfileCardProps) 
           />
         )}
 
-        {/* Gender */}
-        {profile.editingGender ? (
-          <GenderEditor
-            currentGender={profile.gender}
+        {/* Pronouns */}
+        {profile.editingPronouns ? (
+          <PronounsEditor
+            currentPronouns={profile.pronouns}
+            customValue={profile.customPronounValue}
+            onCustomChange={profile.setCustomPronounValue}
             onSelect={(value) => {
               onUpdate({ gender: value });
-              profile.setEditingGender(false);
+              profile.setEditingPronouns(false);
               toast({ title: t('profile.profileUpdated') });
             }}
-            onCancel={() => profile.setEditingGender(false)}
+            onCancel={() => profile.setEditingPronouns(false)}
             t={t}
           />
         ) : (
           <ProfileRow
-            label={t('profile.gender')}
-            value={profile.genderLabel}
+            label={t('profile.pronouns')}
+            value={profile.pronounsLabel}
             placeholder={t('profile.notSet')}
-            onEdit={() => profile.setEditingGender(true)}
+            onEdit={profile.startEditPronouns}
             editLabel={t('common.edit')}
           />
         )}
 
-        {/* Location */}
+        {/* Home Base */}
         <ProfileRow
-          label={t('profile.location')}
+          label={t('profile.homeBase')}
           value={profile.locationStr}
           placeholder={t('profile.notSet')}
           onEdit={() => profile.setLocationDialogOpen(true)}

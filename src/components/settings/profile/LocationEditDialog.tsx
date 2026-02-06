@@ -234,7 +234,7 @@ export function LocationEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm z-[9100]">
         <DialogHeader>
-          <DialogTitle className="font-display">{t('profile.editLocation')}</DialogTitle>
+          <DialogTitle className="font-display">{t('profile.editHomeBase')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           {/* Step 1: Region (Country) — always visible */}

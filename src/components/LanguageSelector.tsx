@@ -14,6 +14,7 @@ interface LanguageSelectorProps {
 }
 
 export function LanguageSelector({ variant = 'default', className = '' }: LanguageSelectorProps) {
+  // Top-right selector uses temporary (session-only) language change
   const { language, setLanguage } = useLanguage();
 
   const currentLang = SUPPORTED_LANGUAGES.find(l => l.code === language);
