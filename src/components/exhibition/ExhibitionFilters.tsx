@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, SlidersHorizontal, X, CalendarIcon } from 'lucide-react';
+import { Search, SlidersHorizontal, X, CalendarIcon, CalendarArrowUp, CalendarArrowDown, MapPin, ArrowUp, ArrowDown } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -22,8 +22,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/i18n';
+import { ExhibitionLocationFilter, type ExhibitionLocation } from './ExhibitionLocationFilter';
 import type { ExhibitionStatus } from '@/types/exhibition';
 
 type DatePreset = 'this-week' | 'this-month' | 'next-30-days' | null;
@@ -57,23 +64,31 @@ export type DistanceSortOrder = 'none' | 'asc' | 'desc';
 interface ExhibitionFiltersProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  states: string[];
-  selectedState: string;
-  onStateChange: (value: string) => void;
+  // Location filter
+  availableLocations: ExhibitionLocation[];
+  selectedRegion: string | null;
+  selectedStateProvince: string | null;
+  selectedCity: string | null;
+  onLocationChange: (region: string | null, stateProvince: string | null, city: string | null) => void;
+  // Status filter
   selectedStatus: string;
   onStatusChange: (value: string) => void;
+  // Date range
   dateFrom: Date | undefined;
   dateTo: Date | undefined;
   onDateFromChange: (date: Date | undefined) => void;
   onDateToChange: (date: Date | undefined) => void;
-  maxDistance: number;
-  onMaxDistanceChange: (value: number) => void;
+  // Distance
   hasLocation: boolean;
+  hasHomeBase: boolean;
+  // Clear
   onClearFilters: () => void;
   hasActiveFilters: boolean;
   activeFilterCount: number;
+  // Closing soon
   closingSoon: boolean;
   onClosingSoonChange: (value: boolean) => void;
+  // Sort
   dateSortOrder: DateSortOrder;
   onDateSortOrderChange: (value: DateSortOrder) => void;
   distanceSortOrder: DistanceSortOrder;
@@ -83,9 +98,11 @@ interface ExhibitionFiltersProps {
 export function ExhibitionFilters({
   searchQuery,
   onSearchChange,
-  states,
-  selectedState,
-  onStateChange,
+  availableLocations,
+  selectedRegion,
+  selectedStateProvince,
+  selectedCity,
+  onLocationChange,
   selectedStatus,
   onStatusChange,
   dateFrom,
@@ -93,6 +110,7 @@ export function ExhibitionFilters({
   onDateFromChange,
   onDateToChange,
   hasLocation,
+  hasHomeBase,
   onClearFilters,
   hasActiveFilters,
   activeFilterCount,
@@ -107,27 +125,12 @@ export function ExhibitionFilters({
   const [isOpen, setIsOpen] = useState(false);
   const [activePreset, setActivePreset] = useState<DatePreset>(null);
 
-  // Status options with translations
+  // Status options — TBD is hidden from users
   const STATUS_OPTIONS: { value: ExhibitionStatus | 'all'; labelKey: string }[] = [
     { value: 'all', labelKey: 'exhibitions.allStatuses' },
     { value: 'Ongoing', labelKey: 'exhibitions.ongoing' },
     { value: 'Upcoming', labelKey: 'exhibitions.upcoming' },
     { value: 'Past', labelKey: 'exhibitions.past' },
-    { value: 'TBD', labelKey: 'exhibitions.tbd' },
-  ];
-
-  // Date sort options with translations
-  const DATE_SORT_OPTIONS = [
-    { value: 'none' as const, labelKey: 'exhibitions.dateSort' },
-    { value: 'asc' as const, labelKey: 'exhibitions.dateSortAsc' },
-    { value: 'desc' as const, labelKey: 'exhibitions.dateSortDesc' },
-  ];
-
-  // Distance sort options with translations
-  const DISTANCE_SORT_OPTIONS = [
-    { value: 'none' as const, labelKey: 'exhibitions.distanceSort' },
-    { value: 'asc' as const, labelKey: 'exhibitions.distanceSortAsc' },
-    { value: 'desc' as const, labelKey: 'exhibitions.distanceSortDesc' },
   ];
 
   // Check if current dates match a preset
@@ -138,13 +141,9 @@ export function ExhibitionFilters({
   }, [dateFrom, dateTo]);
 
   const handlePresetClick = (preset: DatePreset) => {
-    // When selecting a date preset, turn off Closing Soon
-    if (closingSoon) {
-      onClosingSoonChange(false);
-    }
-    
+    if (closingSoon) onClosingSoonChange(false);
+
     if (activePreset === preset) {
-      // Deselect
       setActivePreset(null);
       onDateFromChange(undefined);
       onDateToChange(undefined);
@@ -161,8 +160,6 @@ export function ExhibitionFilters({
   const handleClosingSoonClick = () => {
     const newValue = !closingSoon;
     onClosingSoonChange(newValue);
-    
-    // When turning on Closing Soon, clear date presets
     if (newValue) {
       setActivePreset(null);
       onDateFromChange(undefined);
@@ -170,10 +167,40 @@ export function ExhibitionFilters({
     }
   };
 
+  // Date sort toggle: none → asc → desc → none
+  const handleDateSortToggle = () => {
+    if (dateSortOrder === 'none') onDateSortOrderChange('asc');
+    else if (dateSortOrder === 'asc') onDateSortOrderChange('desc');
+    else onDateSortOrderChange('none');
+  };
+
+  // Distance sort toggle: none → asc → desc → none
+  const handleDistanceSortToggle = () => {
+    if (distanceSortOrder === 'none') onDistanceSortOrderChange('asc');
+    else if (distanceSortOrder === 'asc') onDistanceSortOrderChange('desc');
+    else onDistanceSortOrderChange('none');
+  };
+
+  const canSortByDistance = hasLocation || hasHomeBase;
+
+  const getDistanceTooltip = () => {
+    if (!canSortByDistance) return 'Enable location to sort by distance';
+    if (distanceSortOrder === 'asc') return 'Sort by distance (near → far)';
+    if (distanceSortOrder === 'desc') return 'Sort by distance (far → near)';
+    return 'Sort by distance';
+  };
+
+  const getDateTooltip = () => {
+    if (dateSortOrder === 'asc') return 'Sort by date (ascending)';
+    if (dateSortOrder === 'desc') return 'Sort by date (descending)';
+    return 'Sort by date';
+  };
+
   return (
     <div className="flex flex-col gap-3">
       {/* Search Row with Sort Controls */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Search */}
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -183,9 +210,20 @@ export function ExhibitionFilters({
             className="pl-10"
           />
         </div>
+
+        {/* Location Filter */}
+        <ExhibitionLocationFilter
+          availableLocations={availableLocations}
+          selectedRegion={selectedRegion}
+          selectedStateProvince={selectedStateProvince}
+          selectedCity={selectedCity}
+          onSelectionChange={onLocationChange}
+        />
+
+        {/* Filters toggle */}
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger asChild>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2 h-10">
               <SlidersHorizontal className="w-4 h-4" />
               <span className="hidden sm:inline">{t('exhibitions.filters')}</span>
               {activeFilterCount > 0 && (
@@ -197,62 +235,74 @@ export function ExhibitionFilters({
           </CollapsibleTrigger>
         </Collapsible>
 
-        {/* Date Sort */}
-        <Select value={dateSortOrder} onValueChange={(v) => onDateSortOrderChange(v as DateSortOrder)}>
-          <SelectTrigger className="w-[100px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {DATE_SORT_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {t(opt.labelKey as any)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Date Sort Icon Button */}
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={dateSortOrder !== 'none' ? 'default' : 'outline'}
+                size="icon"
+                className={cn(
+                  "h-10 w-10 flex-shrink-0",
+                  dateSortOrder !== 'none' && "bg-primary text-primary-foreground"
+                )}
+                onClick={handleDateSortToggle}
+              >
+                <div className="relative flex items-center justify-center">
+                  <CalendarIcon className="w-4 h-4" />
+                  {dateSortOrder === 'asc' && (
+                    <ArrowUp className="w-2.5 h-2.5 absolute -top-1 -right-1.5 stroke-[3]" />
+                  )}
+                  {dateSortOrder === 'desc' && (
+                    <ArrowDown className="w-2.5 h-2.5 absolute -top-1 -right-1.5 stroke-[3]" />
+                  )}
+                </div>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{getDateTooltip()}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
-        {/* Distance Sort */}
-        <Select 
-          value={distanceSortOrder} 
-          onValueChange={(v) => onDistanceSortOrderChange(v as DistanceSortOrder)}
-          disabled={!hasLocation}
-        >
-          <SelectTrigger className={cn("w-[110px]", !hasLocation && "opacity-50")}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {DISTANCE_SORT_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {t(opt.labelKey as any)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Distance Sort Icon Button */}
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={distanceSortOrder !== 'none' ? 'default' : 'outline'}
+                size="icon"
+                className={cn(
+                  "h-10 w-10 flex-shrink-0",
+                  distanceSortOrder !== 'none' && "bg-primary text-primary-foreground",
+                  !canSortByDistance && "opacity-50 cursor-not-allowed"
+                )}
+                onClick={canSortByDistance ? handleDistanceSortToggle : undefined}
+                disabled={!canSortByDistance}
+              >
+                <div className="relative flex items-center justify-center">
+                  <MapPin className="w-4 h-4" />
+                  {distanceSortOrder === 'asc' && (
+                    <ArrowUp className="w-2.5 h-2.5 absolute -top-1 -right-1.5 stroke-[3]" />
+                  )}
+                  {distanceSortOrder === 'desc' && (
+                    <ArrowDown className="w-2.5 h-2.5 absolute -top-1 -right-1.5 stroke-[3]" />
+                  )}
+                </div>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{getDistanceTooltip()}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Collapsible Filter Panel */}
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleContent>
           <div className="p-4 bg-muted/50 rounded-lg border space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* State Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">{t('exhibitions.state')}</label>
-                <Select value={selectedState} onValueChange={onStateChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('exhibitions.allStates')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('exhibitions.allStates')}</SelectItem>
-                    {states.map((state) => (
-                      <SelectItem key={state} value={state}>
-                        {state}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Status Filter */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">{t('exhibitions.status')}</label>
