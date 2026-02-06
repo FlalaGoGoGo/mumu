@@ -2,7 +2,6 @@ import { UserPreferences } from '@/hooks/usePreferences';
 import { useLanguage } from '@/lib/i18n';
 import { SUPPORTED_LANGUAGES, Language } from '@/lib/i18n/translations';
 import { PreferenceCard, PreferenceField } from './PreferenceCard';
-import { SingleSelectChips } from './PreferenceChip';
 import {
   Select,
   SelectContent,
@@ -43,25 +42,29 @@ function LanguageDropdown({ value, onChange }: { value: string; onChange: (lang:
   );
 }
 
+const KNOWLEDGE_LEVELS = [
+  { value: 'Beginner', labelKey: 'knowledge.beginner' as const },
+  { value: 'Intermediate', labelKey: 'knowledge.intermediate' as const },
+  { value: 'Advanced', labelKey: 'knowledge.advanced' as const },
+];
+
+const VISIT_STYLES = [
+  { value: 'Efficient Highlights', labelKey: 'visitStyle.efficientHighlights' as const },
+  { value: 'Story Immersion', labelKey: 'visitStyle.storyImmersion' as const },
+  { value: 'Deep Learning', labelKey: 'visitStyle.deepLearning' as const },
+];
+
+const PACE_OPTIONS = [
+  { value: 'Slow & chill', labelKey: 'pace.slow' as const },
+  { value: 'Normal', labelKey: 'pace.normal' as const },
+  { value: 'Fast', labelKey: 'pace.fast' as const },
+];
+
 function SharedContent({ preferences, onUpdate }: ProfileBasicsCardProps) {
   const { t, setPreferredLanguage } = useLanguage();
 
-  const KNOWLEDGE_LEVELS = [
-    { value: 'Beginner', labelKey: 'knowledge.beginner' as const },
-    { value: 'Intermediate', labelKey: 'knowledge.intermediate' as const },
-    { value: 'Advanced', labelKey: 'knowledge.advanced' as const },
-  ];
-
-  const VISIT_STYLES = [
-    { value: 'Efficient Highlights', labelKey: 'visitStyle.efficientHighlights' as const },
-    { value: 'Story Immersion', labelKey: 'visitStyle.storyImmersion' as const },
-    { value: 'Deep Learning', labelKey: 'visitStyle.deepLearning' as const },
-  ];
-
   const handleLanguageChange = (langCode: string) => {
-    // Update user preference (persistent)
     onUpdate({ language: langCode });
-    // Also update active language immediately
     setPreferredLanguage(langCode as Language);
   };
 
@@ -81,28 +84,69 @@ function SharedContent({ preferences, onUpdate }: ProfileBasicsCardProps) {
         label={t('settings.knowledgeLevel')}
         description={t('settings.knowledgeDescription')}
       >
-        <SingleSelectChips
-          options={KNOWLEDGE_LEVELS.map(k => t(k.labelKey))}
-          selected={t(KNOWLEDGE_LEVELS.find(k => k.value === preferences.knowledge_level)?.labelKey || 'knowledge.beginner')}
-          onChange={(label) => {
-            const level = KNOWLEDGE_LEVELS.find(k => t(k.labelKey) === label);
-            if (level) onUpdate({ knowledge_level: level.value });
-          }}
-        />
+        <Select
+          value={preferences.knowledge_level}
+          onValueChange={(val) => onUpdate({ knowledge_level: val })}
+        >
+          <SelectTrigger className="w-full min-h-[40px] bg-background text-sm">
+            <SelectValue>
+              {t(KNOWLEDGE_LEVELS.find(k => k.value === preferences.knowledge_level)?.labelKey || 'knowledge.beginner')}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="bg-popover z-[9999]" position="popper" sideOffset={4}>
+            {KNOWLEDGE_LEVELS.map((k) => (
+              <SelectItem key={k.value} value={k.value}>
+                {t(k.labelKey)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </PreferenceField>
 
       <PreferenceField 
         label={t('settings.visitStyle')}
         description={t('settings.visitStyleDescription')}
       >
-        <SingleSelectChips
-          options={VISIT_STYLES.map(v => t(v.labelKey))}
-          selected={t(VISIT_STYLES.find(v => v.value === preferences.visit_style)?.labelKey || 'visitStyle.efficientHighlights')}
-          onChange={(label) => {
-            const style = VISIT_STYLES.find(v => t(v.labelKey) === label);
-            if (style) onUpdate({ visit_style: style.value });
-          }}
-        />
+        <Select
+          value={preferences.visit_style}
+          onValueChange={(val) => onUpdate({ visit_style: val })}
+        >
+          <SelectTrigger className="w-full min-h-[40px] bg-background text-sm">
+            <SelectValue>
+              {t(VISIT_STYLES.find(v => v.value === preferences.visit_style)?.labelKey || 'visitStyle.efficientHighlights')}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="bg-popover z-[9999]" position="popper" sideOffset={4}>
+            {VISIT_STYLES.map((v) => (
+              <SelectItem key={v.value} value={v.value}>
+                {t(v.labelKey)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </PreferenceField>
+
+      <PreferenceField 
+        label={t('settings.pacePreference')}
+        description={t('settings.paceDescription')}
+      >
+        <Select
+          value={preferences.pace_preference}
+          onValueChange={(val) => onUpdate({ pace_preference: val })}
+        >
+          <SelectTrigger className="w-full min-h-[40px] bg-background text-sm">
+            <SelectValue>
+              {t(PACE_OPTIONS.find(p => p.value === preferences.pace_preference)?.labelKey || 'pace.normal')}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="bg-popover z-[9999]" position="popper" sideOffset={4}>
+            {PACE_OPTIONS.map((p) => (
+              <SelectItem key={p.value} value={p.value}>
+                {t(p.labelKey)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </PreferenceField>
     </>
   );

@@ -58,13 +58,28 @@ function useEligibilityManager(preferences: UserPreferences, onUpdate: (updates:
     [preferences.discounts, setEligibilities]
   );
 
-  return { eligibilities, addEligibility, updateEligibility, removeEligibility };
+  const removeDetail = useCallback(
+    (type: string, detailType: 'schools' | 'libraries' | 'companies', value: string) => {
+      const existing = deserializeEligibilities(preferences.discounts);
+      const updated = existing.map(e => {
+        if (e.type !== type) return e;
+        const arr = e[detailType];
+        if (!arr) return e;
+        const filtered = arr.filter(v => v !== value);
+        return { ...e, [detailType]: filtered };
+      });
+      setEligibilities(updated);
+    },
+    [preferences.discounts, setEligibilities]
+  );
+
+  return { eligibilities, addEligibility, updateEligibility, removeEligibility, removeDetail };
 }
 
 function EligibilitySection({ preferences, onUpdate }: DiscountsCardProps) {
   const { t } = useLanguage();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { eligibilities, addEligibility, updateEligibility, removeEligibility } = useEligibilityManager(preferences, onUpdate);
+  const { eligibilities, addEligibility, updateEligibility, removeEligibility, removeDetail } = useEligibilityManager(preferences, onUpdate);
 
   return (
     <>
@@ -72,14 +87,15 @@ function EligibilitySection({ preferences, onUpdate }: DiscountsCardProps) {
         label={t('settings.yourEligibility')}
         description={t('settings.eligibilityDescription')}
       >
-        {/* Selected eligibilities */}
+        {/* Selected eligibilities as vertical list */}
         {eligibilities.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {eligibilities.map(item => (
               <EligibilityChip
                 key={item.type}
                 item={item}
                 onRemove={() => removeEligibility(item.type)}
+                onRemoveDetail={(detailType, value) => removeDetail(item.type, detailType, value)}
                 onClick={() => setDialogOpen(true)}
               />
             ))}
