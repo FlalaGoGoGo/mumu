@@ -1,4 +1,4 @@
-import { LayoutGrid, MapPin } from 'lucide-react';
+import { LayoutGrid, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -48,7 +48,7 @@ export function ExhibitionViewToggle({ view, onViewChange }: ExhibitionViewToggl
               )}
               aria-label="Map view"
             >
-              <MapPin className="w-4 h-4" />
+              <Map className="w-4 h-4" />
             </button>
           </TooltipTrigger>
           <TooltipContent side="bottom"><p>Map view</p></TooltipContent>
