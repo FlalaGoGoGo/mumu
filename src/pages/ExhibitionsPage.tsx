@@ -4,6 +4,7 @@ import { addDays } from 'date-fns';
 import { useExhibitions } from '@/hooks/useExhibitions';
 import { useMuseums } from '@/hooks/useMuseums';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { usePreferences } from '@/hooks/usePreferences';
 import { useLanguage } from '@/lib/i18n';
 import { ExhibitionCard } from '@/components/exhibition/ExhibitionCard';
 import { ExhibitionDetailModal } from '@/components/exhibition/ExhibitionDetailModal';
@@ -11,6 +12,7 @@ import { ExhibitionFilters, DateSortOrder, DistanceSortOrder } from '@/component
 import { Button } from '@/components/ui/button';
 import { calculateDistance, formatDistance } from '@/lib/distance';
 import type { Exhibition, ExhibitionStatus } from '@/types/exhibition';
+import type { ExhibitionLocation } from '@/components/exhibition/ExhibitionLocationFilter';
 
 // Sort priority: Ongoing -> Upcoming -> TBD -> Past
 const STATUS_PRIORITY: Record<ExhibitionStatus, number> = {
@@ -20,50 +22,19 @@ const STATUS_PRIORITY: Record<ExhibitionStatus, number> = {
   Past: 3,
 };
 
-function sortExhibitions(exhibitions: Exhibition[]): Exhibition[] {
-  return [...exhibitions].sort((a, b) => {
-    // Primary sort by status
-    const statusDiff = STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status];
-    if (statusDiff !== 0) return statusDiff;
-
-    // Secondary sort within same status
-    switch (a.status) {
-      case 'Upcoming':
-        // Sort by start_date ascending
-        if (a.start_date && b.start_date) {
-          return a.start_date.getTime() - b.start_date.getTime();
-        }
-        return 0;
-
-      case 'Past':
-        // Sort by end_date descending
-        if (a.end_date && b.end_date) {
-          return b.end_date.getTime() - a.end_date.getTime();
-        }
-        return 0;
-
-      case 'Ongoing':
-        // Sort by end_date ascending (missing end_date = far future)
-        const aEnd = a.end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
-        const bEnd = b.end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
-        return aEnd - bEnd;
-
-      default:
-        return 0;
-    }
-  });
-}
-
 const MAX_DISTANCE_VALUE = 500;
 
 export default function ExhibitionsPage() {
   const { data: exhibitions, isLoading: exhibitionsLoading, error: exhibitionsError } = useExhibitions();
   const { data: museums, isLoading: museumsLoading } = useMuseums();
   const { latitude, longitude, loading: geoLoading } = useGeolocation();
+  const { preferences } = usePreferences();
   const { t } = useLanguage();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedState, setSelectedState] = useState('all');
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+  const [selectedStateProvince, setSelectedStateProvince] = useState<string | null>(null);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
@@ -74,7 +45,13 @@ export default function ExhibitionsPage() {
   const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  const hasLocation = latitude !== null && longitude !== null;
+  const hasGeoLocation = latitude !== null && longitude !== null;
+  const hasHomeBase = !!(preferences.location_country && preferences.location_city);
+
+  // Use GPS location first, fall back to Home Base
+  const effectiveLat = latitude ?? (hasHomeBase ? null : null); // Home Base doesn't have coords, so we only use GPS
+  const effectiveLng = longitude ?? null;
+  const hasLocation = effectiveLat !== null && effectiveLng !== null;
 
   // Create museum lookup map
   const museumMap = useMemo(() => {
@@ -82,30 +59,43 @@ export default function ExhibitionsPage() {
     return new Map(museums.map(m => [m.museum_id, m]));
   }, [museums]);
 
+  // Build available locations from exhibitions + museums (for the cascading filter)
+  const availableLocations = useMemo((): ExhibitionLocation[] => {
+    if (!exhibitions) return [];
+    const locationSet = new Map<string, ExhibitionLocation>();
+
+    exhibitions.forEach(exhibition => {
+      const museum = museumMap.get(exhibition.museum_id);
+      const country = museum?.country || 'Unknown';
+      const state = museum?.state || exhibition.state || null;
+      const city = exhibition.city || museum?.city || 'Unknown';
+      const key = `${country}|${state}|${city}`;
+
+      if (!locationSet.has(key)) {
+        locationSet.set(key, { country, state, city });
+      }
+    });
+
+    return Array.from(locationSet.values());
+  }, [exhibitions, museumMap]);
+
   // Calculate distances for each exhibition
   const exhibitionsWithDistance = useMemo(() => {
     if (!exhibitions) return [];
-    
+
     return exhibitions.map(exhibition => {
       const museum = museumMap.get(exhibition.museum_id);
       let distance: number | null = null;
       let distanceFormatted: string | null = null;
 
       if (hasLocation && museum) {
-        distance = calculateDistance(latitude!, longitude!, museum.lat, museum.lng);
+        distance = calculateDistance(effectiveLat!, effectiveLng!, museum.lat, museum.lng);
         distanceFormatted = formatDistance(distance);
       }
 
-      return { exhibition, distance, distanceFormatted };
+      return { exhibition, distance, distanceFormatted, museum };
     });
-  }, [exhibitions, museumMap, hasLocation, latitude, longitude]);
-
-  // Extract unique states
-  const states = useMemo(() => {
-    if (!exhibitions) return [];
-    const uniqueStates = [...new Set(exhibitions.map((e) => e.state).filter(Boolean))] as string[];
-    return uniqueStates.sort();
-  }, [exhibitions]);
+  }, [exhibitions, museumMap, hasLocation, effectiveLat, effectiveLng]);
 
   // Filter and sort exhibitions
   const filteredExhibitions = useMemo(() => {
@@ -123,9 +113,24 @@ export default function ExhibitionsPage() {
       );
     }
 
-    // State filter
-    if (selectedState !== 'all') {
-      filtered = filtered.filter(({ exhibition }) => exhibition.state === selectedState);
+    // Location filter (Region → State/Province → City)
+    if (selectedRegion) {
+      filtered = filtered.filter(({ museum, exhibition }) => {
+        const country = museum?.country || 'Unknown';
+        if (country !== selectedRegion) return false;
+
+        if (selectedStateProvince) {
+          const state = museum?.state || exhibition.state || null;
+          if (state !== selectedStateProvince) return false;
+
+          if (selectedCity) {
+            const city = exhibition.city || museum?.city || 'Unknown';
+            if (city !== selectedCity) return false;
+          }
+        }
+
+        return true;
+      });
     }
 
     // Status filter
@@ -133,33 +138,28 @@ export default function ExhibitionsPage() {
       filtered = filtered.filter(({ exhibition }) => exhibition.status === selectedStatus);
     }
 
-    // Date range filter - check if exhibition overlaps with selected range
+    // Date range filter
     if (dateFrom || dateTo) {
       filtered = filtered.filter(({ exhibition }) => {
         const { start_date, end_date } = exhibition;
-
-        // If exhibition has no dates, exclude from date filtering
         if (!start_date && !end_date) return false;
 
-        // Check overlap with selected range
         const rangeStart = dateFrom?.getTime() ?? 0;
         const rangeEnd = dateTo?.getTime() ?? Number.MAX_SAFE_INTEGER;
         const exhibitStart = start_date?.getTime() ?? 0;
         const exhibitEnd = end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
 
-        // Exhibition overlaps if it starts before range ends AND ends after range starts
         return exhibitStart <= rangeEnd && exhibitEnd >= rangeStart;
       });
     }
 
-    // Closing Soon filter - exhibitions ending within 14 days
+    // Closing Soon filter
     if (closingSoon) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const closingSoonCutoff = addDays(today, 14);
-      
+
       filtered = filtered.filter(({ exhibition }) => {
-        // Must have an end_date to be considered "closing soon"
         if (!exhibition.end_date) return false;
         return exhibition.end_date >= today && exhibition.end_date <= closingSoonCutoff;
       });
@@ -172,8 +172,7 @@ export default function ExhibitionsPage() {
       });
     }
 
-    // Custom sorting based on user selection
-    // Priority: Distance (primary) > Date (secondary) > Default status sorting
+    // Sorting
     const sortedFiltered = [...filtered].sort((a, b) => {
       // Distance sort (primary)
       if (distanceSortOrder !== 'none' && hasLocation) {
@@ -187,10 +186,8 @@ export default function ExhibitionsPage() {
       if (dateSortOrder !== 'none') {
         const dateA = a.exhibition.start_date?.getTime();
         const dateB = b.exhibition.start_date?.getTime();
-        
-        // Items with no start_date go to bottom
+
         if (dateA === undefined && dateB === undefined) {
-          // Both TBD - check end_date too
           const hasDatesA = a.exhibition.start_date || a.exhibition.end_date;
           const hasDatesB = b.exhibition.start_date || b.exhibition.end_date;
           if (!hasDatesA && hasDatesB) return 1;
@@ -199,16 +196,15 @@ export default function ExhibitionsPage() {
         }
         if (dateA === undefined) return 1;
         if (dateB === undefined) return -1;
-        
+
         const dateDiff = dateSortOrder === 'asc' ? dateA - dateB : dateB - dateA;
         if (dateDiff !== 0) return dateDiff;
       }
 
-      // Default: fall back to status-based sorting
+      // Default: status-based sorting
       const statusDiff = STATUS_PRIORITY[a.exhibition.status] - STATUS_PRIORITY[b.exhibition.status];
       if (statusDiff !== 0) return statusDiff;
 
-      // Within same status, sort by end date for ongoing
       if (a.exhibition.status === 'Ongoing') {
         const aEnd = a.exhibition.end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
         const bEnd = b.exhibition.end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
@@ -217,32 +213,40 @@ export default function ExhibitionsPage() {
 
       return 0;
     });
-    
+
     return sortedFiltered;
-  }, [exhibitionsWithDistance, searchQuery, selectedState, selectedStatus, dateFrom, dateTo, maxDistance, hasLocation, closingSoon, dateSortOrder, distanceSortOrder]);
+  }, [exhibitionsWithDistance, searchQuery, selectedRegion, selectedStateProvince, selectedCity, selectedStatus, dateFrom, dateTo, maxDistance, hasLocation, closingSoon, dateSortOrder, distanceSortOrder]);
 
   // Count active filters
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (selectedState !== 'all') count++;
+    if (selectedRegion) count++;
     if (selectedStatus !== 'all') count++;
     if (dateFrom) count++;
     if (dateTo) count++;
     if (hasLocation && maxDistance < MAX_DISTANCE_VALUE) count++;
     if (closingSoon) count++;
     return count;
-  }, [selectedState, selectedStatus, dateFrom, dateTo, maxDistance, hasLocation, closingSoon]);
+  }, [selectedRegion, selectedStatus, dateFrom, dateTo, maxDistance, hasLocation, closingSoon]);
 
   const hasActiveFilters = searchQuery !== '' || activeFilterCount > 0;
 
   const handleClearFilters = () => {
     setSearchQuery('');
-    setSelectedState('all');
+    setSelectedRegion(null);
+    setSelectedStateProvince(null);
+    setSelectedCity(null);
     setSelectedStatus('all');
     setDateFrom(undefined);
     setDateTo(undefined);
     setMaxDistance(MAX_DISTANCE_VALUE);
     setClosingSoon(false);
+  };
+
+  const handleLocationChange = (region: string | null, stateProvince: string | null, city: string | null) => {
+    setSelectedRegion(region);
+    setSelectedStateProvince(stateProvince);
+    setSelectedCity(city);
   };
 
   const isLoading = exhibitionsLoading || museumsLoading;
@@ -267,7 +271,7 @@ export default function ExhibitionsPage() {
 
   return (
     <div className="container mx-auto px-4 py-6">
-      {/* Header - scrolls away */}
+      {/* Header */}
       <div className="mb-6">
         <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">
           {t('exhibitions.title')}
@@ -277,23 +281,24 @@ export default function ExhibitionsPage() {
         </p>
       </div>
 
-      {/* Filters - identical sticky styling to Art page */}
+      {/* Filters */}
       <div className="sticky top-0 z-20 -mx-4 mb-4 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
         <ExhibitionFilters
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          states={states}
-          selectedState={selectedState}
-          onStateChange={setSelectedState}
+          availableLocations={availableLocations}
+          selectedRegion={selectedRegion}
+          selectedStateProvince={selectedStateProvince}
+          selectedCity={selectedCity}
+          onLocationChange={handleLocationChange}
           selectedStatus={selectedStatus}
           onStatusChange={setSelectedStatus}
           dateFrom={dateFrom}
           dateTo={dateTo}
           onDateFromChange={setDateFrom}
           onDateToChange={setDateTo}
-          maxDistance={maxDistance}
-          onMaxDistanceChange={setMaxDistance}
           hasLocation={hasLocation}
+          hasHomeBase={hasHomeBase}
           onClearFilters={handleClearFilters}
           hasActiveFilters={hasActiveFilters}
           activeFilterCount={activeFilterCount}
@@ -323,9 +328,9 @@ export default function ExhibitionsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {filteredExhibitions.map(({ exhibition, distanceFormatted }) => (
-            <ExhibitionCard 
-              key={exhibition.exhibition_id} 
-              exhibition={exhibition} 
+            <ExhibitionCard
+              key={exhibition.exhibition_id}
+              exhibition={exhibition}
               distance={distanceFormatted}
               onClick={() => {
                 setSelectedExhibition(exhibition);
