@@ -24,6 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/i18n';
 import { ExhibitionLocationFilter, type ExhibitionLocation } from './ExhibitionLocationFilter';
+import { ExhibitionStatusFilter } from './ExhibitionStatusFilter';
 import type { ExhibitionStatus } from '@/types/exhibition';
 
 type DatePreset = 'this-week' | 'this-month' | 'next-30-days' | null;
@@ -53,8 +54,6 @@ function matchesPreset(from: Date | undefined, to: Date | undefined, preset: Dat
 
 export type DateSortOrder = 'none' | 'asc' | 'desc';
 export type DistanceSortOrder = 'none' | 'asc' | 'desc';
-
-const USER_VISIBLE_STATUSES: ExhibitionStatus[] = ['Ongoing', 'Upcoming', 'Past'];
 
 interface ExhibitionFiltersProps {
   searchQuery: string;
@@ -88,15 +87,6 @@ interface ExhibitionFiltersProps {
   onDateSortOrderChange: (value: DateSortOrder) => void;
   distanceSortOrder: DistanceSortOrder;
   onDistanceSortOrderChange: (value: DistanceSortOrder) => void;
-}
-
-function getStatusLabelKey(status: ExhibitionStatus): string {
-  switch (status) {
-    case 'Ongoing': return 'exhibitions.ongoing';
-    case 'Upcoming': return 'exhibitions.upcoming';
-    case 'Past': return 'exhibitions.past';
-    default: return status;
-  }
 }
 
 export function ExhibitionFilters({
@@ -192,27 +182,7 @@ export function ExhibitionFilters({
     return 'Sort by date';
   };
 
-  const handleStatusToggle = (status: ExhibitionStatus) => {
-    const isSelected = selectedStatuses.includes(status);
-    if (isSelected) {
-      // Don't allow deselecting all — re-select defaults
-      const newStatuses = selectedStatuses.filter(s => s !== status);
-      if (newStatuses.length === 0) {
-        onStatusesChange(['Ongoing', 'Upcoming']);
-      } else {
-        onStatusesChange(newStatuses);
-      }
-    } else {
-      onStatusesChange([...selectedStatuses, status]);
-    }
-  };
 
-  // Check if statuses differ from default (Ongoing + Upcoming)
-  const isStatusNonDefault = !(
-    selectedStatuses.length === 2 &&
-    selectedStatuses.includes('Ongoing') &&
-    selectedStatuses.includes('Upcoming')
-  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -311,32 +281,18 @@ export function ExhibitionFilters({
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleContent>
           <div className="p-4 bg-muted/50 rounded-lg border space-y-4">
-            {/* Status multi-select chips */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">{t('exhibitions.status')}</label>
-              <div className="flex flex-wrap gap-2">
-                {USER_VISIBLE_STATUSES.map((status) => {
-                  const isSelected = selectedStatuses.includes(status);
-                  return (
-                    <button
-                      key={status}
-                      onClick={() => handleStatusToggle(status)}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all border",
-                        isSelected
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground"
-                      )}
-                    >
-                      {t(getStatusLabelKey(status) as any)}
-                    </button>
-                  );
-                })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Status Filter (multi-select dropdown) */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">{t('exhibitions.status')}</label>
+                <ExhibitionStatusFilter
+                  selectedStatuses={selectedStatuses}
+                  onStatusesChange={onStatusesChange}
+                  fullWidth
+                />
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Location Filter (inside panel) */}
+              {/* Location Filter */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
                   {t('exhibitions.location' as any) || 'Location'}
