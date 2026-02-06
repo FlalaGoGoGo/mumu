@@ -94,7 +94,7 @@ export function AvatarEditDialog({ open, onOpenChange, currentUrl, onSave }: Ava
             ) : currentUrl ? (
               <img src={currentUrl} alt="Current avatar" className="w-full h-full object-cover" />
             ) : (
-              <img src={mumuLogo} alt="MuMu" className="w-full h-full object-cover object-center" />
+              <img src={mumuLogo} alt="MuMu" className="w-[115%] h-[115%] object-cover object-center" />
             )}
           </div>
           <input

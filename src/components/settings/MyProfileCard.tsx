@@ -132,11 +132,11 @@ function AvatarWithOverlay({
         {avatarUrl ? (
           <AvatarImage src={avatarUrl} alt={nickname || 'Avatar'} />
         ) : null}
-        <AvatarFallback className="bg-muted">
+        <AvatarFallback className="bg-muted overflow-hidden p-0">
           <img
             src={mumuLogo}
             alt="MuMu"
-            className="w-full h-full object-cover object-center"
+            className="w-[115%] h-[115%] object-cover object-center"
           />
         </AvatarFallback>
       </Avatar>

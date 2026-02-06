@@ -10,6 +10,7 @@ export const ELIGIBILITY_CATALOG: EligibilityCategory[] = [
         label: 'SNAP / EBT (Museums for All)',
         icon: '🏛️',
         description: 'Free or reduced admission at 900+ museums nationwide',
+        infoUrl: 'https://museums4all.org/',
       },
     ],
   },
@@ -19,9 +20,10 @@ export const ELIGIBILITY_CATALOG: EligibilityCategory[] = [
     items: [
       {
         type: 'bofa_museums_on_us',
-        label: 'Bank of America — Museums on Us',
+        label: 'Bank of America Card Holder | Museum on US',
         icon: '💳',
         description: 'Free admission on the first full weekend of each month',
+        infoUrl: 'https://about.bankofamerica.com/en/making-an-impact/museums-on-us-partners',
       },
     ],
   },
@@ -53,6 +55,7 @@ export const ELIGIBILITY_CATALOG: EligibilityCategory[] = [
         label: 'Blue Star Museums',
         icon: '⭐',
         description: 'Free admission for active duty military families',
+        infoUrl: 'https://www.arts.gov/bluestarmuseums',
       },
     ],
   },
@@ -84,6 +87,7 @@ export const ELIGIBILITY_CATALOG: EligibilityCategory[] = [
         label: 'ICOM Member',
         icon: '🌐',
         description: 'International Council of Museums membership',
+        infoUrl: 'https://icom.museum/en/get-involved/become-a-member/',
       },
       {
         type: 'reciprocal_museum',
@@ -142,16 +146,11 @@ export const ELIGIBILITY_CATALOG: EligibilityCategory[] = [
         description: 'Discount for first responders',
       },
       {
-        type: 'senior',
-        label: 'Senior',
-        icon: '👤',
-        description: 'Senior discount (age varies by museum)',
-      },
-      {
         type: 'local_resident',
         label: 'Local Resident',
         icon: '🏠',
         description: 'Discounts for local residents',
+        hasDetails: 'locations',
       },
     ],
   },
