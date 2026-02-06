@@ -15,6 +15,12 @@ export interface UserPreferences {
   prefer_elevator: boolean;
   kid_friendly_content: boolean;
   visit_reminders: boolean;
+  nickname: string;
+  gender: string;
+  avatar_url: string;
+  location_country: string;
+  location_region: string;
+  location_city: string;
 }
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -32,6 +38,12 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   prefer_elevator: false,
   kid_friendly_content: false,
   visit_reminders: false,
+  nickname: '',
+  gender: '',
+  avatar_url: '',
+  location_country: '',
+  location_region: '',
+  location_city: '',
 };
 
 const LOCAL_STORAGE_KEY = 'mumu_user_preferences';
@@ -80,6 +92,12 @@ export function usePreferences() {
             prefer_elevator: data.prefer_elevator,
             kid_friendly_content: data.kid_friendly_content,
             visit_reminders: data.visit_reminders,
+            nickname: (data as any).nickname || '',
+            gender: (data as any).gender || '',
+            avatar_url: (data as any).avatar_url || '',
+            location_country: (data as any).location_country || '',
+            location_region: (data as any).location_region || '',
+            location_city: (data as any).location_city || '',
           });
           lastSavedRef.current = JSON.stringify(data);
         } else {

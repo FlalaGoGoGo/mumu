@@ -138,13 +138,19 @@ export type Database = {
       }
       user_preferences: {
         Row: {
+          avatar_url: string | null
           created_at: string
           discounts: string[]
+          gender: string | null
           id: string
           interests: string[]
           kid_friendly_content: boolean
           knowledge_level: string
           language: string
+          location_city: string | null
+          location_country: string | null
+          location_region: string | null
+          nickname: string | null
           pace_preference: string
           prefer_elevator: boolean
           prefer_less_walking: boolean
@@ -156,13 +162,19 @@ export type Database = {
           visit_style: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           discounts?: string[]
+          gender?: string | null
           id?: string
           interests?: string[]
           kid_friendly_content?: boolean
           knowledge_level?: string
           language?: string
+          location_city?: string | null
+          location_country?: string | null
+          location_region?: string | null
+          nickname?: string | null
           pace_preference?: string
           prefer_elevator?: boolean
           prefer_less_walking?: boolean
@@ -174,13 +186,19 @@ export type Database = {
           visit_style?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           discounts?: string[]
+          gender?: string | null
           id?: string
           interests?: string[]
           kid_friendly_content?: boolean
           knowledge_level?: string
           language?: string
+          location_city?: string | null
+          location_country?: string | null
+          location_region?: string | null
+          nickname?: string | null
           pace_preference?: string
           prefer_elevator?: boolean
           prefer_less_walking?: boolean

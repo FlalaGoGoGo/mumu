@@ -6,7 +6,9 @@ import { useEnrichedArtworks } from '@/hooks/useArtworks';
 import { useCollectedArtworks } from '@/hooks/useCollectedArtworks';
 import { useSavedMuseums } from '@/hooks/useSavedMuseums';
 import { useAchievements } from '@/hooks/useAchievements';
+import { usePreferences } from '@/hooks/usePreferences';
 import { useLanguage } from '@/lib/i18n';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -24,7 +26,7 @@ import type { CategoryProgress } from '@/lib/achievements';
 
 export default function PassportPage() {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, tp } = useLanguage();
   const { data: museums = [] } = useMuseums();
   const { data: visits = [], isLoading: visitsLoading } = useVisits();
   const { data: enrichedArtworks = [], isLoading: artworksLoading } = useEnrichedArtworks();
@@ -32,6 +34,10 @@ export default function PassportPage() {
   const removeVisit = useRemoveVisit();
   const { savedMuseums, savedCount, removeMuseum } = useSavedMuseums();
   const { categories, nextToUnlock, stats } = useAchievements();
+  const { preferences } = usePreferences();
+  
+  const nickname = preferences.nickname || '';
+  const avatarUrl = preferences.avatar_url || '';
 
   const [activeTab, setActiveTab] = useState('visited');
   const [selectedCategory, setSelectedCategory] = useState<CategoryProgress | null>(null);
@@ -85,14 +91,26 @@ export default function PassportPage() {
   return (
     <ScrollArea className="h-[calc(100vh-80px)] md:h-[calc(100vh-73px)]">
       <div className="container max-w-4xl py-6 md:py-8 px-4">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
-            {t('passport.title')}
-          </h1>
-          <p className="text-muted-foreground">
-            {t('passport.subtitle')}
-          </p>
+        {/* Header with personalized greeting */}
+        <div className="mb-6 flex items-center gap-3">
+          {(avatarUrl || nickname) && (
+            <Avatar className="w-10 h-10 border-2 border-border flex-shrink-0">
+              {avatarUrl ? <AvatarImage src={avatarUrl} alt={nickname || 'Avatar'} /> : null}
+              <AvatarFallback className="bg-primary/10 text-primary text-base font-display font-semibold">
+                {nickname ? nickname.charAt(0).toUpperCase() : '?'}
+              </AvatarFallback>
+            </Avatar>
+          )}
+          <div>
+            <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-1">
+              {nickname 
+                ? tp('passport.greeting', { nickname }) 
+                : t('passport.greetingDefault')}
+            </h1>
+            <p className="text-muted-foreground">
+              {t('passport.greetingSubtitle')}
+            </p>
+          </div>
         </div>
 
         {/* Dashboard KPI Cards */}
