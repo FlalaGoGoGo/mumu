@@ -18,6 +18,8 @@ interface ArtMuseumDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onArtworkClick: (artwork: EnrichedArtwork) => void;
+  /** Filtered artworks to show (subset of group.artworks that pass current filters) */
+  filteredArtworkIds?: Set<string>;
 }
 
 export function ArtMuseumDrawer({
@@ -25,15 +27,19 @@ export function ArtMuseumDrawer({
   isOpen,
   onClose,
   onArtworkClick,
+  filteredArtworkIds,
 }: ArtMuseumDrawerProps) {
   const isMobile = useIsMobile();
   const { t } = useLanguage();
 
   if (!isOpen || !group) return null;
 
-  const { museumName, artworks } = group;
+  const { museumName, artworks: allArtworks } = group;
+  const artworks = filteredArtworkIds
+    ? allArtworks.filter(a => filteredArtworkIds.has(a.artwork_id))
+    : allArtworks;
 
-  // Mobile: bottom sheet (unchanged behavior, but uses gallery tiles)
+  // Mobile: bottom sheet
   if (isMobile) {
     return (
       <>
@@ -60,23 +66,29 @@ export function ArtMuseumDrawer({
             </button>
           </div>
           <div className="overflow-y-auto px-3 py-3" style={{ maxHeight: 'calc(70vh - 80px)' }}>
-            <div className="grid grid-cols-2 gap-2">
-              {artworks.map(artwork => (
-                <ArtGalleryTile
-                  key={artwork.artwork_id}
-                  artwork={artwork}
-                  onClick={() => onArtworkClick(artwork)}
-                />
-              ))}
-            </div>
+            {artworks.length > 0 ? (
+              <div className="grid grid-cols-3 gap-1.5">
+                {artworks.map(artwork => (
+                  <ArtGalleryTile
+                    key={artwork.artwork_id}
+                    artwork={artwork}
+                    onClick={() => onArtworkClick(artwork)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                {t('art.noResults')}
+              </div>
+            )}
           </div>
         </div>
       </>
     );
   }
 
-  // Desktop: in-map panel (absolutely positioned within map container)
-  return null; // Desktop rendering handled by ArtMuseumPanel inside ArtMapView
+  // Desktop: in-map panel rendered by ArtMuseumPanel inside ArtMapView
+  return null;
 }
 
 /**
@@ -87,15 +99,20 @@ interface ArtMuseumPanelProps {
   group: ArtMuseumGroup;
   onClose: () => void;
   onArtworkClick: (artwork: EnrichedArtwork) => void;
+  filteredArtworkIds?: Set<string>;
 }
 
 export function ArtMuseumPanel({
   group,
   onClose,
   onArtworkClick,
+  filteredArtworkIds,
 }: ArtMuseumPanelProps) {
   const { t } = useLanguage();
-  const { museumName, artworks } = group;
+  const { museumName, artworks: allArtworks } = group;
+  const artworks = filteredArtworkIds
+    ? allArtworks.filter(a => filteredArtworkIds.has(a.artwork_id))
+    : allArtworks;
 
   return (
     <div className="absolute top-0 right-0 bottom-0 w-[320px] z-[1100] bg-background/95 backdrop-blur-sm border-l border-border shadow-lg flex flex-col fade-in">
@@ -117,15 +134,21 @@ export function ArtMuseumPanel({
 
       {/* Mini Gallery Grid */}
       <ScrollArea className="flex-1">
-        <div className="p-2.5 grid grid-cols-2 gap-2">
-          {artworks.map(artwork => (
-            <ArtGalleryTile
-              key={artwork.artwork_id}
-              artwork={artwork}
-              onClick={() => onArtworkClick(artwork)}
-            />
-          ))}
-        </div>
+        {artworks.length > 0 ? (
+          <div className="p-2 grid grid-cols-3 gap-1.5">
+            {artworks.map(artwork => (
+              <ArtGalleryTile
+                key={artwork.artwork_id}
+                artwork={artwork}
+                onClick={() => onArtworkClick(artwork)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+            {t('art.noResults')}
+          </div>
+        )}
       </ScrollArea>
     </div>
   );

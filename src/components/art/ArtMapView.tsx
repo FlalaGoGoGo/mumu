@@ -8,6 +8,7 @@ import { Plus, Minus, Globe, ImageOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/lib/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useGeolocation } from '@/hooks/useGeolocation';
 import type { EnrichedArtwork } from '@/types/art';
 import type { ArtMuseumGroup } from './ArtMuseumDrawer';
 import { ArtMuseumPanel } from './ArtMuseumDrawer';
@@ -20,6 +21,7 @@ interface ArtMapViewProps {
   isDrawerOpen: boolean;
   onCloseDrawer: () => void;
   onArtworkClick: (artwork: EnrichedArtwork) => void;
+  filteredArtworkIds?: Set<string>;
   className?: string;
 }
 
@@ -27,7 +29,6 @@ interface ArtMapViewProps {
 const createClusterIcon = (cluster: L.MarkerCluster) => {
   const count = cluster.getChildCount();
   let dimensions = 36;
-
   if (count >= 50) dimensions = 48;
   else if (count >= 10) dimensions = 42;
 
@@ -96,11 +97,40 @@ const createMuseumMarkerIcon = (artworkCount: number) => {
   });
 };
 
-export function ArtMapView({ artworks, onSelectMuseum, selectedGroup, isDrawerOpen, onCloseDrawer, onArtworkClick, className = '' }: ArtMapViewProps) {
+// Create user location icon (gold dot with halo)
+const createUserLocationIcon = () => {
+  return L.divIcon({
+    className: 'user-location-marker',
+    html: `
+      <div class="user-location-wrapper">
+        <div class="user-location-halo"></div>
+        <div class="user-location-ring"></div>
+        <div class="user-location-dot"></div>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  });
+};
+
+export function ArtMapView({
+  artworks,
+  onSelectMuseum,
+  selectedGroup,
+  isDrawerOpen,
+  onCloseDrawer,
+  onArtworkClick,
+  filteredArtworkIds,
+  className = '',
+}: ArtMapViewProps) {
   const mapRef = useRef<L.Map | null>(null);
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
+  const userMarkerRef = useRef<L.Marker | null>(null);
+  const userAccuracyRef = useRef<L.Circle | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
+  const isMobile = useIsMobile();
+  const { latitude, longitude, accuracy, error: geoError } = useGeolocation();
 
   // Group artworks by museum
   const museumGroups = useMemo((): ArtMuseumGroup[] => {
@@ -230,13 +260,46 @@ export function ArtMapView({ artworks, onSelectMuseum, selectedGroup, isDrawerOp
     return () => window.removeEventListener('art-map-view', handler);
   }, [museumGroups, onSelectMuseum]);
 
+  // User location marker
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    // Clean up previous
+    if (userMarkerRef.current) {
+      mapRef.current.removeLayer(userMarkerRef.current);
+      userMarkerRef.current = null;
+    }
+    if (userAccuracyRef.current) {
+      mapRef.current.removeLayer(userAccuracyRef.current);
+      userAccuracyRef.current = null;
+    }
+
+    if (latitude && longitude && !geoError) {
+      const icon = createUserLocationIcon();
+      userMarkerRef.current = L.marker([latitude, longitude], {
+        icon,
+        zIndexOffset: -100,
+        interactive: false,
+      }).addTo(mapRef.current);
+
+      if (accuracy && accuracy < 50000) {
+        userAccuracyRef.current = L.circle([latitude, longitude], {
+          radius: accuracy,
+          color: 'hsl(43, 60%, 45%)',
+          fillColor: 'hsl(43, 60%, 45%)',
+          fillOpacity: 0.08,
+          weight: 0,
+          interactive: false,
+        }).addTo(mapRef.current);
+      }
+    }
+  }, [latitude, longitude, accuracy, geoError]);
+
   const handleZoomIn = () => mapRef.current?.zoomIn();
   const handleZoomOut = () => mapRef.current?.zoomOut();
   const handleZoomToGlobal = () => {
     mapRef.current?.setView([25, 0], 2, { animate: true });
   };
-
-  const isMobile = useIsMobile();
 
   return (
     <div className={`relative w-full ${className}`} style={{ minHeight: '500px', height: 'calc(100vh - 260px)' }}>
@@ -261,6 +324,7 @@ export function ArtMapView({ artworks, onSelectMuseum, selectedGroup, isDrawerOp
           group={selectedGroup}
           onClose={onCloseDrawer}
           onArtworkClick={onArtworkClick}
+          filteredArtworkIds={filteredArtworkIds}
         />
       )}
 

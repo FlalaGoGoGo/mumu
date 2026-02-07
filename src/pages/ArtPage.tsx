@@ -191,6 +191,11 @@ export default function ArtPage() {
     });
   }, [artworksWithoutMuseumFilter, filters.museumId, sortOrder]);
 
+  // Set of filtered artwork IDs — used to scope the mini gallery in map view
+  const filteredArtworkIdSet = useMemo(() => {
+    return new Set(filteredArtworks.map(a => a.artwork_id));
+  }, [filteredArtworks]);
+
   // Get selected artist
   const selectedArtist: Artist | null = useMemo(() => {
     if (!filters.artistId) return null;
@@ -362,6 +367,7 @@ export default function ArtPage() {
             isDrawerOpen={isDrawerOpen}
             onCloseDrawer={() => { setIsDrawerOpen(false); setSelectedMuseumGroup(null); }}
             onArtworkClick={handleDrawerArtworkClick}
+            filteredArtworkIds={filteredArtworkIdSet}
           />
         </div>
       )}
@@ -373,6 +379,7 @@ export default function ArtPage() {
           isOpen={isDrawerOpen}
           onClose={() => { setIsDrawerOpen(false); setSelectedMuseumGroup(null); }}
           onArtworkClick={handleDrawerArtworkClick}
+          filteredArtworkIds={filteredArtworkIdSet}
         />
       )}
 

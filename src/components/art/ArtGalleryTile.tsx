@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { EnrichedArtwork, getArtworkImageUrl } from '@/types/art';
 import { useImageLoad } from '@/contexts/ImageLoadContext';
-import { useLanguage } from '@/lib/i18n';
 
 interface ArtGalleryTileProps {
   artwork: EnrichedArtwork;
@@ -12,7 +11,6 @@ export function ArtGalleryTile({ artwork, onClick }: ArtGalleryTileProps) {
   const [imageError, setImageError] = useState(false);
   const [useFallback, setUseFallback] = useState(false);
   const { reportImageLoaded, reportImageFailed } = useImageLoad();
-  const { t } = useLanguage();
 
   const imageUrl = useMemo(() => {
     if (useFallback && artwork.image_url && artwork.image_url.trim()) {
@@ -36,55 +34,34 @@ export function ArtGalleryTile({ artwork, onClick }: ArtGalleryTileProps) {
     }
   };
 
-  const showOnView = artwork.on_view;
-  const showMustSee = artwork.highlight;
-
   return (
     <button
-      className="group relative flex flex-col text-left w-full rounded-sm overflow-hidden bg-card border border-border shadow-[0_1px_3px_hsl(var(--foreground)/0.04)] transition-shadow duration-200 hover:shadow-[0_4px_12px_hsl(var(--foreground)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 cursor-pointer"
+      className="group relative w-full aspect-square rounded-sm overflow-hidden bg-muted border border-border shadow-[0_1px_3px_hsl(var(--foreground)/0.04)] transition-shadow duration-200 hover:shadow-[0_4px_12px_hsl(var(--foreground)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 cursor-pointer"
       onClick={onClick}
       aria-label={artwork.title}
     >
-      {/* Square image */}
-      <div className="relative w-full aspect-square bg-muted">
-        {!imageError && imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={artwork.title}
-            className="absolute inset-0 w-full h-full object-cover"
-            loading="lazy"
-            onLoad={() => reportImageLoaded(artwork.artwork_id)}
-            onError={handleImageError}
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-[10px] text-muted-foreground/50">No image</span>
-          </div>
-        )}
+      {/* Square image — no badges, no text below */}
+      {!imageError && imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={artwork.title}
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+          onLoad={() => reportImageLoaded(artwork.artwork_id)}
+          onError={handleImageError}
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-[10px] text-muted-foreground/50">No image</span>
+        </div>
+      )}
 
-        {/* Overlay badges */}
-        {(showOnView || showMustSee) && (
-          <div className="absolute top-1.5 left-1.5 z-[2] flex flex-col gap-1">
-            {showMustSee && (
-              <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none bg-accent/85 text-accent-foreground backdrop-blur-[6px] border border-white/25 shadow-sm">
-                ★ {t('art.mustSee')}
-              </span>
-            )}
-            {showOnView && (
-              <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none bg-primary/80 text-primary-foreground backdrop-blur-[6px] border border-white/25 shadow-sm">
-                {t('art.onView')}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Text info */}
-      <div className="px-1.5 py-1.5 flex flex-col gap-0">
-        <h3 className="text-xs font-semibold text-foreground leading-tight truncate">
+      {/* Hover overlay — dark with title + artist */}
+      <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/60 group-focus-visible:bg-foreground/60 transition-colors duration-200 flex flex-col justify-end p-1.5 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
+        <h3 className="text-[11px] font-semibold text-white leading-tight line-clamp-2">
           {artwork.title}
         </h3>
-        <p className="text-[10px] text-muted-foreground truncate leading-tight">
+        <p className="text-[10px] text-white/80 leading-tight truncate mt-0.5">
           {artwork.artist_name}{artwork.year ? ` · ${artwork.year}` : ''}
         </p>
       </div>
