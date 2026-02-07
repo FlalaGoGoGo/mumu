@@ -22,6 +22,12 @@ export interface MuseumMembershipEntry {
   museum_id: string;
   museum_name: string;
   expires_on: string; // ISO date string
+  lifetime?: boolean;
+}
+
+export interface ItemExpiration {
+  expires_on?: string; // ISO date string
+  lifetime?: boolean;
 }
 
 export interface EligibilityItem {
@@ -34,6 +40,11 @@ export interface EligibilityItem {
   locations?: string[]; // For local_resident: "City, State, Region" strings
   date_of_birth?: string; // ISO date string for age-based eligibility
   museum_memberships?: MuseumMembershipEntry[]; // For museum_membership
+  // Expiration tracking (for single-value categories)
+  expires_on?: string; // ISO date string
+  lifetime?: boolean;
+  // Per-item expiration (for multi-item categories like schools)
+  item_expirations?: Record<string, ItemExpiration>;
 }
 
 export interface EligibilityCategory {
@@ -49,6 +60,7 @@ export interface EligibilityCatalogItem {
   description: string;
   hasDetails?: 'schools' | 'libraries' | 'companies' | 'date_of_birth' | 'locations' | 'cities' | 'museum_memberships';
   infoUrl?: string;
+  expirationMode?: 'single' | 'per-item';
 }
 
 // Serialize eligibility items for storage in the discounts string[] field

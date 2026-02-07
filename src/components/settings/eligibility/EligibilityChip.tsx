@@ -14,6 +14,10 @@ function calculateAge(dob: string): number {
   return age;
 }
 
+function isExpiredDate(dateStr: string): boolean {
+  return isBefore(new Date(dateStr), startOfDay(new Date()));
+}
+
 interface EligibilityChipProps {
   item: EligibilityItem;
   onRemove: () => void;
@@ -34,6 +38,10 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMember
   if (item.companies?.length) details.push({ type: 'companies', values: item.companies });
   if (item.cities?.length) details.push({ type: 'cities', values: item.cities });
   if (item.locations?.length) details.push({ type: 'locations', values: item.locations });
+
+  // Single-expiration display
+  const hasSingleExpiration = catalogItem?.expirationMode === 'single';
+  const singleExpired = hasSingleExpiration && !item.lifetime && item.expires_on ? isExpiredDate(item.expires_on) : false;
 
   // Height of the title row text (text-sm ~20px) to align side elements
   const titleRowClass = "mt-[2px]";
@@ -63,50 +71,79 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMember
       {/* Icon — aligned to title row */}
       <span className={`text-base flex-shrink-0 leading-none ${titleRowClass}`}>{icon}</span>
       <div className="flex-1 min-w-0">
-        <span className="text-foreground font-medium">{baseLabel}</span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-foreground font-medium">{baseLabel}</span>
+          {/* Single expiration summary */}
+          {hasSingleExpiration && (
+            item.lifetime ? (
+              <span className="text-xs text-primary/70">· Lifetime</span>
+            ) : item.expires_on ? (
+              <span className={`text-xs ${singleExpired ? 'text-destructive' : 'text-muted-foreground'}`}>
+                · {singleExpired ? 'Expired' : 'Exp.'} {format(new Date(item.expires_on), 'MM/dd/yyyy')}
+              </span>
+            ) : null
+          )}
+          {singleExpired && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}
+        </div>
 
         {/* Detail rows (schools, libraries, etc.) */}
         {details.length > 0 && (
           <div className="mt-1 space-y-0.5">
             {details.map(detail =>
-              detail.values.map(val => (
-                <div key={`${detail.type}-${val}`} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="w-1 h-1 rounded-full bg-muted-foreground/40 flex-shrink-0" />
-                  <span className="break-words">{val}</span>
-                  {onRemoveDetail && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemoveDetail(detail.type, val);
-                      }}
-                      className="flex-shrink-0 p-0.5 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                      aria-label={`Remove ${val}`}
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              ))
+              detail.values.map(val => {
+                const itemExp = item.item_expirations?.[val];
+                const itemExpired = !itemExp?.lifetime && itemExp?.expires_on ? isExpiredDate(itemExp.expires_on) : false;
+                return (
+                  <div key={`${detail.type}-${val}`} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="w-1 h-1 rounded-full bg-muted-foreground/40 flex-shrink-0" />
+                    <span className="break-words">
+                      {val}
+                      {itemExp?.lifetime ? (
+                        <span className="ml-1 text-primary/70">· Lifetime</span>
+                      ) : itemExp?.expires_on ? (
+                        <span className={`ml-1 ${itemExpired ? 'text-destructive' : ''}`}>
+                          · {itemExpired ? 'Expired' : 'Exp.'} {format(new Date(itemExp.expires_on), 'MM/dd/yyyy')}
+                        </span>
+                      ) : null}
+                    </span>
+                    {itemExpired && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}
+                    {onRemoveDetail && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveDetail(detail.type, val);
+                        }}
+                        className="flex-shrink-0 p-0.5 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        aria-label={`Remove ${val}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         )}
 
-        {/* Museum memberships — × next to each row text, not at far right */}
+        {/* Museum memberships */}
         {item.museum_memberships && item.museum_memberships.length > 0 && (
           <div className="mt-1 space-y-0.5">
             {item.museum_memberships.map(m => {
-              const expired = m.expires_on ? isBefore(new Date(m.expires_on), startOfDay(new Date())) : false;
+              const expired = !m.lifetime && m.expires_on ? isExpiredDate(m.expires_on) : false;
               return (
                 <div key={m.museum_id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <span className="w-1 h-1 rounded-full bg-muted-foreground/40 flex-shrink-0" />
                   <span className="break-words">
                     {m.museum_name}
-                    {m.expires_on && (
+                    {m.lifetime ? (
+                      <span className="ml-1 text-primary/70">· Lifetime</span>
+                    ) : m.expires_on ? (
                       <span className={expired ? 'text-destructive ml-1' : 'ml-1'}>
                         · {expired ? 'Expired' : 'Exp.'} {format(new Date(m.expires_on), 'MM/dd/yyyy')}
                       </span>
-                    )}
+                    ) : null}
                   </span>
                   {expired && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}
                   {onRemoveMembership && (

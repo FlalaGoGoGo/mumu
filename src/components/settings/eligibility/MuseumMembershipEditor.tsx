@@ -4,6 +4,7 @@ import { format, isBefore, startOfDay } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Popover,
   PopoverContent,
@@ -26,13 +27,15 @@ function MembershipRow({
   entry,
   onRemove,
   onDateChange,
+  onLifetimeChange,
 }: {
   entry: MuseumMembershipEntry;
   onRemove: () => void;
   onDateChange: (date: string) => void;
+  onLifetimeChange: (lifetime: boolean) => void;
 }) {
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const expired = entry.expires_on ? isExpired(entry.expires_on) : false;
+  const expired = !entry.lifetime && entry.expires_on ? isExpired(entry.expires_on) : false;
   const selectedDate = entry.expires_on ? new Date(entry.expires_on) : undefined;
 
   return (
@@ -41,38 +44,49 @@ function MembershipRow({
         {entry.museum_name}
       </span>
 
-      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className={cn(
-              'h-7 text-xs gap-1.5 shrink-0',
-              !entry.expires_on && 'text-muted-foreground',
-              expired && 'border-destructive/40 text-destructive'
-            )}
-          >
-            <CalendarIcon className="h-3 w-3" />
-            {entry.expires_on
-              ? format(new Date(entry.expires_on), 'MM/dd/yyyy')
-              : 'Set expiry'}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 z-[9999]" align="end">
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={(date) => {
-              if (date) {
-                onDateChange(date.toISOString().split('T')[0]);
-              }
-              setCalendarOpen(false);
-            }}
-            className={cn('p-3 pointer-events-auto')}
-            initialFocus
-          />
-        </PopoverContent>
-      </Popover>
+      {!entry.lifetime && (
+        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                'h-7 text-xs gap-1.5 shrink-0',
+                !entry.expires_on && 'text-muted-foreground',
+                expired && 'border-destructive/40 text-destructive'
+              )}
+            >
+              <CalendarIcon className="h-3 w-3" />
+              {entry.expires_on
+                ? format(new Date(entry.expires_on), 'MM/dd/yyyy')
+                : 'Set expiry'}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0 z-[9999]" align="end">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => {
+                if (date) {
+                  onDateChange(date.toISOString().split('T')[0]);
+                }
+                setCalendarOpen(false);
+              }}
+              className={cn('p-3 pointer-events-auto')}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      )}
+
+      <label className="flex items-center gap-1 cursor-pointer shrink-0">
+        <Checkbox
+          checked={!!entry.lifetime}
+          onCheckedChange={(checked) => onLifetimeChange(!!checked)}
+          className="h-3.5 w-3.5"
+        />
+        <span className="text-[11px] text-muted-foreground">Lifetime</span>
+      </label>
 
       {expired && (
         <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
@@ -130,6 +144,16 @@ export function MuseumMembershipEditor({ memberships, onChange }: MuseumMembersh
     );
   };
 
+  const handleLifetimeChange = (museumId: string, lifetime: boolean) => {
+    onChange(
+      memberships.map((m) =>
+        m.museum_id === museumId
+          ? { ...m, lifetime, ...(lifetime ? { expires_on: '' } : {}) }
+          : m
+      )
+    );
+  };
+
   return (
     <div className="space-y-3 mt-3 pl-8 border-l-2 border-border/40">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -145,15 +169,16 @@ export function MuseumMembershipEditor({ memberships, onChange }: MuseumMembersh
               entry={entry}
               onRemove={() => handleRemove(entry.museum_id)}
               onDateChange={(date) => handleDateChange(entry.museum_id, date)}
+              onLifetimeChange={(lt) => handleLifetimeChange(entry.museum_id, lt)}
             />
           ))}
-          {memberships.some((m) => m.expires_on && isExpired(m.expires_on)) && (
+          {memberships.some((m) => !m.lifetime && m.expires_on && isExpired(m.expires_on)) && (
             <p className="text-xs text-destructive/80 flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" />
               Some memberships have expired
             </p>
           )}
-          {memberships.some((m) => !m.expires_on) && (
+          {memberships.some((m) => !m.lifetime && !m.expires_on) && (
             <p className="text-xs text-muted-foreground italic">
               Set expiration dates to enable eligibility filtering
             </p>

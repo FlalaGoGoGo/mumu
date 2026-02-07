@@ -14,12 +14,13 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from '@/components/ui/tooltip';
-import { EligibilityItem, EligibilityType, MuseumMembershipEntry } from '@/types/eligibility';
+import { EligibilityItem, EligibilityType, MuseumMembershipEntry, ItemExpiration } from '@/types/eligibility';
 import { ELIGIBILITY_CATALOG, COMMON_SCHOOLS, COMMON_LIBRARIES, COMMON_EMPLOYERS, CITYPASS_CITIES } from '@/lib/eligibilityCatalog';
 import { DetailEditor } from './DetailEditor';
 import { DateOfBirthEditor } from './DateOfBirthEditor';
 import { LocationDetailEditor } from './LocationDetailEditor';
 import { MuseumMembershipEditor } from './MuseumMembershipEditor';
+import { ExpirationEditor } from './ExpirationEditor';
 
 interface AddEligibilityDialogProps {
   open: boolean;
@@ -55,16 +56,17 @@ export function AddEligibilityDialog({
     })).filter(cat => cat.items.length > 0);
   }, [search]);
 
-  const handleToggle = (type: EligibilityType, hasDetails?: string) => {
+  const handleToggle = (type: EligibilityType, hasDetails?: string, expirationMode?: string) => {
+    const isExpandable = hasDetails || expirationMode;
     if (existingTypes.has(type)) {
-      if (hasDetails) {
+      if (isExpandable) {
         setExpandedType(expandedType === type ? null : type);
       }
       return;
     }
     const newItem: EligibilityItem = { type };
     onAdd(newItem);
-    if (hasDetails) {
+    if (isExpandable) {
       setExpandedType(type);
     }
   };
@@ -90,6 +92,25 @@ export function AddEligibilityDialog({
     const existing = getExistingItem(type);
     if (existing) {
       onUpdate({ ...existing, museum_memberships: memberships });
+    }
+  };
+
+  const handleSingleExpirationChange = (type: EligibilityType, expiresOn?: string, lifetime?: boolean) => {
+    const existing = getExistingItem(type);
+    if (existing) {
+      onUpdate({
+        ...existing,
+        expires_on: lifetime ? undefined : expiresOn,
+        lifetime,
+      });
+    }
+  };
+
+  const handleItemExpirationChange = (type: EligibilityType, itemName: string, exp: ItemExpiration) => {
+    const existing = getExistingItem(type);
+    if (existing) {
+      const current = existing.item_expirations || {};
+      onUpdate({ ...existing, item_expirations: { ...current, [itemName]: exp } });
     }
   };
 
@@ -127,13 +148,14 @@ export function AddEligibilityDialog({
                       const isAdded = existingTypes.has(item.type);
                       const isExpanded = expandedType === item.type;
                       const existing = getExistingItem(item.type);
+                      const isExpandable = item.hasDetails || item.expirationMode;
 
                       return (
                         <div key={item.type}>
                           <div className="flex items-center">
                             <button
                               type="button"
-                              onClick={() => handleToggle(item.type, item.hasDetails)}
+                              onClick={() => handleToggle(item.type, item.hasDetails, item.expirationMode)}
                               className={`flex-1 text-left px-3 py-2.5 rounded-lg flex items-center gap-3 transition-colors ${
                                 isAdded
                                   ? 'bg-primary/8 border border-primary/20'
@@ -180,8 +202,8 @@ export function AddEligibilityDialog({
                             )}
                           </div>
 
-                          {/* Detail editor for items with details */}
-                          {isAdded && item.hasDetails && isExpanded && (
+                          {/* Detail / expiration editor for expanded items */}
+                          {isAdded && isExpandable && isExpanded && (
                             <div className="ml-3">
                               {item.hasDetails === 'schools' && (
                                 <DetailEditor
@@ -191,6 +213,11 @@ export function AddEligibilityDialog({
                                   options={COMMON_SCHOOLS}
                                   selected={existing?.schools || []}
                                   onChange={(schools) => handleDetailChange(item.type, 'schools', schools)}
+                                  itemExpirations={item.expirationMode === 'per-item' ? existing?.item_expirations : undefined}
+                                  onItemExpirationChange={item.expirationMode === 'per-item'
+                                    ? (itemName, exp) => handleItemExpirationChange(item.type, itemName, exp)
+                                    : undefined
+                                  }
                                 />
                               )}
                               {item.hasDetails === 'libraries' && (
@@ -242,11 +269,25 @@ export function AddEligibilityDialog({
                                   onChange={(memberships) => handleMembershipsChange(item.type, memberships)}
                                 />
                               )}
+                              {/* Single expiration editor (for types without multi-item details) */}
+                              {item.expirationMode === 'single' && !item.hasDetails && (
+                                <div className="mt-3 pl-8 border-l-2 border-border/40">
+                                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                                    Expiration
+                                  </p>
+                                  <ExpirationEditor
+                                    expiresOn={existing?.expires_on}
+                                    lifetime={existing?.lifetime}
+                                    onExpiresOnChange={(date) => handleSingleExpirationChange(item.type, date, existing?.lifetime)}
+                                    onLifetimeChange={(lt) => handleSingleExpirationChange(item.type, existing?.expires_on, lt)}
+                                  />
+                                </div>
+                              )}
                             </div>
                           )}
 
                           {/* Show "tap to edit details" hint */}
-                          {isAdded && item.hasDetails && !isExpanded && (
+                          {isAdded && isExpandable && !isExpanded && (
                             <p className="text-xs text-primary/70 ml-10 mt-0.5 mb-1 cursor-pointer" onClick={() => setExpandedType(item.type)}>
                               Tap to edit details
                             </p>
