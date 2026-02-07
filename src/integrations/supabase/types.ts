@@ -107,6 +107,45 @@ export type Database = {
         }
         Relationships: []
       }
+      store_products: {
+        Row: {
+          created_at: string
+          currency: string
+          image_url: string | null
+          is_featured: boolean
+          museum_id: string | null
+          official_url: string | null
+          price: number
+          product_id: string
+          tags: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          image_url?: string | null
+          is_featured?: boolean
+          museum_id?: string | null
+          official_url?: string | null
+          price?: number
+          product_id: string
+          tags?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          image_url?: string | null
+          is_featured?: boolean
+          museum_id?: string | null
+          official_url?: string | null
+          price?: number
+          product_id?: string
+          tags?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       user_highlight_completions: {
         Row: {
           artic_id: string | null

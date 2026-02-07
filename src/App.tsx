@@ -15,6 +15,8 @@ import SettingsPage from "./pages/SettingsPage";
 import ExhibitionsPage from "./pages/ExhibitionsPage";
 import ExhibitionDetailPage from "./pages/ExhibitionDetailPage";
 import AdminCacheImagesPage from "./pages/AdminCacheImagesPage";
+import ShopPage from "./pages/ShopPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +41,8 @@ function AppWithLanguage() {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/exhibitions" element={<ExhibitionsPage />} />
             <Route path="/exhibitions/:exhibition_id" element={<ExhibitionDetailPage />} />
+            <Route path="/shop" element={<ShopPage />} />
+            <Route path="/shop/:product_id" element={<ProductDetailPage />} />
             <Route path="/admin/cache-images" element={<AdminCacheImagesPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
