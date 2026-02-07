@@ -73,13 +73,26 @@ function useEligibilityManager(preferences: UserPreferences, onUpdate: (updates:
     [preferences.discounts, setEligibilities]
   );
 
-  return { eligibilities, addEligibility, updateEligibility, removeEligibility, removeDetail };
+  const removeMembership = useCallback(
+    (type: string, museumId: string) => {
+      const existing = deserializeEligibilities(preferences.discounts);
+      const updated = existing.map(e => {
+        if (e.type !== type) return e;
+        if (!e.museum_memberships) return e;
+        return { ...e, museum_memberships: e.museum_memberships.filter(m => m.museum_id !== museumId) };
+      });
+      setEligibilities(updated);
+    },
+    [preferences.discounts, setEligibilities]
+  );
+
+  return { eligibilities, addEligibility, updateEligibility, removeEligibility, removeDetail, removeMembership };
 }
 
 function EligibilitySection({ preferences, onUpdate }: DiscountsCardProps) {
   const { t } = useLanguage();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { eligibilities, addEligibility, updateEligibility, removeEligibility, removeDetail } = useEligibilityManager(preferences, onUpdate);
+  const { eligibilities, addEligibility, updateEligibility, removeEligibility, removeDetail, removeMembership } = useEligibilityManager(preferences, onUpdate);
 
   return (
     <>
@@ -96,6 +109,7 @@ function EligibilitySection({ preferences, onUpdate }: DiscountsCardProps) {
                 item={item}
                 onRemove={() => removeEligibility(item.type)}
                 onRemoveDetail={(detailType, value) => removeDetail(item.type, detailType, value)}
+                onRemoveMembership={(museumId) => removeMembership(item.type, museumId)}
                 onClick={() => setDialogOpen(true)}
               />
             ))}

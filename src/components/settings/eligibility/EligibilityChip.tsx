@@ -1,4 +1,5 @@
-import { X } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
+import { format, isBefore, startOfDay } from 'date-fns';
 import { EligibilityItem } from '@/types/eligibility';
 import { ALL_CATALOG_ITEMS } from '@/lib/eligibilityCatalog';
 
@@ -17,10 +18,11 @@ interface EligibilityChipProps {
   item: EligibilityItem;
   onRemove: () => void;
   onRemoveDetail?: (detailType: 'schools' | 'libraries' | 'companies' | 'locations' | 'cities', value: string) => void;
+  onRemoveMembership?: (museumId: string) => void;
   onClick?: () => void;
 }
 
-export function EligibilityChip({ item, onRemove, onRemoveDetail, onClick }: EligibilityChipProps) {
+export function EligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMembership, onClick }: EligibilityChipProps) {
   const catalogItem = ALL_CATALOG_ITEMS.find(c => c.type === item.type);
   const icon = catalogItem?.icon || '🏷️';
   const baseLabel = catalogItem?.label || item.type;
@@ -32,7 +34,7 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onClick }: Eli
   if (item.cities?.length) details.push({ type: 'cities', values: item.cities });
   if (item.locations?.length) details.push({ type: 'locations', values: item.locations });
 
-  const hasDetails = details.length > 0;
+  const hasDetails = details.length > 0 || (item.museum_memberships?.length ?? 0) > 0;
 
   return (
     <div
@@ -47,7 +49,7 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onClick }: Eli
       <span className="text-base flex-shrink-0 self-center leading-none">{icon}</span>
       <div className="flex-1 min-w-0">
         <span className="text-foreground font-medium">{baseLabel}</span>
-        {hasDetails && (
+        {details.length > 0 && (
           <div className="mt-1 space-y-0.5">
             {details.map(detail =>
               detail.values.map(val => (
@@ -70,6 +72,41 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onClick }: Eli
                 </div>
               ))
             )}
+          </div>
+        )}
+        {/* Museum memberships */}
+        {item.museum_memberships && item.museum_memberships.length > 0 && (
+          <div className="mt-1 space-y-0.5">
+            {item.museum_memberships.map(m => {
+              const expired = m.expires_on ? isBefore(new Date(m.expires_on), startOfDay(new Date())) : false;
+              return (
+                <div key={m.museum_id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="w-1 h-1 rounded-full bg-muted-foreground/40 flex-shrink-0" />
+                  <span className="break-words flex-1">
+                    {m.museum_name}
+                    {m.expires_on && (
+                      <span className={expired ? 'text-destructive ml-1' : 'ml-1'}>
+                        · {expired ? 'Expired' : 'Exp.'} {format(new Date(m.expires_on), 'MM/dd/yyyy')}
+                      </span>
+                    )}
+                  </span>
+                  {expired && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}
+                  {onRemoveMembership && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveMembership(m.museum_id);
+                      }}
+                      className="flex-shrink-0 p-0.5 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      aria-label={`Remove ${m.museum_name}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
         {item.date_of_birth && (

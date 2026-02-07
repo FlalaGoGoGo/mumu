@@ -14,11 +14,12 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from '@/components/ui/tooltip';
-import { EligibilityItem, EligibilityType } from '@/types/eligibility';
+import { EligibilityItem, EligibilityType, MuseumMembershipEntry } from '@/types/eligibility';
 import { ELIGIBILITY_CATALOG, COMMON_SCHOOLS, COMMON_LIBRARIES, COMMON_EMPLOYERS, CITYPASS_CITIES } from '@/lib/eligibilityCatalog';
 import { DetailEditor } from './DetailEditor';
 import { DateOfBirthEditor } from './DateOfBirthEditor';
 import { LocationDetailEditor } from './LocationDetailEditor';
+import { MuseumMembershipEditor } from './MuseumMembershipEditor';
 
 interface AddEligibilityDialogProps {
   open: boolean;
@@ -82,6 +83,13 @@ export function AddEligibilityDialog({
     const existing = getExistingItem(type);
     if (existing) {
       onUpdate({ ...existing, date_of_birth: dob });
+    }
+  };
+
+  const handleMembershipsChange = (type: EligibilityType, memberships: MuseumMembershipEntry[]) => {
+    const existing = getExistingItem(type);
+    if (existing) {
+      onUpdate({ ...existing, museum_memberships: memberships });
     }
   };
 
@@ -226,6 +234,12 @@ export function AddEligibilityDialog({
                                 <LocationDetailEditor
                                   selected={existing?.locations || []}
                                   onChange={(locations) => handleDetailChange(item.type, 'locations', locations)}
+                                />
+                              )}
+                              {item.hasDetails === 'museum_memberships' && (
+                                <MuseumMembershipEditor
+                                  memberships={existing?.museum_memberships || []}
+                                  onChange={(memberships) => handleMembershipsChange(item.type, memberships)}
                                 />
                               )}
                             </div>
