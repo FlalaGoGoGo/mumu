@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, MapPin, ImageOff, Loader2 } from 'lucide-react';
 import { useExhibition } from '@/hooks/useExhibitions';
+import { RelatedArtworksGallery } from '@/components/exhibition/RelatedArtworksGallery';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { ExhibitionStatus } from '@/types/exhibition';
@@ -116,6 +117,13 @@ export default function ExhibitionDetailPage() {
             <p className="text-foreground leading-relaxed whitespace-pre-line">
               {exhibition.short_description}
             </p>
+          </div>
+        )}
+
+        {/* Related Artworks */}
+        {exhibition.related_artwork_ids.length > 0 && (
+          <div className="gallery-card p-6 mt-6">
+            <RelatedArtworksGallery artworkIds={exhibition.related_artwork_ids} />
           </div>
         )}
 

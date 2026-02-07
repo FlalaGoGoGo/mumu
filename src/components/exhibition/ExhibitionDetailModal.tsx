@@ -1,5 +1,6 @@
 import { ExternalLink, ImageOff } from 'lucide-react';
 import { format } from 'date-fns';
+import { RelatedArtworksGallery } from '@/components/exhibition/RelatedArtworksGallery';
 import {
   Dialog,
   DialogContent,
@@ -118,6 +119,11 @@ export function ExhibitionDetailModal({
                   {exhibition.short_description}
                 </p>
               </div>
+            )}
+
+            {/* Related Artworks */}
+            {exhibition.related_artwork_ids.length > 0 && (
+              <RelatedArtworksGallery artworkIds={exhibition.related_artwork_ids} />
             )}
 
             {/* Action */}

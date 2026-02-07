@@ -10,15 +10,17 @@ export interface ExhibitionRaw {
   city: string;
   state: string;
   short_description: string;
+  related_artworks: string;
 }
 
 export type ExhibitionStatus = 'Ongoing' | 'Upcoming' | 'Past' | 'TBD';
 
-export interface Exhibition extends Omit<ExhibitionRaw, 'start_date' | 'end_date'> {
+export interface Exhibition extends Omit<ExhibitionRaw, 'start_date' | 'end_date' | 'related_artworks'> {
   start_date: Date | null;
   end_date: Date | null;
   status: ExhibitionStatus;
   date_label: string;
+  related_artwork_ids: string[];
 }
 
 export function computeExhibitionStatus(
@@ -71,15 +73,22 @@ export function computeDateLabel(startDate: Date | null, endDate: Date | null): 
   return 'Dates TBD';
 }
 
+export function parseRelatedArtworks(raw: string | undefined | null): string[] {
+  if (!raw || !raw.trim()) return [];
+  return raw.split('|').map(id => id.trim()).filter(Boolean);
+}
+
 export function parseExhibition(raw: ExhibitionRaw): Exhibition {
   const startDate = raw.start_date ? new Date(raw.start_date) : null;
   const endDate = raw.end_date ? new Date(raw.end_date) : null;
+  const { related_artworks, ...rest } = raw;
 
   return {
-    ...raw,
+    ...rest,
     start_date: startDate,
     end_date: endDate,
     status: computeExhibitionStatus(startDate, endDate),
     date_label: computeDateLabel(startDate, endDate),
+    related_artwork_ids: parseRelatedArtworks(related_artworks),
   };
 }
