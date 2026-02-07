@@ -35,9 +35,12 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMember
   if (item.cities?.length) details.push({ type: 'cities', values: item.cities });
   if (item.locations?.length) details.push({ type: 'locations', values: item.locations });
 
+  // Height of the title row text (text-sm ~20px) to align side elements
+  const titleRowClass = "mt-[2px]";
+
   return (
     <div
-      className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border/60 bg-card/80 text-sm group hover:border-primary/30 transition-colors"
+      className="flex items-start gap-3 px-3 py-2.5 rounded-lg border border-border/60 bg-card/80 text-sm group hover:border-primary/30 transition-colors"
       role="button"
       tabIndex={0}
       onClick={onClick}
@@ -45,11 +48,11 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMember
         if (e.key === 'Enter' || e.key === ' ') onClick?.();
       }}
     >
-      {/* Drag handle */}
+      {/* Drag handle — aligned to title row */}
       {dragHandleProps && (
         <button
           type="button"
-          className="flex-shrink-0 cursor-grab active:cursor-grabbing touch-none text-muted-foreground/50 hover:text-muted-foreground transition-colors -ml-1"
+          className={`flex-shrink-0 cursor-grab active:cursor-grabbing touch-none text-muted-foreground/50 hover:text-muted-foreground transition-colors -ml-1 ${titleRowClass}`}
           onClick={(e) => e.stopPropagation()}
           {...dragHandleProps}
         >
@@ -57,7 +60,8 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMember
         </button>
       )}
 
-      <span className="text-base flex-shrink-0 self-center leading-none">{icon}</span>
+      {/* Icon — aligned to title row */}
+      <span className={`text-base flex-shrink-0 leading-none ${titleRowClass}`}>{icon}</span>
       <div className="flex-1 min-w-0">
         <span className="text-foreground font-medium">{baseLabel}</span>
 
@@ -131,14 +135,14 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMember
         )}
       </div>
 
-      {/* Card-level remove button (far right) */}
+      {/* Card-level remove button — aligned to title row */}
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
           onRemove();
         }}
-        className="flex-shrink-0 p-0.5 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors self-center"
+        className={`flex-shrink-0 p-0.5 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ${titleRowClass}`}
         aria-label={`Remove ${baseLabel}`}
       >
         <X className="w-3.5 h-3.5" />
