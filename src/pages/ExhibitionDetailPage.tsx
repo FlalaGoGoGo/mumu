@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, MapPin, ImageOff, Loader2 } from 'lucide-react';
 import { useExhibition } from '@/hooks/useExhibitions';
 import { RelatedArtworksGallery } from '@/components/exhibition/RelatedArtworksGallery';
+import { ArtworkDetailSheet } from '@/components/art/ArtworkDetailSheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { ExhibitionStatus } from '@/types/exhibition';
+import type { EnrichedArtwork } from '@/types/art';
 
 const statusColors: Record<ExhibitionStatus, string> = {
   Ongoing: 'bg-green-50 text-green-700 border-green-200',
@@ -19,12 +21,19 @@ export default function ExhibitionDetailPage() {
   const navigate = useNavigate();
   const { data: exhibition, isLoading, error } = useExhibition(exhibition_id || null);
   const [imageError, setImageError] = useState(false);
+  const [selectedArtwork, setSelectedArtwork] = useState<EnrichedArtwork | null>(null);
+  const [isArtworkOpen, setIsArtworkOpen] = useState(false);
 
   const handleViewMuseum = () => {
     if (exhibition) {
       navigate(`/?museum=${exhibition.museum_id}`);
     }
   };
+
+  const handleArtworkClick = useCallback((artwork: EnrichedArtwork) => {
+    setSelectedArtwork(artwork);
+    setIsArtworkOpen(true);
+  }, []);
 
   if (isLoading) {
     return (
@@ -123,7 +132,10 @@ export default function ExhibitionDetailPage() {
         {/* Related Artworks */}
         {exhibition.related_artwork_ids.length > 0 && (
           <div className="gallery-card p-6 mt-6">
-            <RelatedArtworksGallery artworkIds={exhibition.related_artwork_ids} />
+            <RelatedArtworksGallery
+              artworkIds={exhibition.related_artwork_ids}
+              onArtworkClick={handleArtworkClick}
+            />
           </div>
         )}
 
@@ -145,6 +157,16 @@ export default function ExhibitionDetailPage() {
           </Button>
         </div>
       </div>
+
+      {/* Artwork Detail Sheet */}
+      <ArtworkDetailSheet
+        artwork={selectedArtwork}
+        open={isArtworkOpen}
+        onOpenChange={(open) => {
+          setIsArtworkOpen(open);
+          if (!open) setSelectedArtwork(null);
+        }}
+      />
     </div>
   );
 }

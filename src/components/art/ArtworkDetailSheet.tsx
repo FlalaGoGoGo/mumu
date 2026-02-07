@@ -126,7 +126,7 @@ export function ArtworkDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg">
+      <SheetContent className="w-full sm:max-w-lg z-[9200]" overlayClassName="z-[9150] bg-transparent">
         <SheetHeader className="sr-only">
           <SheetTitle>{artwork.title}</SheetTitle>
         </SheetHeader>
