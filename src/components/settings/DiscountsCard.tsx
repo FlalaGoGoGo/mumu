@@ -13,6 +13,23 @@ import {
   deserializeEligibilities,
   serializeEligibilities,
 } from '@/types/eligibility';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface DiscountsCardProps {
   preferences: UserPreferences;
@@ -86,13 +103,85 @@ function useEligibilityManager(preferences: UserPreferences, onUpdate: (updates:
     [preferences.discounts, setEligibilities]
   );
 
-  return { eligibilities, addEligibility, updateEligibility, removeEligibility, removeDetail, removeMembership };
+  const reorderEligibilities = useCallback(
+    (oldIndex: number, newIndex: number) => {
+      const existing = deserializeEligibilities(preferences.discounts);
+      const reordered = arrayMove(existing, oldIndex, newIndex);
+      setEligibilities(reordered);
+    },
+    [preferences.discounts, setEligibilities]
+  );
+
+  return { eligibilities, addEligibility, updateEligibility, removeEligibility, removeDetail, removeMembership, reorderEligibilities };
+}
+
+// Sortable wrapper for each EligibilityChip
+interface SortableEligibilityChipProps {
+  item: EligibilityItem;
+  onRemove: () => void;
+  onRemoveDetail: (detailType: 'schools' | 'libraries' | 'companies' | 'locations' | 'cities', value: string) => void;
+  onRemoveMembership: (museumId: string) => void;
+  onClick: () => void;
+}
+
+function SortableEligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMembership, onClick }: SortableEligibilityChipProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.type });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <EligibilityChip
+        item={item}
+        onRemove={onRemove}
+        onRemoveDetail={onRemoveDetail}
+        onRemoveMembership={onRemoveMembership}
+        onClick={onClick}
+        dragHandleProps={listeners}
+      />
+    </div>
+  );
 }
 
 function EligibilitySection({ preferences, onUpdate }: DiscountsCardProps) {
   const { t } = useLanguage();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { eligibilities, addEligibility, updateEligibility, removeEligibility, removeDetail, removeMembership } = useEligibilityManager(preferences, onUpdate);
+  const { eligibilities, addEligibility, updateEligibility, removeEligibility, removeDetail, removeMembership, reorderEligibilities } = useEligibilityManager(preferences, onUpdate);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const oldIndex = eligibilities.findIndex(e => e.type === active.id);
+      const newIndex = eligibilities.findIndex(e => e.type === over.id);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        reorderEligibilities(oldIndex, newIndex);
+      }
+    },
+    [eligibilities, reorderEligibilities]
+  );
 
   return (
     <>
@@ -100,20 +189,31 @@ function EligibilitySection({ preferences, onUpdate }: DiscountsCardProps) {
         label={t('settings.yourEligibility')}
         description={t('settings.eligibilityDescription')}
       >
-        {/* Selected eligibilities as vertical list */}
+        {/* Selected eligibilities as sortable vertical list */}
         {eligibilities.length > 0 ? (
-          <div className="space-y-2">
-            {eligibilities.map(item => (
-              <EligibilityChip
-                key={item.type}
-                item={item}
-                onRemove={() => removeEligibility(item.type)}
-                onRemoveDetail={(detailType, value) => removeDetail(item.type, detailType, value)}
-                onRemoveMembership={(museumId) => removeMembership(item.type, museumId)}
-                onClick={() => setDialogOpen(true)}
-              />
-            ))}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={eligibilities.map(e => e.type)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-2">
+                {eligibilities.map(item => (
+                  <SortableEligibilityChip
+                    key={item.type}
+                    item={item}
+                    onRemove={() => removeEligibility(item.type)}
+                    onRemoveDetail={(detailType, value) => removeDetail(item.type, detailType, value)}
+                    onRemoveMembership={(museumId) => removeMembership(item.type, museumId)}
+                    onClick={() => setDialogOpen(true)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         ) : (
           <p className="text-sm text-muted-foreground italic py-2">
             Add your passes or programs to unlock discounts.
