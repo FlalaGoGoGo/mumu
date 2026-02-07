@@ -57,12 +57,12 @@ export function ArtGalleryTile({ artwork, onClick }: ArtGalleryTileProps) {
       )}
 
       {/* Hover overlay — dark with title + artist */}
-      <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/60 group-focus-visible:bg-foreground/60 transition-colors duration-200 flex flex-col justify-end p-1.5 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
-        <h3 className="text-[11px] font-semibold text-white leading-tight line-clamp-2">
+      <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/60 group-focus-visible:bg-foreground/60 transition-colors duration-200 flex flex-col justify-end px-2.5 pb-2.5 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
+        <h3 className="text-xs font-semibold text-white leading-tight line-clamp-2">
           {artwork.title}
         </h3>
-        <p className="text-[10px] text-white/80 leading-tight truncate mt-0.5">
-          {artwork.artist_name}{artwork.year ? ` · ${artwork.year}` : ''}
+        <p className="text-[10px] text-white/70 leading-tight truncate mt-0.5">
+          {artwork.artist_name}
         </p>
       </div>
     </button>
