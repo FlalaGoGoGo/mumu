@@ -146,6 +146,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_events: {
+        Row: {
+          created_at: string
+          event_date: string
+          event_id: string
+          event_type: string
+          item_id: string
+          item_type: string
+          meta: Json | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_date?: string
+          event_id?: string
+          event_type: string
+          item_id: string
+          item_type: string
+          meta?: Json | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          event_date?: string
+          event_id?: string
+          event_type?: string
+          item_id?: string
+          item_type?: string
+          meta?: Json | null
+          session_id?: string
+        }
+        Relationships: []
+      }
       user_highlight_completions: {
         Row: {
           artic_id: string | null

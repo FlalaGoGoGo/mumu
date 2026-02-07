@@ -221,6 +221,24 @@
   .passport-stamp.completed {
     @apply border-solid border-primary text-primary bg-primary/5;
   }
+
+  /* Passport stamp card animation */
+  .passport-stamp-card {
+    animation: stamp-appear 0.4s ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .passport-stamp-card {
+      animation: none;
+    }
+  }
+}
+
+@keyframes stamp-appear {
+  0% { opacity: 0; transform: scale(1.08) rotate(var(--stamp-rotation, -3deg)); }
+  60% { opacity: 1; transform: scale(1) rotate(calc(var(--stamp-rotation, -3deg) * 0.5)); }
+  80% { transform: scale(1.02) rotate(calc(var(--stamp-rotation, -3deg) * 0.8)); }
+  100% { transform: scale(1) rotate(0deg); }
 }
 
 @layer utilities {
