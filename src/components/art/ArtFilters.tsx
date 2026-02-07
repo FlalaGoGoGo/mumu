@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -26,9 +27,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { X, ChevronDown, Check, ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  Collapsible,
+  CollapsibleContent,
+} from '@/components/ui/collapsible';
+import { Search, SlidersHorizontal, X, ChevronDown, Check, ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCountryFlag } from '@/lib/countryFlag';
+import { ArtViewToggle, type ArtView } from './ArtViewToggle';
 
 export interface ArtFiltersState {
   artType: string | null;
@@ -58,6 +70,11 @@ interface ArtFiltersProps {
   onViewCount: number;
   mustSeeCount: number;
   hasImageCount: number;
+  // New props
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  view: ArtView;
+  onViewChange: (view: ArtView) => void;
 }
 
 export function ArtFilters({
@@ -77,10 +94,15 @@ export function ArtFilters({
   onViewCount,
   mustSeeCount,
   hasImageCount,
+  searchQuery,
+  onSearchChange,
+  view,
+  onViewChange,
 }: ArtFiltersProps) {
   const { t } = useLanguage();
   const [artistOpen, setArtistOpen] = useState(false);
   const [museumOpen, setMuseumOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   // Sort artists alphabetically by name, only those with count > 0
   const sortedArtists = useMemo(() => {
@@ -106,7 +128,17 @@ export function ArtFilters({
     [museums, filters.museumId]
   );
 
-  const hasActiveFilters = filters.artType || filters.artistId || filters.museumId || filters.onViewOnly || filters.mustSeeOnly || filters.hasImageOnly;
+  // Active filter count for badge
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.artType) count++;
+    if (filters.artistId) count++;
+    if (filters.museumId) count++;
+    if (filters.onViewOnly) count++;
+    if (filters.mustSeeOnly) count++;
+    if (filters.hasImageOnly) count++;
+    return count;
+  }, [filters]);
 
   const clearFilters = () => {
     onFiltersChange({
@@ -119,288 +151,276 @@ export function ArtFilters({
     });
   };
 
-  const removeFilter = (key: keyof ArtFiltersState) => {
-    onFiltersChange({
-      ...filters,
-      [key]: (key === 'onViewOnly' || key === 'mustSeeOnly' || key === 'hasImageOnly') ? false : null,
-    });
+  const handleSortToggle = () => {
+    onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc');
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Left side filters */}
-        <div className="flex flex-wrap items-center gap-2 flex-1">
-        {/* Art Type Filter */}
-        <Select
-          value={filters.artType || 'all'}
-          onValueChange={(value) =>
-            onFiltersChange({ ...filters, artType: value === 'all' ? null : value })
-          }
+    <div className="flex flex-col gap-3">
+      {/* Toolbar Row */}
+      <div className="flex items-center gap-2">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder={t('art.searchPlaceholder' as any) || 'Search...'}
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* Filters toggle */}
+        <Button
+          variant="outline"
+          className="gap-2 h-10 flex-shrink-0"
+          onClick={() => setPanelOpen(!panelOpen)}
         >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder={t('art.type')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">
-              {t('art.allTypes')} <span className="text-muted-foreground">({totalTypeCount})</span>
-            </SelectItem>
-            {artTypes
-              .filter(type => (typeCounts.get(type) || 0) > 0)
-              .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-              .map((type) => (
-              <SelectItem key={type} value={type} className="capitalize">
-                {type} <span className="text-muted-foreground">({typeCounts.get(type) || 0})</span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <SlidersHorizontal className="w-4 h-4" />
+          <span className="hidden sm:inline">{t('art.filters' as any) || 'Filters'}</span>
+          {activeFilterCount > 0 && (
+            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+              {activeFilterCount}
+            </Badge>
+          )}
+        </Button>
 
-        {/* Artist Filter (Searchable) */}
-        <Popover open={artistOpen} onOpenChange={setArtistOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={artistOpen}
-              className="w-[180px] justify-between"
-            >
-              <span className="truncate">
-                {selectedArtist?.artist_name || t('art.artist')}
-              </span>
-              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[280px] p-0">
-            <Command>
-              <CommandInput placeholder={t('art.searchArtist')} />
-              <CommandList>
-                <CommandEmpty>{t('art.noArtistFound')}</CommandEmpty>
-                <CommandGroup>
-                  <CommandItem
-                    value=""
-                    onSelect={() => {
-                      onFiltersChange({ ...filters, artistId: null });
-                      setArtistOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        !filters.artistId ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <span>{t('art.allArtists')}</span>
-                    <span className="ml-1 text-xs text-muted-foreground">({totalArtistCount})</span>
-                  </CommandItem>
-                  {sortedArtists.map((artist) => (
-                    <CommandItem
-                      key={artist.artist_id}
-                      value={artist.artist_name}
-                      onSelect={() => {
-                        onFiltersChange({ ...filters, artistId: artist.artist_id });
-                        setArtistOpen(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          filters.artistId === artist.artist_id ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      <span>{getCountryFlag(artist.nationality)} {artist.artist_name}</span>
-                      <span className="ml-1 text-xs text-muted-foreground">({artistCounts.get(artist.artist_id) || 0})</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+        {/* View Toggle */}
+        <ArtViewToggle view={view} onViewChange={onViewChange} />
 
-        {/* Museum Filter (Searchable) */}
-        <Popover open={museumOpen} onOpenChange={setMuseumOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={museumOpen}
-              className="w-[200px] justify-between"
-            >
-              <span className="truncate">
-                {selectedMuseum?.name || t('art.museum')}
-              </span>
-              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[320px] p-0">
-            <Command>
-              <CommandInput placeholder={t('art.searchMuseum')} />
-              <CommandList>
-                <CommandEmpty>{t('art.noMuseumFound')}</CommandEmpty>
-                <CommandGroup>
-                  <CommandItem
-                    value=""
-                    onSelect={() => {
-                      onFiltersChange({ ...filters, museumId: null });
-                      setMuseumOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        !filters.museumId ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <span>🌍 {t('art.allMuseums')}</span>
-                    <span className="ml-1 text-xs text-muted-foreground">({totalMuseumCount})</span>
-                  </CommandItem>
-                  {sortedMuseums.map((museum) => (
-                    <CommandItem
-                      key={museum.museum_id}
-                      value={museum.name}
-                      onSelect={() => {
-                        onFiltersChange({ ...filters, museumId: museum.museum_id });
-                        setMuseumOpen(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          filters.museumId === museum.museum_id ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      <span>{getCountryFlag(museum.country)} {museum.name}</span>
-                      <span className="ml-1 text-xs text-muted-foreground">({museumCounts.get(museum.museum_id) || 0})</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-
-        {/* On View Toggle */}
-        <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2">
-          <Switch
-            id="on-view-filter"
-            checked={filters.onViewOnly}
-            onCheckedChange={(checked) =>
-              onFiltersChange({ ...filters, onViewOnly: checked })
-            }
-          />
-          <Label htmlFor="on-view-filter" className="cursor-pointer text-sm">
-            {t('art.onView')} <span className="text-muted-foreground">({onViewCount})</span>
-          </Label>
-        </div>
-
-        {/* Must-See Toggle */}
-        <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2">
-          <Switch
-            id="must-see-filter"
-            checked={filters.mustSeeOnly}
-            onCheckedChange={(checked) =>
-              onFiltersChange({ ...filters, mustSeeOnly: checked })
-            }
-          />
-          <Label htmlFor="must-see-filter" className="cursor-pointer text-sm">
-            {t('art.mustSeeLabel')} <span className="text-muted-foreground">({mustSeeCount})</span>
-          </Label>
-        </div>
-
-        {/* Has Image Toggle */}
-        <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2">
-          <Switch
-            id="has-image-filter"
-            checked={filters.hasImageOnly}
-            onCheckedChange={(checked) =>
-              onFiltersChange({ ...filters, hasImageOnly: checked })
-            }
-          />
-          <Label htmlFor="has-image-filter" className="cursor-pointer text-sm">
-            {t('art.hasImage')} <span className="text-muted-foreground">({hasImageCount})</span>
-          </Label>
-        </div>
-        </div>
-
-        {/* Sort Control - Right aligned */}
-        <Select
-          value={sortOrder}
-          onValueChange={(value) => onSortOrderChange(value as SortOrder)}
-        >
-          <SelectTrigger className="w-[150px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="asc">
-              <span className="flex items-center gap-2">
-                <ArrowDownAZ className="h-4 w-4" />
-                {t('art.sortAZ')}
-              </span>
-            </SelectItem>
-            <SelectItem value="desc">
-              <span className="flex items-center gap-2">
-                <ArrowUpAZ className="h-4 w-4" />
-                {t('art.sortZA')}
-              </span>
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Sort Title Toggle */}
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 flex-shrink-0"
+                onClick={handleSortToggle}
+              >
+                {sortOrder === 'asc' ? (
+                  <ArrowDownAZ className="w-4 h-4" />
+                ) : (
+                  <ArrowUpAZ className="w-4 h-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{sortOrder === 'asc' ? t('art.sortAZ') : t('art.sortZA')}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
-      {/* Active Filter Chips */}
-      {hasActiveFilters && (
-        <div className="flex flex-wrap gap-2">
-          {filters.artType && (
-            <Badge variant="secondary" className="gap-1 capitalize">
-              {filters.artType}
-              <button onClick={() => removeFilter('artType')} className="ml-1 hover:text-destructive">
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-          {selectedArtist && (
-            <Badge variant="secondary" className="gap-1">
-              {selectedArtist.artist_name}
-              <button onClick={() => removeFilter('artistId')} className="ml-1 hover:text-destructive">
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-          {selectedMuseum && (
-            <Badge variant="secondary" className="gap-1">
-              {selectedMuseum.name}
-              <button onClick={() => removeFilter('museumId')} className="ml-1 hover:text-destructive">
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-          {filters.onViewOnly && (
-            <Badge variant="secondary" className="gap-1">
-              {t('art.onView')}
-              <button onClick={() => removeFilter('onViewOnly')} className="ml-1 hover:text-destructive">
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-          {filters.mustSeeOnly && (
-            <Badge variant="secondary" className="gap-1">
-              {t('art.mustSeeLabel')}
-              <button onClick={() => removeFilter('mustSeeOnly')} className="ml-1 hover:text-destructive">
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-          {filters.hasImageOnly && (
-            <Badge variant="secondary" className="gap-1">
-              {t('art.hasImage')}
-              <button onClick={() => removeFilter('hasImageOnly')} className="ml-1 hover:text-destructive">
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-        </div>
-      )}
+      {/* Collapsible Filter Panel */}
+      <Collapsible open={panelOpen} onOpenChange={setPanelOpen}>
+        <CollapsibleContent>
+          <div className="p-4 bg-muted/50 rounded-lg border space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Art Type Filter */}
+              <Select
+                value={filters.artType || 'all'}
+                onValueChange={(value) =>
+                  onFiltersChange({ ...filters, artType: value === 'all' ? null : value })
+                }
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder={t('art.type')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    {t('art.allTypes')} <span className="text-muted-foreground">({totalTypeCount})</span>
+                  </SelectItem>
+                  {artTypes
+                    .filter(type => (typeCounts.get(type) || 0) > 0)
+                    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+                    .map((type) => (
+                    <SelectItem key={type} value={type} className="capitalize">
+                      {type} <span className="text-muted-foreground">({typeCounts.get(type) || 0})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Artist Filter (Searchable) */}
+              <Popover open={artistOpen} onOpenChange={setArtistOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={artistOpen}
+                    className="w-[180px] justify-between"
+                  >
+                    <span className="truncate">
+                      {selectedArtist?.artist_name || t('art.artist')}
+                    </span>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[280px] p-0">
+                  <Command>
+                    <CommandInput placeholder={t('art.searchArtist')} />
+                    <CommandList>
+                      <CommandEmpty>{t('art.noArtistFound')}</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value=""
+                          onSelect={() => {
+                            onFiltersChange({ ...filters, artistId: null });
+                            setArtistOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              !filters.artistId ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <span>{t('art.allArtists')}</span>
+                          <span className="ml-1 text-xs text-muted-foreground">({totalArtistCount})</span>
+                        </CommandItem>
+                        {sortedArtists.map((artist) => (
+                          <CommandItem
+                            key={artist.artist_id}
+                            value={artist.artist_name}
+                            onSelect={() => {
+                              onFiltersChange({ ...filters, artistId: artist.artist_id });
+                              setArtistOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                filters.artistId === artist.artist_id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <span>{getCountryFlag(artist.nationality)} {artist.artist_name}</span>
+                            <span className="ml-1 text-xs text-muted-foreground">({artistCounts.get(artist.artist_id) || 0})</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+
+              {/* Museum Filter (Searchable) */}
+              <Popover open={museumOpen} onOpenChange={setMuseumOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={museumOpen}
+                    className="w-[200px] justify-between"
+                  >
+                    <span className="truncate">
+                      {selectedMuseum?.name || t('art.museum')}
+                    </span>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[320px] p-0">
+                  <Command>
+                    <CommandInput placeholder={t('art.searchMuseum')} />
+                    <CommandList>
+                      <CommandEmpty>{t('art.noMuseumFound')}</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value=""
+                          onSelect={() => {
+                            onFiltersChange({ ...filters, museumId: null });
+                            setMuseumOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              !filters.museumId ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <span>🌍 {t('art.allMuseums')}</span>
+                          <span className="ml-1 text-xs text-muted-foreground">({totalMuseumCount})</span>
+                        </CommandItem>
+                        {sortedMuseums.map((museum) => (
+                          <CommandItem
+                            key={museum.museum_id}
+                            value={museum.name}
+                            onSelect={() => {
+                              onFiltersChange({ ...filters, museumId: museum.museum_id });
+                              setMuseumOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                filters.museumId === museum.museum_id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <span>{getCountryFlag(museum.country)} {museum.name}</span>
+                            <span className="ml-1 text-xs text-muted-foreground">({museumCounts.get(museum.museum_id) || 0})</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+
+              {/* On View Toggle */}
+              <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2">
+                <Switch
+                  id="on-view-filter"
+                  checked={filters.onViewOnly}
+                  onCheckedChange={(checked) =>
+                    onFiltersChange({ ...filters, onViewOnly: checked })
+                  }
+                />
+                <Label htmlFor="on-view-filter" className="cursor-pointer text-sm whitespace-nowrap">
+                  {t('art.onView')} <span className="text-muted-foreground">({onViewCount})</span>
+                </Label>
+              </div>
+
+              {/* Must-See Toggle */}
+              <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2">
+                <Switch
+                  id="must-see-filter"
+                  checked={filters.mustSeeOnly}
+                  onCheckedChange={(checked) =>
+                    onFiltersChange({ ...filters, mustSeeOnly: checked })
+                  }
+                />
+                <Label htmlFor="must-see-filter" className="cursor-pointer text-sm whitespace-nowrap">
+                  {t('art.mustSeeLabel')} <span className="text-muted-foreground">({mustSeeCount})</span>
+                </Label>
+              </div>
+
+              {/* Has Image Toggle */}
+              <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2">
+                <Switch
+                  id="has-image-filter"
+                  checked={filters.hasImageOnly}
+                  onCheckedChange={(checked) =>
+                    onFiltersChange({ ...filters, hasImageOnly: checked })
+                  }
+                />
+                <Label htmlFor="has-image-filter" className="cursor-pointer text-sm whitespace-nowrap">
+                  {t('art.hasImage')} <span className="text-muted-foreground">({hasImageCount})</span>
+                </Label>
+              </div>
+            </div>
+
+            {/* Clear Filters */}
+            {activeFilterCount > 0 && (
+              <div className="pt-2 border-t">
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
+                  <X className="w-4 h-4 mr-1" />
+                  {t('art.clearAllFilters' as any) || 'Clear all filters'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }

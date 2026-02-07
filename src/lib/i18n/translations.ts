@@ -306,6 +306,10 @@ export const translations = {
     'art.viewHeat': 'Heat',
     'art.noLocationData': 'No location data available for this selection.',
     'art.openMuseum': 'Open Museum',
+    'art.searchPlaceholder': 'Search...',
+    'art.filters': 'Filters',
+    'art.clearAllFilters': 'Clear all filters',
+    'art.viewArtworks': 'View Artworks',
     
     // Profile
     'profile.myProfile': 'My Profile',
