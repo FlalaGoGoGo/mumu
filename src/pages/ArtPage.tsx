@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { useEnrichedArtworks } from '@/hooks/useArtworks';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -8,6 +8,9 @@ import { ArtistDrawer } from '@/components/art/ArtistDrawer';
 import { ArtFilters, ArtFiltersState, SortOrder } from '@/components/art/ArtFilters';
 import { ArtworkDetailSheet } from '@/components/art/ArtworkDetailSheet';
 import { ArtistWorksMap } from '@/components/art/ArtistWorksMap';
+import { ArtMapView } from '@/components/art/ArtMapView';
+import { ArtMuseumDrawer, type ArtMuseumGroup } from '@/components/art/ArtMuseumDrawer';
+import type { ArtView } from '@/components/art/ArtViewToggle';
 
 import { EnrichedArtwork, Artist, getArtworkImageUrl } from '@/types/art';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -34,23 +37,29 @@ export default function ArtPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [artistDrawerOpen, setArtistDrawerOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [view, setView] = useState<ArtView>('grid');
+
+  // Map drawer state
+  const [selectedMuseumGroup, setSelectedMuseumGroup] = useState<ArtMuseumGroup | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Search-filtered artworks (base for all other filters)
+  const searchFilteredArtworks = useMemo(() => {
+    if (!searchQuery.trim()) return artworks;
+    const q = searchQuery.toLowerCase();
+    return artworks.filter(a =>
+      a.title.toLowerCase().includes(q) ||
+      a.artist_name.toLowerCase().includes(q) ||
+      a.museum_name.toLowerCase().includes(q)
+    );
+  }, [artworks, searchQuery]);
 
   // Get unique art types
   const artTypes = useMemo(() => {
-    const types = new Set(artworks.map(a => a.art_type.toLowerCase()));
+    const types = new Set(searchFilteredArtworks.map(a => a.art_type.toLowerCase()));
     return Array.from(types).sort();
-  }, [artworks]);
-
-  // Helper to check if artwork has valid image based on runtime load status
-  // Uses verified load success from ImageLoadContext
-  const hasValidImage = (artwork: EnrichedArtwork) => {
-    // If we've verified the image loaded successfully, it's valid
-    if (hasVerifiedImage(artwork.artwork_id)) return true;
-    // If filter is on, we only trust verified images
-    // For initial count before images load, check if there's a URL to try
-    const hasUrl = !!(getArtworkImageUrl(artwork));
-    return hasUrl;
-  };
+  }, [searchFilteredArtworks]);
 
   // For strict filtering when Has Image is ON - only count verified loaded images
   const hasVerifiedLoadedImage = (artwork: EnrichedArtwork) => {
@@ -59,135 +68,75 @@ export default function ArtPage() {
 
   // Filter artworks without type filter (for type counts)
   const artworksWithoutTypeFilter = useMemo(() => {
-    return artworks.filter(artwork => {
-      if (filters.artistId && artwork.artist_id !== filters.artistId) {
-        return false;
-      }
-      if (filters.museumId && artwork.museum_id !== filters.museumId) {
-        return false;
-      }
-      if (filters.onViewOnly && !artwork.on_view) {
-        return false;
-      }
-      if (filters.mustSeeOnly && !artwork.highlight) {
-        return false;
-      }
-      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) {
-        return false;
-      }
+    return searchFilteredArtworks.filter(artwork => {
+      if (filters.artistId && artwork.artist_id !== filters.artistId) return false;
+      if (filters.museumId && artwork.museum_id !== filters.museumId) return false;
+      if (filters.onViewOnly && !artwork.on_view) return false;
+      if (filters.mustSeeOnly && !artwork.highlight) return false;
+      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) return false;
       return true;
     });
-  }, [artworks, filters.artistId, filters.museumId, filters.onViewOnly, filters.mustSeeOnly, filters.hasImageOnly, loadedImageIds]);
+  }, [searchFilteredArtworks, filters.artistId, filters.museumId, filters.onViewOnly, filters.mustSeeOnly, filters.hasImageOnly, loadedImageIds]);
 
   // Filter artworks without artist filter (for artist counts)
   const artworksWithoutArtistFilter = useMemo(() => {
-    return artworks.filter(artwork => {
-      if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) {
-        return false;
-      }
-      if (filters.museumId && artwork.museum_id !== filters.museumId) {
-        return false;
-      }
-      if (filters.onViewOnly && !artwork.on_view) {
-        return false;
-      }
-      if (filters.mustSeeOnly && !artwork.highlight) {
-        return false;
-      }
-      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) {
-        return false;
-      }
+    return searchFilteredArtworks.filter(artwork => {
+      if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) return false;
+      if (filters.museumId && artwork.museum_id !== filters.museumId) return false;
+      if (filters.onViewOnly && !artwork.on_view) return false;
+      if (filters.mustSeeOnly && !artwork.highlight) return false;
+      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) return false;
       return true;
     });
-  }, [artworks, filters.artType, filters.museumId, filters.onViewOnly, filters.mustSeeOnly, filters.hasImageOnly, loadedImageIds]);
+  }, [searchFilteredArtworks, filters.artType, filters.museumId, filters.onViewOnly, filters.mustSeeOnly, filters.hasImageOnly, loadedImageIds]);
 
   // Filter artworks without museum filter (for museum counts)
   const artworksWithoutMuseumFilter = useMemo(() => {
-    return artworks.filter(artwork => {
-      if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) {
-        return false;
-      }
-      if (filters.artistId && artwork.artist_id !== filters.artistId) {
-        return false;
-      }
-      if (filters.onViewOnly && !artwork.on_view) {
-        return false;
-      }
-      if (filters.mustSeeOnly && !artwork.highlight) {
-        return false;
-      }
-      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) {
-        return false;
-      }
+    return searchFilteredArtworks.filter(artwork => {
+      if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) return false;
+      if (filters.artistId && artwork.artist_id !== filters.artistId) return false;
+      if (filters.onViewOnly && !artwork.on_view) return false;
+      if (filters.mustSeeOnly && !artwork.highlight) return false;
+      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) return false;
       return true;
     });
-  }, [artworks, filters.artType, filters.artistId, filters.onViewOnly, filters.mustSeeOnly, filters.hasImageOnly, loadedImageIds]);
+  }, [searchFilteredArtworks, filters.artType, filters.artistId, filters.onViewOnly, filters.mustSeeOnly, filters.hasImageOnly, loadedImageIds]);
 
-  // Compute on-view count (excluding onViewOnly filter itself)
+  // Compute on-view count
   const onViewCount = useMemo(() => {
-    return artworks.filter(artwork => {
-      if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) {
-        return false;
-      }
-      if (filters.artistId && artwork.artist_id !== filters.artistId) {
-        return false;
-      }
-      if (filters.museumId && artwork.museum_id !== filters.museumId) {
-        return false;
-      }
-      if (filters.mustSeeOnly && !artwork.highlight) {
-        return false;
-      }
-      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) {
-        return false;
-      }
+    return searchFilteredArtworks.filter(artwork => {
+      if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) return false;
+      if (filters.artistId && artwork.artist_id !== filters.artistId) return false;
+      if (filters.museumId && artwork.museum_id !== filters.museumId) return false;
+      if (filters.mustSeeOnly && !artwork.highlight) return false;
+      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) return false;
       return artwork.on_view === true;
     }).length;
-  }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.mustSeeOnly, filters.hasImageOnly, loadedImageIds]);
+  }, [searchFilteredArtworks, filters.artType, filters.artistId, filters.museumId, filters.mustSeeOnly, filters.hasImageOnly, loadedImageIds]);
 
-  // Compute must-see count (excluding mustSeeOnly filter itself)
+  // Compute must-see count
   const mustSeeCount = useMemo(() => {
-    return artworks.filter(artwork => {
-      if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) {
-        return false;
-      }
-      if (filters.artistId && artwork.artist_id !== filters.artistId) {
-        return false;
-      }
-      if (filters.museumId && artwork.museum_id !== filters.museumId) {
-        return false;
-      }
-      if (filters.onViewOnly && !artwork.on_view) {
-        return false;
-      }
-      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) {
-        return false;
-      }
+    return searchFilteredArtworks.filter(artwork => {
+      if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) return false;
+      if (filters.artistId && artwork.artist_id !== filters.artistId) return false;
+      if (filters.museumId && artwork.museum_id !== filters.museumId) return false;
+      if (filters.onViewOnly && !artwork.on_view) return false;
+      if (filters.hasImageOnly && !hasVerifiedLoadedImage(artwork)) return false;
       return artwork.highlight === true;
     }).length;
-  }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.onViewOnly, filters.hasImageOnly, loadedImageIds]);
+  }, [searchFilteredArtworks, filters.artType, filters.artistId, filters.museumId, filters.onViewOnly, filters.hasImageOnly, loadedImageIds]);
 
-  // Compute has-image count (excluding hasImageOnly filter itself)
+  // Compute has-image count
   const hasImageCount = useMemo(() => {
-    return artworks.filter(artwork => {
-      if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) {
-        return false;
-      }
-      if (filters.artistId && artwork.artist_id !== filters.artistId) {
-        return false;
-      }
-      if (filters.museumId && artwork.museum_id !== filters.museumId) {
-        return false;
-      }
-      if (filters.onViewOnly && !artwork.on_view) {
-        return false;
-      }
-      if (filters.mustSeeOnly && !artwork.highlight) {
-        return false;
-      }
+    return searchFilteredArtworks.filter(artwork => {
+      if (filters.artType && artwork.art_type.toLowerCase() !== filters.artType.toLowerCase()) return false;
+      if (filters.artistId && artwork.artist_id !== filters.artistId) return false;
+      if (filters.museumId && artwork.museum_id !== filters.museumId) return false;
+      if (filters.onViewOnly && !artwork.on_view) return false;
+      if (filters.mustSeeOnly && !artwork.highlight) return false;
       return hasVerifiedLoadedImage(artwork);
     }).length;
-  }, [artworks, filters.artType, filters.artistId, filters.museumId, filters.onViewOnly, filters.mustSeeOnly, loadedImageIds]);
+  }, [searchFilteredArtworks, filters.artType, filters.artistId, filters.museumId, filters.onViewOnly, filters.mustSeeOnly, loadedImageIds]);
 
   // Compute type counts
   const typeCounts = useMemo(() => {
@@ -232,13 +181,10 @@ export default function ArtPage() {
   // Final filtered artworks (including all filters) with sorting
   const filteredArtworks = useMemo(() => {
     const filtered = artworksWithoutMuseumFilter.filter(artwork => {
-      if (filters.museumId && artwork.museum_id !== filters.museumId) {
-        return false;
-      }
+      if (filters.museumId && artwork.museum_id !== filters.museumId) return false;
       return true;
     });
     
-    // Apply sorting by title (case-insensitive, locale-aware)
     return filtered.sort((a, b) => {
       const comparison = a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
       return sortOrder === 'asc' ? comparison : -comparison;
@@ -263,6 +209,16 @@ export default function ArtPage() {
   const handleViewArtistDetails = () => {
     setArtistDrawerOpen(true);
   };
+
+  const handleSelectMuseum = useCallback((group: ArtMuseumGroup) => {
+    setSelectedMuseumGroup(group);
+    setIsDrawerOpen(true);
+  }, []);
+
+  const handleDrawerArtworkClick = useCallback((artwork: EnrichedArtwork) => {
+    setSelectedArtwork(artwork);
+    setDetailOpen(true);
+  }, []);
 
   if (isLoading) {
     return (
@@ -297,8 +253,8 @@ export default function ArtPage() {
         </p>
       </div>
 
-      {/* Filters */}
-      <div className="sticky top-0 z-20 -mx-4 mb-6 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
+      {/* Toolbar + Filters */}
+      <div className="sticky top-0 z-20 -mx-4 mb-4 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
         <ArtFilters
           filters={filters}
           onFiltersChange={setFilters}
@@ -316,79 +272,103 @@ export default function ArtPage() {
           onViewCount={onViewCount}
           mustSeeCount={mustSeeCount}
           hasImageCount={hasImageCount}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          view={view}
+          onViewChange={setView}
         />
       </div>
 
-      {/* Main Content */}
-      <div className="flex gap-6">
-        {/* Artist Panel (Desktop) */}
-        {!isMobile && selectedArtist && (
-          <aside className="sticky top-24 hidden h-[calc(100vh-8rem)] w-72 shrink-0 overflow-hidden rounded-lg border border-border bg-card lg:block xl:w-80">
-            <ArtistPanel artist={selectedArtist} />
-          </aside>
-        )}
-
-        {/* Artwork Grid */}
-        <div className="flex-1">
-          {/* Mobile: Artist info button when artist is selected */}
-          {isMobile && selectedArtist && (
-            <Button
-              variant="outline"
-              className="mb-4 w-full justify-start gap-2"
-              onClick={handleViewArtistDetails}
-            >
-              <User className="h-4 w-4" />
-              <span className="truncate">{selectedArtist.artist_name}</span>
-              <span className="ml-auto text-xs text-muted-foreground">
-                {t('art.viewDetails')}
-              </span>
-            </Button>
+      {/* Grid View */}
+      {view === 'grid' && (
+        <div className="flex gap-6">
+          {/* Artist Panel (Desktop) */}
+          {!isMobile && selectedArtist && (
+            <aside className="sticky top-24 hidden h-[calc(100vh-8rem)] w-72 shrink-0 overflow-hidden rounded-lg border border-border bg-card lg:block xl:w-80">
+              <ArtistPanel artist={selectedArtist} />
+            </aside>
           )}
 
-          {/* Results count */}
-          <p className="mb-4 text-sm text-muted-foreground">
-            {filteredArtworks.length} {t('art.artworks')}
-          </p>
+          {/* Artwork Grid */}
+          <div className="flex-1">
+            {/* Mobile: Artist info button when artist is selected */}
+            {isMobile && selectedArtist && (
+              <Button
+                variant="outline"
+                className="mb-4 w-full justify-start gap-2"
+                onClick={handleViewArtistDetails}
+              >
+                <User className="h-4 w-4" />
+                <span className="truncate">{selectedArtist.artist_name}</span>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {t('art.viewDetails')}
+                </span>
+              </Button>
+            )}
 
-          {/* Grid - adaptive columns based on whether artist panel is visible */}
-          {filteredArtworks.length > 0 ? (
-            <div className={
-              selectedArtist && !isMobile
-                ? "grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
-                : "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8"
-            }>
-              {filteredArtworks.map((artwork) => (
-                <ArtworkCard
-                  key={artwork.artwork_id}
-                  artwork={artwork}
-                  onClick={() => handleArtworkClick(artwork)}
-                  compact={!!selectedArtist && !isMobile}
+            {/* Results count */}
+            <p className="mb-4 text-sm text-muted-foreground">
+              {filteredArtworks.length} {t('art.artworks')}
+            </p>
+
+            {/* Grid */}
+            {filteredArtworks.length > 0 ? (
+              <div className={
+                selectedArtist && !isMobile
+                  ? "grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+                  : "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8"
+              }>
+                {filteredArtworks.map((artwork) => (
+                  <ArtworkCard
+                    key={artwork.artwork_id}
+                    artwork={artwork}
+                    onClick={() => handleArtworkClick(artwork)}
+                    compact={!!selectedArtist && !isMobile}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <p className="text-muted-foreground">{t('art.noResults')}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t('art.tryAdjustingFilters')}
+                </p>
+              </div>
+            )}
+
+            {/* Artist Works Map - only shown when artist filter is active */}
+            {selectedArtist && filteredArtworks.length > 0 && (
+              <div className="mt-8">
+                <h2 className="mb-4 font-display text-lg font-semibold text-foreground">
+                  {t('art.worksOnMap')}
+                </h2>
+                <ArtistWorksMap 
+                  artworks={filteredArtworks} 
+                  artistName={selectedArtist.artist_name} 
                 />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <p className="text-muted-foreground">{t('art.noResults')}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t('art.tryAdjustingFilters')}
-              </p>
-            </div>
-          )}
-
-          {/* Artist Works Map - only shown when artist filter is active */}
-          {selectedArtist && filteredArtworks.length > 0 && (
-            <div className="mt-8">
-              <h2 className="mb-4 font-display text-lg font-semibold text-foreground">
-                {t('art.worksOnMap')}
-              </h2>
-              <ArtistWorksMap 
-                artworks={filteredArtworks} 
-                artistName={selectedArtist.artist_name} 
-              />
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Map View */}
+      {view === 'map' && (
+        <div className={detailOpen ? 'pointer-events-none' : ''}>
+          <ArtMapView
+            artworks={filteredArtworks}
+            onSelectMuseum={handleSelectMuseum}
+          />
+        </div>
+      )}
+
+      {/* Art Museum Drawer (Map View) */}
+      <ArtMuseumDrawer
+        group={selectedMuseumGroup}
+        isOpen={isDrawerOpen}
+        onClose={() => { setIsDrawerOpen(false); setSelectedMuseumGroup(null); }}
+        onArtworkClick={handleDrawerArtworkClick}
+      />
 
       {/* Artwork Detail Sheet */}
       <ArtworkDetailSheet
