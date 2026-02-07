@@ -6,14 +6,17 @@ import { useMuseums } from '@/hooks/useMuseums';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { usePreferences } from '@/hooks/usePreferences';
 import { useLanguage } from '@/lib/i18n';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { ExhibitionCard } from '@/components/exhibition/ExhibitionCard';
-import { ExhibitionDetailModal } from '@/components/exhibition/ExhibitionDetailModal';
+import { ExhibitionDetailPanel } from '@/components/exhibition/ExhibitionDetailPanel';
+import { ArtworkDetailSheet } from '@/components/art/ArtworkDetailSheet';
 import { ExhibitionFilters, DateSortOrder, DistanceSortOrder } from '@/components/exhibition/ExhibitionFilters';
 import { ExhibitionMap } from '@/components/exhibition/ExhibitionMap';
 import { ExhibitionMuseumDrawer } from '@/components/exhibition/ExhibitionMuseumDrawer';
 import { Button } from '@/components/ui/button';
 import { calculateDistance, formatDistance } from '@/lib/distance';
 import type { Exhibition, ExhibitionStatus } from '@/types/exhibition';
+import type { EnrichedArtwork } from '@/types/art';
 import type { ExhibitionLocation } from '@/components/exhibition/ExhibitionLocationFilter';
 import type { ExhibitionView } from '@/components/exhibition/ExhibitionViewToggle';
 import type { Museum } from '@/types/museum';
@@ -37,6 +40,7 @@ export default function ExhibitionsPage() {
   const { latitude, longitude, loading: geoLoading } = useGeolocation();
   const { preferences } = usePreferences();
   const { t } = useLanguage();
+  const isMobile = useIsMobile();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
@@ -49,9 +53,15 @@ export default function ExhibitionsPage() {
   const [closingSoon, setClosingSoon] = useState(false);
   const [dateSortOrder, setDateSortOrder] = useState<DateSortOrder>('none');
   const [distanceSortOrder, setDistanceSortOrder] = useState<DistanceSortOrder>('none');
-  const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [currentView, setCurrentView] = useState<ExhibitionView>(getStoredView);
+
+  // Exhibition detail panel state
+  const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
+  const [isExhibitionOpen, setIsExhibitionOpen] = useState(false);
+
+  // Artwork detail panel state
+  const [selectedArtwork, setSelectedArtwork] = useState<EnrichedArtwork | null>(null);
+  const [isArtworkOpen, setIsArtworkOpen] = useState(false);
 
   // Map drawer state
   const [selectedMuseumGroup, setSelectedMuseumGroup] = useState<{ museum: Museum; exhibitions: Exhibition[] } | null>(null);
@@ -235,10 +245,51 @@ export default function ExhibitionsPage() {
     setIsDrawerOpen(true);
   }, []);
 
-  const handleDrawerExhibitionClick = useCallback((exhibition: Exhibition) => {
+  // Open exhibition panel (from card click or map drawer)
+  const handleExhibitionClick = useCallback((exhibition: Exhibition) => {
     setSelectedExhibition(exhibition);
-    setIsDetailOpen(true);
+    setIsExhibitionOpen(true);
   }, []);
+
+  // Close exhibition panel → also close artwork
+  const handleExhibitionClose = useCallback(() => {
+    setIsExhibitionOpen(false);
+    setSelectedExhibition(null);
+    setIsArtworkOpen(false);
+    setSelectedArtwork(null);
+  }, []);
+
+  // Open artwork panel from Related Artworks
+  const handleArtworkClick = useCallback((artwork: EnrichedArtwork) => {
+    setSelectedArtwork(artwork);
+    setIsArtworkOpen(true);
+  }, []);
+
+  // Close artwork panel only
+  const handleArtworkClose = useCallback((open: boolean) => {
+    if (!open) {
+      setIsArtworkOpen(false);
+      setSelectedArtwork(null);
+    }
+  }, []);
+
+  // ESC key: close artwork first, then exhibition
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isArtworkOpen) {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsArtworkOpen(false);
+          setSelectedArtwork(null);
+        }
+        // Exhibition panel handles its own ESC when artwork is not open
+      }
+    };
+    // Use capture to intercept before the Sheet's own ESC handler
+    document.addEventListener('keydown', handleEsc, true);
+    return () => document.removeEventListener('keydown', handleEsc, true);
+  }, [isArtworkOpen]);
 
   const getDistanceForExhibition = useCallback((exhibition: Exhibition) => {
     const entry = exhibitionsWithDistance.find(e => e.exhibition.exhibition_id === exhibition.exhibition_id);
@@ -338,10 +389,7 @@ export default function ExhibitionsPage() {
                   key={exhibition.exhibition_id}
                   exhibition={exhibition}
                   distance={distanceFormatted}
-                  onClick={() => {
-                    setSelectedExhibition(exhibition);
-                    setIsDetailOpen(true);
-                  }}
+                  onClick={() => handleExhibitionClick(exhibition)}
                 />
               ))}
             </div>
@@ -351,14 +399,12 @@ export default function ExhibitionsPage() {
 
       {/* Map View */}
       {currentView === 'map' && (
-        <div className={isDetailOpen ? 'pointer-events-none' : ''}>
-          <ExhibitionMap
-            exhibitions={filteredExhibitionsList}
-            museumMap={museumMap}
-            onSelectMuseum={handleSelectMuseumGroup}
-            userLocation={userLocation}
-          />
-        </div>
+        <ExhibitionMap
+          exhibitions={filteredExhibitionsList}
+          museumMap={museumMap}
+          onSelectMuseum={handleSelectMuseumGroup}
+          userLocation={userLocation}
+        />
       )}
 
       {/* Museum Exhibitions Drawer (Map View) */}
@@ -366,23 +412,39 @@ export default function ExhibitionsPage() {
         group={selectedMuseumGroup}
         isOpen={isDrawerOpen}
         onClose={() => { setIsDrawerOpen(false); setSelectedMuseumGroup(null); }}
-        onExhibitionClick={handleDrawerExhibitionClick}
+        onExhibitionClick={handleExhibitionClick}
       />
 
-      {/* Exhibition Detail Modal */}
-      <ExhibitionDetailModal
+      {/* Exhibition Detail Panel (left side on desktop, fullscreen on mobile) */}
+      <ExhibitionDetailPanel
         exhibition={selectedExhibition}
-        open={isDetailOpen}
-        onOpenChange={(open) => {
-          setIsDetailOpen(open);
-          if (!open) setSelectedExhibition(null);
-        }}
+        open={isExhibitionOpen}
+        onClose={handleExhibitionClose}
+        onArtworkClick={handleArtworkClick}
         museumWebsiteUrl={
           selectedExhibition
             ? museumMap.get(selectedExhibition.museum_id)?.website_url
             : null
         }
       />
+
+      {/* Artwork Detail Panel (right side, above exhibition panel) */}
+      {isMobile ? (
+        // Mobile: full-screen artwork panel when open
+        isArtworkOpen && selectedArtwork && (
+          <ArtworkDetailSheet
+            artwork={selectedArtwork}
+            open={isArtworkOpen}
+            onOpenChange={handleArtworkClose}
+          />
+        )
+      ) : (
+        <ArtworkDetailSheet
+          artwork={selectedArtwork}
+          open={isArtworkOpen}
+          onOpenChange={handleArtworkClose}
+        />
+      )}
     </div>
   );
 }
