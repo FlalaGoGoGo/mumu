@@ -1,24 +1,22 @@
 import { useState } from 'react';
 import { ImageOff } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/lib/i18n';
 import type { Exhibition, ExhibitionStatus } from '@/types/exhibition';
 
 interface ExhibitionCompactCardProps {
   exhibition: Exhibition;
-  distance?: string | null;
   onClick?: () => void;
 }
 
-const statusColors: Record<ExhibitionStatus, string> = {
-  Ongoing: 'bg-green-50 text-green-700 border-green-200',
-  Upcoming: 'bg-blue-50 text-blue-700 border-blue-200',
-  Past: 'bg-red-50 text-red-700 border-red-200',
-  TBD: 'bg-amber-50 text-amber-700 border-amber-200',
+const statusGlassColors: Record<ExhibitionStatus, string> = {
+  Ongoing: 'text-green-700 dark:text-green-300',
+  Upcoming: 'text-blue-700 dark:text-blue-300',
+  Past: 'text-red-700 dark:text-red-300',
+  TBD: 'text-amber-700 dark:text-amber-300',
 };
 
-export function ExhibitionCompactCard({ exhibition, distance, onClick }: ExhibitionCompactCardProps) {
+export function ExhibitionCompactCard({ exhibition, onClick }: ExhibitionCompactCardProps) {
   const [imageError, setImageError] = useState(false);
   const { t } = useLanguage();
 
@@ -48,7 +46,7 @@ export function ExhibitionCompactCard({ exhibition, distance, onClick }: Exhibit
       role="button"
       aria-label={exhibition.exhibition_name}
     >
-      {/* Cover Image - short banner 16:5 */}
+      {/* Cover Image - short banner 16:5 with status chip overlay */}
       <div className="relative w-full flex-shrink-0" style={{ aspectRatio: '16 / 5' }}>
         {!imageError && exhibition.cover_image_url ? (
           <img
@@ -62,26 +60,20 @@ export function ExhibitionCompactCard({ exhibition, distance, onClick }: Exhibit
             <ImageOff className="w-8 h-8 text-muted-foreground/50" />
           </div>
         )}
+
+        {/* Glassmorphism status chip */}
+        <span
+          className={`absolute top-2 left-2 z-[2] inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium backdrop-blur-[10px] shadow-[0_6px_18px_rgba(0,0,0,0.12)] border border-white/35 bg-white/75 dark:bg-black/35 dark:border-white/20 ${statusGlassColors[exhibition.status]}`}
+        >
+          {getStatusLabel(exhibition.status)}
+        </span>
       </div>
 
-      <CardContent className="p-2.5 flex flex-col gap-1">
+      <CardContent className="p-2.5 flex flex-col gap-0.5">
         {/* Title - max 2 lines */}
         <h3 className="font-display text-sm font-semibold text-foreground leading-snug line-clamp-2">
           {exhibition.exhibition_name}
         </h3>
-
-        {/* Status chip + distance inline */}
-        <div className="flex items-center gap-1.5">
-          <Badge
-            variant="outline"
-            className={`flex-shrink-0 text-[10px] px-1.5 py-0 h-[18px] ${statusColors[exhibition.status]}`}
-          >
-            {getStatusLabel(exhibition.status)}
-          </Badge>
-          {distance !== undefined && distance !== null && (
-            <span className="text-[11px] text-muted-foreground flex-shrink-0">{distance}</span>
-          )}
-        </div>
 
         {/* Date range - 1 line with ellipsis */}
         <p className="text-xs text-muted-foreground truncate leading-tight">{exhibition.date_label}</p>

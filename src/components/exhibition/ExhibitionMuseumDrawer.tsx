@@ -16,7 +16,6 @@ interface ExhibitionMuseumDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onExhibitionClick: (exhibition: Exhibition) => void;
-  getDistance?: (exhibition: Exhibition) => string | null;
 }
 
 export function ExhibitionMuseumDrawer({
@@ -24,7 +23,6 @@ export function ExhibitionMuseumDrawer({
   isOpen,
   onClose,
   onExhibitionClick,
-  getDistance,
 }: ExhibitionMuseumDrawerProps) {
   const isMobile = useIsMobile();
   const { t } = useLanguage();
@@ -65,7 +63,6 @@ export function ExhibitionMuseumDrawer({
               <ExhibitionCompactCard
                 key={ex.exhibition_id}
                 exhibition={ex}
-                distance={getDistance?.(ex)}
                 onClick={() => onExhibitionClick(ex)}
               />
             ))}
@@ -108,7 +105,6 @@ export function ExhibitionMuseumDrawer({
               <ExhibitionCompactCard
                 key={ex.exhibition_id}
                 exhibition={ex}
-                distance={getDistance?.(ex)}
                 onClick={() => onExhibitionClick(ex)}
               />
             ))}
