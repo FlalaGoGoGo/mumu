@@ -93,7 +93,7 @@ export function ArtMuseumDrawer({
 
 /**
  * Desktop in-map panel — rendered inside the map container.
- * Absolutely positioned, right-aligned, full height of map.
+ * Absolutely positioned, LEFT-aligned, full height of map.
  */
 interface ArtMuseumPanelProps {
   group: ArtMuseumGroup;
@@ -115,7 +115,7 @@ export function ArtMuseumPanel({
     : allArtworks;
 
   return (
-    <div className="absolute top-0 right-0 bottom-0 w-[320px] z-[1100] bg-background/95 backdrop-blur-sm border-l border-border shadow-lg flex flex-col fade-in">
+    <div className="absolute top-0 left-0 bottom-0 w-[320px] z-[1100] bg-background/95 backdrop-blur-sm border-r border-border shadow-lg flex flex-col fade-in">
       {/* Header */}
       <div className="flex items-start justify-between gap-2 px-3 py-2.5 border-b border-border flex-shrink-0">
         <div className="min-w-0">

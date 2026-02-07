@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import { Plus, Minus, Globe, ImageOff } from 'lucide-react';
+import { Plus, Minus, Globe, Crosshair, ImageOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/lib/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -300,6 +300,11 @@ export function ArtMapView({
   const handleZoomToGlobal = () => {
     mapRef.current?.setView([25, 0], 2, { animate: true });
   };
+  const handleLocateMe = () => {
+    if (latitude && longitude) {
+      mapRef.current?.flyTo([latitude, longitude], 12, { animate: true });
+    }
+  };
 
   return (
     <div className={`relative w-full ${className}`} style={{ minHeight: '500px', height: 'calc(100vh - 260px)' }}>
@@ -318,7 +323,7 @@ export function ArtMapView({
         </div>
       )}
 
-      {/* Desktop: In-map museum panel */}
+      {/* Desktop: In-map museum panel (LEFT side) */}
       {!isMobile && isDrawerOpen && selectedGroup && (
         <ArtMuseumPanel
           group={selectedGroup}
@@ -350,6 +355,15 @@ export function ArtMapView({
             <Minus className="h-4 w-4" />
           </Button>
         </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleLocateMe}
+          className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-primary hover:text-primary-foreground hover:border-primary"
+          title="My location"
+        >
+          <Crosshair className="h-4 w-4" />
+        </Button>
         <Button
           variant="outline"
           size="icon"

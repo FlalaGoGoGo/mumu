@@ -70,7 +70,6 @@ interface ArtFiltersProps {
   onViewCount: number;
   mustSeeCount: number;
   hasImageCount: number;
-  // New props
   searchQuery: string;
   onSearchChange: (query: string) => void;
   view: ArtView;
@@ -104,14 +103,12 @@ export function ArtFilters({
   const [museumOpen, setMuseumOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
 
-  // Sort artists alphabetically by name, only those with count > 0
   const sortedArtists = useMemo(() => {
     return artists
       .filter(a => (artistCounts.get(a.artist_id) || 0) > 0)
       .sort((a, b) => a.artist_name.localeCompare(b.artist_name, undefined, { sensitivity: 'base' }));
   }, [artists, artistCounts]);
 
-  // Sort museums alphabetically by name, only those with count > 0
   const sortedMuseums = useMemo(() => {
     return museums
       .filter(m => (museumCounts.get(m.museum_id) || 0) > 0)
@@ -128,7 +125,6 @@ export function ArtFilters({
     [museums, filters.museumId]
   );
 
-  // Active filter count for badge
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (filters.artType) count++;
@@ -212,10 +208,10 @@ export function ArtFilters({
         </TooltipProvider>
       </div>
 
-      {/* Collapsible Filter Panel */}
+      {/* Collapsible Filter Panel — z-index above map */}
       <Collapsible open={panelOpen} onOpenChange={setPanelOpen}>
         <CollapsibleContent>
-          <div className="p-4 bg-muted/50 rounded-lg border space-y-3">
+          <div className="relative z-[2000] p-4 bg-muted/50 rounded-lg border space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               {/* Art Type Filter */}
               <Select
@@ -227,7 +223,7 @@ export function ArtFilters({
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder={t('art.type')} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]">
                   <SelectItem value="all">
                     {t('art.allTypes')} <span className="text-muted-foreground">({totalTypeCount})</span>
                   </SelectItem>
@@ -257,7 +253,7 @@ export function ArtFilters({
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[280px] p-0">
+                <PopoverContent className="w-[280px] p-0 z-[9999]">
                   <Command>
                     <CommandInput placeholder={t('art.searchArtist')} />
                     <CommandList>
@@ -319,7 +315,7 @@ export function ArtFilters({
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[320px] p-0">
+                <PopoverContent className="w-[320px] p-0 z-[9999]">
                   <Command>
                     <CommandInput placeholder={t('art.searchMuseum')} />
                     <CommandList>
