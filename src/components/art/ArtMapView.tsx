@@ -7,13 +7,19 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { Plus, Minus, Globe, ImageOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/lib/i18n';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { EnrichedArtwork } from '@/types/art';
 import type { ArtMuseumGroup } from './ArtMuseumDrawer';
+import { ArtMuseumPanel } from './ArtMuseumDrawer';
 import { getArtworkImageUrl } from '@/types/art';
 
 interface ArtMapViewProps {
   artworks: EnrichedArtwork[];
   onSelectMuseum: (group: ArtMuseumGroup) => void;
+  selectedGroup: ArtMuseumGroup | null;
+  isDrawerOpen: boolean;
+  onCloseDrawer: () => void;
+  onArtworkClick: (artwork: EnrichedArtwork) => void;
   className?: string;
 }
 
@@ -90,7 +96,7 @@ const createMuseumMarkerIcon = (artworkCount: number) => {
   });
 };
 
-export function ArtMapView({ artworks, onSelectMuseum, className = '' }: ArtMapViewProps) {
+export function ArtMapView({ artworks, onSelectMuseum, selectedGroup, isDrawerOpen, onCloseDrawer, onArtworkClick, className = '' }: ArtMapViewProps) {
   const mapRef = useRef<L.Map | null>(null);
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -230,6 +236,8 @@ export function ArtMapView({ artworks, onSelectMuseum, className = '' }: ArtMapV
     mapRef.current?.setView([25, 0], 2, { animate: true });
   };
 
+  const isMobile = useIsMobile();
+
   return (
     <div className={`relative w-full ${className}`} style={{ minHeight: '500px', height: 'calc(100vh - 260px)' }}>
       <div ref={containerRef} className="w-full h-full rounded-lg overflow-hidden border border-border" />
@@ -245,6 +253,15 @@ export function ArtMapView({ artworks, onSelectMuseum, className = '' }: ArtMapV
             {t('art.tryAdjustingFilters')}
           </p>
         </div>
+      )}
+
+      {/* Desktop: In-map museum panel */}
+      {!isMobile && isDrawerOpen && selectedGroup && (
+        <ArtMuseumPanel
+          group={selectedGroup}
+          onClose={onCloseDrawer}
+          onArtworkClick={onArtworkClick}
+        />
       )}
 
       {/* Map Controls */}

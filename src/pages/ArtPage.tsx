@@ -358,17 +358,23 @@ export default function ArtPage() {
           <ArtMapView
             artworks={filteredArtworks}
             onSelectMuseum={handleSelectMuseum}
+            selectedGroup={selectedMuseumGroup}
+            isDrawerOpen={isDrawerOpen}
+            onCloseDrawer={() => { setIsDrawerOpen(false); setSelectedMuseumGroup(null); }}
+            onArtworkClick={handleDrawerArtworkClick}
           />
         </div>
       )}
 
-      {/* Art Museum Drawer (Map View) */}
-      <ArtMuseumDrawer
-        group={selectedMuseumGroup}
-        isOpen={isDrawerOpen}
-        onClose={() => { setIsDrawerOpen(false); setSelectedMuseumGroup(null); }}
-        onArtworkClick={handleDrawerArtworkClick}
-      />
+      {/* Art Museum Drawer — mobile only (desktop panel is inside ArtMapView) */}
+      {isMobile && (
+        <ArtMuseumDrawer
+          group={selectedMuseumGroup}
+          isOpen={isDrawerOpen}
+          onClose={() => { setIsDrawerOpen(false); setSelectedMuseumGroup(null); }}
+          onArtworkClick={handleDrawerArtworkClick}
+        />
+      )}
 
       {/* Artwork Detail Sheet */}
       <ArtworkDetailSheet
