@@ -5,8 +5,9 @@ import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.heat';
-import { Plus, Minus, Globe, Crosshair, ImageOff, MapPin, Flame } from 'lucide-react';
+import { Plus, Minus, Globe, Crosshair, ImageOff, MapPin, Flame, Layers, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useLanguage } from '@/lib/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -391,38 +392,49 @@ export function ArtMapView({
         />
       )}
 
-      {/* Mode toggle (top-left) */}
-      <div className="absolute top-3 left-3 flex flex-col rounded-md overflow-hidden shadow-md z-[1000]">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setMapMode('pins')}
-          className={`rounded-none rounded-t-md border-b-0 backdrop-blur-sm ${
-            mapMode === 'pins'
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-background/95 hover:bg-primary hover:text-primary-foreground hover:border-primary'
-          }`}
-          title="Pins"
-        >
-          <MapPin className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setMapMode('heat')}
-          className={`rounded-none rounded-b-md backdrop-blur-sm ${
-            mapMode === 'heat'
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-background/95 hover:bg-primary hover:text-primary-foreground hover:border-primary'
-          }`}
-          title="Heatmap"
-        >
-          <Flame className="h-4 w-4" />
-        </Button>
-      </div>
-
       {/* Map Controls (bottom-right) */}
       <div className="absolute bottom-6 right-4 flex flex-col gap-2 z-[1000]">
+        {/* Layers toggle */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-primary hover:text-primary-foreground hover:border-primary"
+              title="Layers"
+            >
+              <Layers className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="left" align="start" className="w-40 p-1 z-[9999]">
+            <button
+              onClick={() => setMapMode('pins')}
+              className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                mapMode === 'pins'
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-muted text-foreground'
+              }`}
+            >
+              <MapPin className="h-4 w-4 shrink-0" />
+              <span className="flex-1 text-left">Pins</span>
+              {mapMode === 'pins' && <Check className="h-3.5 w-3.5 shrink-0" />}
+            </button>
+            <button
+              onClick={() => setMapMode('heat')}
+              className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                mapMode === 'heat'
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-muted text-foreground'
+              }`}
+            >
+              <Flame className="h-4 w-4 shrink-0" />
+              <span className="flex-1 text-left">Heatmap</span>
+              {mapMode === 'heat' && <Check className="h-3.5 w-3.5 shrink-0" />}
+            </button>
+          </PopoverContent>
+        </Popover>
+
+        {/* Zoom */}
         <div className="flex flex-col rounded-md overflow-hidden shadow-md">
           <Button
             variant="outline"
