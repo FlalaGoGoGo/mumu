@@ -59,7 +59,11 @@ export function ExhibitionDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden sm:rounded-lg max-h-[90vh]">
+      <DialogContent
+        className="max-w-lg p-0 gap-0 overflow-hidden sm:rounded-lg max-h-[90vh] z-[9200]"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <ScrollArea className="max-h-[90vh]">
           {/* Hero image */}
           <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
