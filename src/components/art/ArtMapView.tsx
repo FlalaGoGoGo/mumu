@@ -1,10 +1,11 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import { Plus, Minus, Globe, Crosshair, ImageOff } from 'lucide-react';
+import 'leaflet.heat';
+import { Plus, Minus, Globe, Crosshair, ImageOff, MapPin, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/lib/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -14,6 +15,22 @@ import type { ArtMuseumGroup } from './ArtMuseumDrawer';
 import { ArtMuseumPanel } from './ArtMuseumDrawer';
 import { getArtworkImageUrl } from '@/types/art';
 
+// Extend L to include heat
+declare module 'leaflet' {
+  function heatLayer(
+    latlngs: Array<[number, number, number?]>,
+    options?: {
+      radius?: number;
+      blur?: number;
+      maxZoom?: number;
+      max?: number;
+      minOpacity?: number;
+      gradient?: Record<number, string>;
+    }
+  ): L.Layer;
+}
+
+type MapMode = 'pins' | 'heat';
 interface ArtMapViewProps {
   artworks: EnrichedArtwork[];
   onSelectMuseum: (group: ArtMuseumGroup) => void;
@@ -125,9 +142,11 @@ export function ArtMapView({
 }: ArtMapViewProps) {
   const mapRef = useRef<L.Map | null>(null);
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
+  const heatLayerRef = useRef<L.Layer | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const userAccuracyRef = useRef<L.Circle | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [mapMode, setMapMode] = useState<MapMode>('pins');
   const { t } = useLanguage();
   const isMobile = useIsMobile();
   const { latitude, longitude, accuracy, error: geoError } = useGeolocation();
@@ -190,55 +209,94 @@ export function ArtMapView({
     };
   }, []);
 
-  // Update markers when data changes
+  // Update markers / heatmap when data or mode changes
   useEffect(() => {
     if (!mapRef.current || !clusterGroupRef.current) return;
 
+    // Clear all visualization layers
     clusterGroupRef.current.clearLayers();
+    if (heatLayerRef.current) {
+      mapRef.current.removeLayer(heatLayerRef.current);
+      heatLayerRef.current = null;
+    }
 
-    museumGroups.forEach(group => {
-      const icon = createMuseumMarkerIcon(group.artworks.length);
+    if (mapMode === 'pins') {
+      // Show cluster group layer
+      if (!mapRef.current.hasLayer(clusterGroupRef.current)) {
+        mapRef.current.addLayer(clusterGroupRef.current);
+      }
 
-      const marker = L.marker([group.lat, group.lng], { icon })
-        .on('click', () => onSelectMuseum(group));
+      museumGroups.forEach(group => {
+        const icon = createMuseumMarkerIcon(group.artworks.length);
 
-      // Build popup with thumbnails
-      const thumbs = group.artworks.slice(0, 3);
-      const thumbHtml = thumbs.map(artwork => {
-        const imgUrl = getArtworkImageUrl(artwork);
-        return imgUrl
-          ? `<img src="${imgUrl}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:3px;border:1px solid hsl(35,15%,82%);" onerror="this.style.display='none'" />`
-          : '';
-      }).filter(Boolean).join('');
+        const marker = L.marker([group.lat, group.lng], { icon })
+          .on('click', () => onSelectMuseum(group));
 
-      const popupContent = `
-        <div style="font-family:'Source Sans 3',sans-serif;min-width:180px;">
-          <div style="font-family:'Cormorant Garamond',serif;font-weight:700;font-size:14px;color:hsl(24,10%,18%);margin-bottom:4px;">${group.museumName}</div>
-          <div style="font-size:12px;color:hsl(24,8%,45%);margin-bottom:8px;">${group.artworks.length} ${t('art.artworks')}</div>
-          ${thumbHtml ? `<div style="display:flex;gap:4px;margin-bottom:8px;">${thumbHtml}</div>` : ''}
-          <button onclick="window.dispatchEvent(new CustomEvent('art-map-view',{detail:'${group.museumId}'}))" style="
-            width:100%;padding:6px 12px;
-            background:hsl(348,45%,32%);color:hsl(40,33%,97%);
-            border:none;border-radius:4px;cursor:pointer;
-            font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;
-          ">${t('art.viewArtworks' as any) || 'View Artworks'}</button>
-        </div>
-      `;
+        // Build popup with thumbnails
+        const thumbs = group.artworks.slice(0, 3);
+        const thumbHtml = thumbs.map(artwork => {
+          const imgUrl = getArtworkImageUrl(artwork);
+          return imgUrl
+            ? `<img src="${imgUrl}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:3px;border:1px solid hsl(35,15%,82%);" onerror="this.style.display='none'" />`
+            : '';
+        }).filter(Boolean).join('');
 
-      marker.bindPopup(popupContent, {
-        closeButton: true,
-        className: 'mumu-popup',
-        maxWidth: 240,
+        const popupContent = `
+          <div style="font-family:'Source Sans 3',sans-serif;min-width:180px;">
+            <div style="font-family:'Cormorant Garamond',serif;font-weight:700;font-size:14px;color:hsl(24,10%,18%);margin-bottom:4px;">${group.museumName}</div>
+            <div style="font-size:12px;color:hsl(24,8%,45%);margin-bottom:8px;">${group.artworks.length} ${t('art.artworks')}</div>
+            ${thumbHtml ? `<div style="display:flex;gap:4px;margin-bottom:8px;">${thumbHtml}</div>` : ''}
+            <button onclick="window.dispatchEvent(new CustomEvent('art-map-view',{detail:'${group.museumId}'}))" style="
+              width:100%;padding:6px 12px;
+              background:hsl(348,45%,32%);color:hsl(40,33%,97%);
+              border:none;border-radius:4px;cursor:pointer;
+              font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;
+            ">${t('art.viewArtworks' as any) || 'View Artworks'}</button>
+          </div>
+        `;
+
+        marker.bindPopup(popupContent, {
+          closeButton: true,
+          className: 'mumu-popup',
+          maxWidth: 240,
+        });
+
+        marker.bindTooltip(group.museumName, {
+          direction: 'top',
+          offset: [0, -14],
+          className: 'mumu-tooltip',
+        });
+
+        clusterGroupRef.current!.addLayer(marker);
       });
+    } else {
+      // Heatmap mode — hide cluster group, show heat layer
+      if (mapRef.current.hasLayer(clusterGroupRef.current)) {
+        mapRef.current.removeLayer(clusterGroupRef.current);
+      }
 
-      marker.bindTooltip(group.museumName, {
-        direction: 'top',
-        offset: [0, -14],
-        className: 'mumu-tooltip',
-      });
+      if (museumGroups.length > 0) {
+        const heatPoints: [number, number, number][] = museumGroups.map(g => [
+          g.lat,
+          g.lng,
+          g.artworks.length,
+        ]);
 
-      clusterGroupRef.current!.addLayer(marker);
-    });
+        heatLayerRef.current = L.heatLayer(heatPoints, {
+          radius: 25,
+          blur: 15,
+          maxZoom: 10,
+          minOpacity: 0.3,
+          gradient: {
+            0.4: 'hsl(43, 60%, 70%)',
+            0.65: 'hsl(348, 45%, 50%)',
+            1: 'hsl(348, 45%, 32%)',
+          },
+        });
+
+        mapRef.current.addLayer(heatLayerRef.current);
+      }
+    }
 
     // Auto-fit bounds
     if (museumGroups.length > 0) {
@@ -247,7 +305,7 @@ export function ArtMapView({
       );
       mapRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 6 });
     }
-  }, [museumGroups, onSelectMuseum, t]);
+  }, [museumGroups, mapMode, onSelectMuseum, t]);
 
   // Listen for popup button clicks
   useEffect(() => {
@@ -333,7 +391,37 @@ export function ArtMapView({
         />
       )}
 
-      {/* Map Controls */}
+      {/* Mode toggle (top-left) */}
+      <div className="absolute top-3 left-3 flex flex-col rounded-md overflow-hidden shadow-md z-[1000]">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setMapMode('pins')}
+          className={`rounded-none rounded-t-md border-b-0 backdrop-blur-sm ${
+            mapMode === 'pins'
+              ? 'bg-primary text-primary-foreground border-primary'
+              : 'bg-background/95 hover:bg-primary hover:text-primary-foreground hover:border-primary'
+          }`}
+          title="Pins"
+        >
+          <MapPin className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setMapMode('heat')}
+          className={`rounded-none rounded-b-md backdrop-blur-sm ${
+            mapMode === 'heat'
+              ? 'bg-primary text-primary-foreground border-primary'
+              : 'bg-background/95 hover:bg-primary hover:text-primary-foreground hover:border-primary'
+          }`}
+          title="Heatmap"
+        >
+          <Flame className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Map Controls (bottom-right) */}
       <div className="absolute bottom-6 right-4 flex flex-col gap-2 z-[1000]">
         <div className="flex flex-col rounded-md overflow-hidden shadow-md">
           <Button
