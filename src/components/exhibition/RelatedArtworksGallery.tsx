@@ -65,23 +65,21 @@ export function RelatedArtworksGallery({ artworkIds, onArtworkClick }: RelatedAr
             <button
               key={artwork.artwork_id}
               onClick={() => onArtworkClick?.(artwork)}
-              className="relative aspect-square overflow-hidden rounded-sm bg-muted group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="group relative w-full aspect-square rounded-sm overflow-hidden bg-muted border border-[hsl(var(--gold-border))] shadow-[0_1px_3px_hsl(var(--foreground)/0.04)] transition-all duration-200 hover:border-[hsl(var(--gold-border-light))] hover:shadow-[0_4px_12px_hsl(var(--foreground)/0.08)] hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 cursor-pointer"
             >
               <img
                 src={getArtworkImageUrl(artwork)!}
                 alt={artwork.title}
                 className="absolute inset-0 w-full h-full object-cover"
               />
-              {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors duration-200 flex items-end p-1.5 opacity-0 group-hover:opacity-100">
-                <div className="text-left">
-                  <p className="text-white text-[11px] font-semibold leading-tight line-clamp-2">
-                    {artwork.title}
-                  </p>
-                  <p className="text-white/75 text-[10px] leading-tight line-clamp-1 mt-0.5">
-                    {artwork.museum_name}
-                  </p>
-                </div>
+              {/* Hover overlay — dark with title + museum */}
+              <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/60 group-focus-visible:bg-foreground/60 transition-colors duration-200 flex flex-col justify-end px-1.5 pb-1.5 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
+                <h4 className="font-display text-[10px] font-semibold text-white leading-tight line-clamp-2">
+                  {artwork.title}
+                </h4>
+                <p className="text-[9px] text-white/70 leading-tight truncate mt-0.5">
+                  {artwork.museum_name}
+                </p>
               </div>
             </button>
           ))}
