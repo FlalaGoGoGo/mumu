@@ -112,6 +112,13 @@ export const ELIGIBILITY_CATALOG: EligibilityCategory[] = [
     label: 'Memberships & Reciprocity',
     items: [
       {
+        type: 'museum_membership',
+        label: 'Museum Membership',
+        icon: '🏛️',
+        description: 'Annual museum membership (unlimited admission during valid period)',
+        hasDetails: 'museum_memberships',
+      },
+      {
         type: 'icom',
         label: 'ICOM Member',
         icon: '🌐',

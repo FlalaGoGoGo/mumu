@@ -15,7 +15,14 @@ export type EligibilityType =
   | 'teacher'
   | 'first_responder'
   | 'local_resident'
-  | 'age_based';
+  | 'age_based'
+  | 'museum_membership';
+
+export interface MuseumMembershipEntry {
+  museum_id: string;
+  museum_name: string;
+  expires_on: string; // ISO date string
+}
 
 export interface EligibilityItem {
   type: EligibilityType;
@@ -26,6 +33,7 @@ export interface EligibilityItem {
   cities?: string[]; // For city_pass: CityPASS destination cities
   locations?: string[]; // For local_resident: "City, State, Region" strings
   date_of_birth?: string; // ISO date string for age-based eligibility
+  museum_memberships?: MuseumMembershipEntry[]; // For museum_membership
 }
 
 export interface EligibilityCategory {
@@ -39,7 +47,7 @@ export interface EligibilityCatalogItem {
   label: string;
   icon: string;
   description: string;
-  hasDetails?: 'schools' | 'libraries' | 'companies' | 'date_of_birth' | 'locations' | 'cities';
+  hasDetails?: 'schools' | 'libraries' | 'companies' | 'date_of_birth' | 'locations' | 'cities' | 'museum_memberships';
   infoUrl?: string;
 }
 
@@ -94,6 +102,7 @@ export function getEligibilityDisplayLabel(item: EligibilityItem, catalog: Eligi
   if (item.companies?.length) details.push(item.companies.join(', '));
   if (item.cities?.length) details.push(item.cities.join(', '));
   if (item.locations?.length) details.push(item.locations.join(', '));
+  if (item.museum_memberships?.length) details.push(item.museum_memberships.map(m => m.museum_name).join(', '));
   
   if (details.length > 0) {
     return `${baseLabel} — ${details.join('; ')}`;
