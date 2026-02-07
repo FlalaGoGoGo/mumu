@@ -66,12 +66,10 @@ export function ExpirationEditor({
         </Popover>
       )}
       <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
-        <Checkbox
+      <Checkbox
           checked={!!lifetime}
           onCheckedChange={(checked) => {
-            const isLifetime = !!checked;
-            onLifetimeChange(isLifetime);
-            if (isLifetime) onExpiresOnChange(undefined);
+            onLifetimeChange(!!checked);
           }}
           className="h-3.5 w-3.5"
         />
