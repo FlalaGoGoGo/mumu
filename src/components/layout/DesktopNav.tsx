@@ -1,4 +1,4 @@
-import { Landmark, Route, Stamp, Settings, Palette, Image } from 'lucide-react';
+import { Landmark, Route, Stamp, Settings, Palette, Image, ShoppingBag } from 'lucide-react';
 import mumuLogo from '@/assets/mumu-logo.png';
 import { NavLink } from 'react-router-dom';
 import { LanguageSelector } from '@/components/LanguageSelector';
@@ -9,6 +9,7 @@ const navItems: { to: string; icon: React.ComponentType<{ className?: string }>;
   { to: '/', icon: Landmark, labelKey: 'nav.museums' },
   { to: '/art', icon: Image, labelKey: 'nav.art' },
   { to: '/exhibitions', icon: Palette, labelKey: 'nav.exhibitions' },
+  { to: '/shop', icon: ShoppingBag, labelKey: 'nav.shop' },
   { to: '/passport', icon: Stamp, labelKey: 'nav.passport' },
   { to: '/settings', icon: Settings, labelKey: 'nav.settings' },
 ];

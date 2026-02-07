@@ -26,6 +26,7 @@ export const translations = {
     'nav.plan': 'Plan',
     'nav.passport': 'Passport',
     'nav.settings': 'Settings',
+    'nav.shop': 'Shop',
     
     // App header
     'app.title': 'MuMu',
@@ -378,6 +379,7 @@ export const translations = {
     'nav.plan': '计划',
     'nav.passport': '护照',
     'nav.settings': '设置',
+    'nav.shop': '商店',
     
     // App header
     'app.title': 'MuMu',
@@ -667,6 +669,7 @@ export const translations = {
     'nav.plan': '計劃',
     'nav.passport': '護照',
     'nav.settings': '設定',
+    'nav.shop': '商店',
     
     // App header
     'app.title': 'MuMu',
@@ -953,6 +956,7 @@ export const translations = {
     'nav.plan': 'Planificar',
     'nav.passport': 'Pasaporte',
     'nav.settings': 'Ajustes',
+    'nav.shop': 'Tienda',
     'app.title': 'MuMu',
     'app.subtitle': 'Tu Compañero de Museos',
     'map.title': 'Descubre Museos',
@@ -1215,6 +1219,7 @@ export const translations = {
     'nav.plan': 'Planifier',
     'nav.passport': 'Passeport',
     'nav.settings': 'Paramètres',
+    'nav.shop': 'Boutique',
     'app.title': 'MuMu',
     'app.subtitle': 'Votre Compagnon de Musée',
     'map.title': 'Découvrir les Musées',
@@ -1477,6 +1482,7 @@ export const translations = {
     'nav.plan': 'Planen',
     'nav.passport': 'Pass',
     'nav.settings': 'Einstellungen',
+    'nav.shop': 'Shop',
     'app.title': 'MuMu',
     'app.subtitle': 'Ihr Museums-Begleiter',
     'map.title': 'Museen Entdecken',
@@ -1739,6 +1745,7 @@ export const translations = {
     'nav.plan': 'プラン',
     'nav.passport': 'パスポート',
     'nav.settings': '設定',
+    'nav.shop': 'ショップ',
     'app.title': 'MuMu',
     'app.subtitle': 'あなたのミュージアムバディ',
     'map.title': 'ミュージアムを発見',
@@ -2001,6 +2008,7 @@ export const translations = {
     'nav.plan': '계획',
     'nav.passport': '여권',
     'nav.settings': '설정',
+    'nav.shop': '상점',
     'app.title': 'MuMu',
     'app.subtitle': '당신의 박물관 친구',
     'map.title': '박물관 발견',
@@ -2263,6 +2271,7 @@ export const translations = {
     'nav.plan': 'Planejar',
     'nav.passport': 'Passaporte',
     'nav.settings': 'Configurações',
+    'nav.shop': 'Loja',
     'app.title': 'MuMu',
     'app.subtitle': 'Seu Companheiro de Museu',
     'map.title': 'Descubra Museus',
@@ -2525,6 +2534,7 @@ export const translations = {
     'nav.plan': 'Pianifica',
     'nav.passport': 'Passaporto',
     'nav.settings': 'Impostazioni',
+    'nav.shop': 'Negozio',
     'app.title': 'MuMu',
     'app.subtitle': 'Il Tuo Compagno di Museo',
     'map.title': 'Scopri i Musei',
