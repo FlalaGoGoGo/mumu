@@ -60,7 +60,7 @@ export function RelatedArtworksGallery({ artworkIds, onArtworkClick }: RelatedAr
         Related Artworks
       </h3>
       <div className="max-h-[240px] overflow-y-auto -mx-1 px-1">
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1.5">
           {enrichedRelated.map((artwork) => (
             <button
               key={artwork.artwork_id}
