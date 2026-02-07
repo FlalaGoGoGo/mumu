@@ -367,7 +367,6 @@ export default function ExhibitionsPage() {
         isOpen={isDrawerOpen}
         onClose={() => { setIsDrawerOpen(false); setSelectedMuseumGroup(null); }}
         onExhibitionClick={handleDrawerExhibitionClick}
-        getDistance={getDistanceForExhibition}
       />
 
       {/* Exhibition Detail Modal */}
