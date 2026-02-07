@@ -1,4 +1,4 @@
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, GripVertical } from 'lucide-react';
 import { format, isBefore, startOfDay } from 'date-fns';
 import { EligibilityItem } from '@/types/eligibility';
 import { ALL_CATALOG_ITEMS } from '@/lib/eligibilityCatalog';
@@ -20,9 +20,10 @@ interface EligibilityChipProps {
   onRemoveDetail?: (detailType: 'schools' | 'libraries' | 'companies' | 'locations' | 'cities', value: string) => void;
   onRemoveMembership?: (museumId: string) => void;
   onClick?: () => void;
+  dragHandleProps?: Record<string, unknown>;
 }
 
-export function EligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMembership, onClick }: EligibilityChipProps) {
+export function EligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMembership, onClick, dragHandleProps }: EligibilityChipProps) {
   const catalogItem = ALL_CATALOG_ITEMS.find(c => c.type === item.type);
   const icon = catalogItem?.icon || '🏷️';
   const baseLabel = catalogItem?.label || item.type;
@@ -34,8 +35,6 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMember
   if (item.cities?.length) details.push({ type: 'cities', values: item.cities });
   if (item.locations?.length) details.push({ type: 'locations', values: item.locations });
 
-  const hasDetails = details.length > 0 || (item.museum_memberships?.length ?? 0) > 0;
-
   return (
     <div
       className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border/60 bg-card/80 text-sm group hover:border-primary/30 transition-colors"
@@ -46,9 +45,23 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMember
         if (e.key === 'Enter' || e.key === ' ') onClick?.();
       }}
     >
+      {/* Drag handle */}
+      {dragHandleProps && (
+        <button
+          type="button"
+          className="flex-shrink-0 cursor-grab active:cursor-grabbing touch-none text-muted-foreground/50 hover:text-muted-foreground transition-colors -ml-1"
+          onClick={(e) => e.stopPropagation()}
+          {...dragHandleProps}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+      )}
+
       <span className="text-base flex-shrink-0 self-center leading-none">{icon}</span>
       <div className="flex-1 min-w-0">
         <span className="text-foreground font-medium">{baseLabel}</span>
+
+        {/* Detail rows (schools, libraries, etc.) */}
         {details.length > 0 && (
           <div className="mt-1 space-y-0.5">
             {details.map(detail =>
@@ -74,7 +87,8 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMember
             )}
           </div>
         )}
-        {/* Museum memberships */}
+
+        {/* Museum memberships — × next to each row text, not at far right */}
         {item.museum_memberships && item.museum_memberships.length > 0 && (
           <div className="mt-1 space-y-0.5">
             {item.museum_memberships.map(m => {
@@ -82,7 +96,7 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMember
               return (
                 <div key={m.museum_id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <span className="w-1 h-1 rounded-full bg-muted-foreground/40 flex-shrink-0" />
-                  <span className="break-words flex-1">
+                  <span className="break-words">
                     {m.museum_name}
                     {m.expires_on && (
                       <span className={expired ? 'text-destructive ml-1' : 'ml-1'}>
@@ -109,12 +123,15 @@ export function EligibilityChip({ item, onRemove, onRemoveDetail, onRemoveMember
             })}
           </div>
         )}
+
         {item.date_of_birth && (
           <div className="mt-1 text-xs text-muted-foreground">
             Age: {calculateAge(item.date_of_birth)}
           </div>
         )}
       </div>
+
+      {/* Card-level remove button (far right) */}
       <button
         type="button"
         onClick={(e) => {
