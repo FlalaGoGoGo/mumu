@@ -73,7 +73,7 @@ export function RelatedArtworksGallery({ artworkIds, onArtworkClick }: RelatedAr
                 className="absolute inset-0 w-full h-full object-cover"
               />
               {/* Hover overlay — dark with title + museum */}
-              <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/60 group-focus-visible:bg-foreground/60 transition-colors duration-200 flex flex-col justify-end px-1.5 pb-1.5 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
+              <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/60 group-focus-visible:bg-foreground/60 transition-colors duration-200 flex flex-col items-start justify-end w-full text-left px-2 pb-1.5 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
                 <h4 className="font-display text-[10px] font-semibold text-white leading-tight line-clamp-2">
                   {artwork.title}
                 </h4>
