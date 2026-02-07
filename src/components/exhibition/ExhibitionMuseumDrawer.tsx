@@ -1,7 +1,7 @@
-import { X, ImageOff } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useLanguage } from '@/lib/i18n';
-import { ExhibitionCard } from './ExhibitionCard';
+import { ExhibitionCompactCard } from './ExhibitionCompactCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Exhibition } from '@/types/exhibition';
 import type { Museum } from '@/types/museum';
@@ -62,7 +62,7 @@ export function ExhibitionMuseumDrawer({
           </div>
           <div className="overflow-y-auto px-4 py-4 space-y-3" style={{ maxHeight: 'calc(70vh - 80px)' }}>
             {exhibitions.map(ex => (
-              <ExhibitionCard
+              <ExhibitionCompactCard
                 key={ex.exhibition_id}
                 exhibition={ex}
                 distance={getDistance?.(ex)}
@@ -105,7 +105,7 @@ export function ExhibitionMuseumDrawer({
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-3">
             {exhibitions.map(ex => (
-              <ExhibitionCard
+              <ExhibitionCompactCard
                 key={ex.exhibition_id}
                 exhibition={ex}
                 distance={getDistance?.(ex)}

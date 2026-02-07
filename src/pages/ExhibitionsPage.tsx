@@ -351,12 +351,14 @@ export default function ExhibitionsPage() {
 
       {/* Map View */}
       {currentView === 'map' && (
-        <ExhibitionMap
-          exhibitions={filteredExhibitionsList}
-          museumMap={museumMap}
-          onSelectMuseum={handleSelectMuseumGroup}
-          userLocation={userLocation}
-        />
+        <div className={isDetailOpen ? 'pointer-events-none' : ''}>
+          <ExhibitionMap
+            exhibitions={filteredExhibitionsList}
+            museumMap={museumMap}
+            onSelectMuseum={handleSelectMuseumGroup}
+            userLocation={userLocation}
+          />
+        </div>
       )}
 
       {/* Museum Exhibitions Drawer (Map View) */}
