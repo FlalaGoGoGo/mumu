@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { X, Plus, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import type { ItemExpiration } from '@/types/eligibility';
+import { ExpirationEditor } from './ExpirationEditor';
 
 interface DetailEditorProps {
   label: string;
@@ -11,17 +13,33 @@ interface DetailEditorProps {
   selected: string[];
   onChange: (selected: string[]) => void;
   showOtherOption?: boolean;
+  /** Per-item expiration data (keyed by item name) */
+  itemExpirations?: Record<string, ItemExpiration>;
+  /** Called when an item's expiration changes */
+  onItemExpirationChange?: (itemName: string, exp: ItemExpiration) => void;
 }
 
-export function DetailEditor({ label, placeholder, addLabel, options, selected, onChange, showOtherOption }: DetailEditorProps) {
+export function DetailEditor({
+  label,
+  placeholder,
+  addLabel,
+  options,
+  selected,
+  onChange,
+  showOtherOption,
+  itemExpirations,
+  onItemExpirationChange,
+}: DetailEditorProps) {
   const [search, setSearch] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customValue, setCustomValue] = useState('');
 
+  const hasExpiration = !!itemExpirations && !!onItemExpirationChange;
+
   const filtered = useMemo(() => {
     if (!search) return options.filter(o => !selected.includes(o)).slice(0, 8);
     const q = search.toLowerCase();
-    return options.filter(o => 
+    return options.filter(o =>
       o.toLowerCase().includes(q) && !selected.includes(o)
     ).slice(0, 10);
   }, [search, options, selected]);
@@ -49,26 +67,69 @@ export function DetailEditor({ label, placeholder, addLabel, options, selected, 
   return (
     <div className="space-y-3 mt-3 pl-8 border-l-2 border-border/40">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-      
+
       {/* Selected items */}
       {selected.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {selected.map(item => (
-            <span
-              key={item}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-primary text-xs"
-            >
-              {item}
-              <button
-                type="button"
-                onClick={() => handleRemove(item)}
-                className="p-0.5 rounded-full hover:bg-primary/20"
+        hasExpiration ? (
+          /* Row layout with per-item expiration controls */
+          <div className="space-y-1.5">
+            {selected.map(item => {
+              const exp = itemExpirations[item] || {};
+              return (
+                <div
+                  key={item}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/50 bg-background/50"
+                >
+                  <span className="text-sm flex-1 min-w-0 truncate font-medium text-foreground">
+                    {item}
+                  </span>
+                  <ExpirationEditor
+                    expiresOn={exp.expires_on}
+                    lifetime={exp.lifetime}
+                    onExpiresOnChange={(date) =>
+                      onItemExpirationChange!(item, { ...exp, expires_on: date })
+                    }
+                    onLifetimeChange={(lt) =>
+                      onItemExpirationChange!(item, {
+                        ...exp,
+                        lifetime: lt,
+                        ...(lt ? { expires_on: undefined } : {}),
+                      })
+                    }
+                    compact
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(item)}
+                    className="shrink-0 p-0.5 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    aria-label={`Remove ${item}`}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* Chip layout (existing behavior) */
+          <div className="flex flex-wrap gap-1.5">
+            {selected.map(item => (
+              <span
+                key={item}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-primary text-xs"
               >
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          ))}
-        </div>
+                {item}
+                <button
+                  type="button"
+                  onClick={() => handleRemove(item)}
+                  className="p-0.5 rounded-full hover:bg-primary/20"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )
       )}
 
       {/* Search + suggestions */}
