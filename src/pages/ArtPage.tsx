@@ -259,7 +259,7 @@ export default function ArtPage() {
       </div>
 
       {/* Toolbar + Filters */}
-      <div className="sticky top-0 z-20 -mx-4 mb-4 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
+      <div className="sticky top-0 z-[1500] -mx-4 mb-4 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
         <ArtFilters
           filters={filters}
           onFiltersChange={setFilters}
