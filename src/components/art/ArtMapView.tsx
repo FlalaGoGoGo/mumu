@@ -302,7 +302,7 @@ export function ArtMapView({
   };
   const handleLocateMe = () => {
     if (latitude && longitude) {
-      mapRef.current?.setView([latitude, longitude], 14, { animate: true, duration: 0.3 });
+      mapRef.current?.setView([latitude, longitude], 11, { animate: true, duration: 0.3 });
     }
   };
 
