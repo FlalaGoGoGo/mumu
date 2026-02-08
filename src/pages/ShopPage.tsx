@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ShoppingBag } from 'lucide-react'; // kept for empty state icon
+import { ShoppingBag } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useMuseums } from '@/hooks/useMuseums';
 import { useWishlist } from '@/hooks/useWishlist';
@@ -17,13 +17,21 @@ export default function ShopPage() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [museum, setMuseum] = useState('');
+  const [country, setCountry] = useState('');
   const [sort, setSort] = useState<SortOption>('recommended');
   const [priceRange, setPriceRange] = useState<[number, number] | null>(null);
 
-  // Museum lookup map
+  // Museum lookup map (id → name)
   const museumMap = useMemo(() => {
     const map: Record<string, string> = {};
     museums.forEach((m) => { map[m.museum_id] = m.name; });
+    return map;
+  }, [museums]);
+
+  // Museum → country lookup
+  const museumCountryMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    museums.forEach((m) => { map[m.museum_id] = m.country; });
     return map;
   }, [museums]);
 
@@ -43,6 +51,17 @@ export default function ShopPage() {
       name: museumMap[id] || id,
     })).sort((a, b) => a.name.localeCompare(b.name));
   }, [products, museumMap]);
+
+  // Unique countries from products (via museum)
+  const countryOptions = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => {
+      if (p.museum_id && museumCountryMap[p.museum_id]) {
+        set.add(museumCountryMap[p.museum_id]);
+      }
+    });
+    return Array.from(set).sort();
+  }, [products, museumCountryMap]);
 
   // Price bounds
   const { priceMin, priceMax } = useMemo(() => {
@@ -70,6 +89,9 @@ export default function ShopPage() {
     if (museum) {
       result = result.filter((p) => p.museum_id === museum);
     }
+    if (country) {
+      result = result.filter((p) => p.museum_id && museumCountryMap[p.museum_id] === country);
+    }
     const [min, max] = effectivePriceRange;
     result = result.filter((p) => Number(p.price) >= min && Number(p.price) <= max);
 
@@ -80,19 +102,20 @@ export default function ShopPage() {
       case 'price_desc':
         result.sort((a, b) => Number(b.price) - Number(a.price));
         break;
-      default: // recommended — featured first
+      default:
         result.sort((a, b) => (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0));
     }
 
     return result;
-  }, [products, search, category, museum, effectivePriceRange, sort]);
+  }, [products, search, category, museum, country, effectivePriceRange, sort, museumCountryMap]);
 
-  const hasActiveFilters = !!search || !!category || !!museum || !!priceRange;
+  const hasActiveFilters = !!search || !!category || !!museum || !!country || !!priceRange;
 
   const clearFilters = () => {
     setSearch('');
     setCategory('');
     setMuseum('');
+    setCountry('');
     setPriceRange(null);
     setSort('recommended');
   };
@@ -129,6 +152,9 @@ export default function ShopPage() {
             museums={museumOptions}
             selectedMuseum={museum}
             onMuseumChange={setMuseum}
+            countries={countryOptions}
+            selectedCountry={country}
+            onCountryChange={setCountry}
             priceRange={effectivePriceRange}
             priceMin={priceMin}
             priceMax={priceMax}
