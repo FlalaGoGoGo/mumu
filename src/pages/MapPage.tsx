@@ -242,22 +242,18 @@ export default function MapPage() {
 
           {/* Row 2: Dropdowns */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex-shrink-0">
-              <LocationFilter
-                availableLocations={availableLocations}
-                selectedCountry={locationCountry}
-                selectedState={locationState}
-                selectedCity={locationCity}
-                onSelectionChange={handleLocationChange}
-              />
-            </div>
-            <div className="flex-shrink-0">
-              <DistanceFilter
-                maxDistance={maxDistanceFilter}
-                onMaxDistanceChange={setMaxDistanceFilter}
-                hasLocation={latitude !== null}
-              />
-            </div>
+            <LocationFilter
+              availableLocations={availableLocations}
+              selectedCountry={locationCountry}
+              selectedState={locationState}
+              selectedCity={locationCity}
+              onSelectionChange={handleLocationChange}
+            />
+            <DistanceFilter
+              maxDistance={maxDistanceFilter}
+              onMaxDistanceChange={setMaxDistanceFilter}
+              hasLocation={latitude !== null}
+            />
             <CategoryFilterDropdown 
               selected={categoryFilter} 
               onSelectionChange={setCategoryFilter}
