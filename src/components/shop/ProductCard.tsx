@@ -20,8 +20,8 @@ export function ProductCard({ product, museumName, isWishlisted, onToggleWishlis
 
   return (
     <div className="group gallery-card p-0 overflow-hidden flex flex-col h-full border-gold-border/30 hover:border-gold-border/60 transition-all duration-200">
-      {/* Image */}
-      <Link to={`/shop/${product.product_id}`} className="block relative aspect-square bg-muted overflow-hidden">
+      {/* Image — fixed height */}
+      <Link to={`/shop/${product.product_id}`} className="block relative h-[180px] bg-muted overflow-hidden flex-shrink-0">
         {!imgError && product.image_url ? (
           <img
             src={product.image_url}
@@ -42,8 +42,8 @@ export function ProductCard({ product, museumName, isWishlisted, onToggleWishlis
         )}
       </Link>
 
-      {/* Info */}
-      <div className="p-3 flex flex-col flex-1 gap-1.5">
+      {/* Info — flex-grow to fill remaining space */}
+      <div className="p-3 flex flex-col flex-1 gap-1.5 min-h-0">
         <Link to={`/shop/${product.product_id}`} className="hover:underline">
           <h3 className="font-display text-sm font-semibold leading-tight line-clamp-2 text-foreground">
             {product.title}

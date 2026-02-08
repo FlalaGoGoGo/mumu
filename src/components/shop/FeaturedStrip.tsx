@@ -37,11 +37,11 @@ export function FeaturedStrip({ products, museumMap, isWishlisted, onToggleWishl
       </div>
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory"
+        className="flex items-stretch gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory"
         style={{ scrollbarWidth: 'none' }}
       >
         {products.map((p) => (
-          <div key={p.product_id} className="min-w-[180px] w-[200px] snap-start flex-shrink-0 h-full">
+          <div key={p.product_id} className="min-w-[180px] w-[200px] snap-start flex-shrink-0 self-stretch">
             <ProductCard
               product={p}
               museumName={p.museum_id ? museumMap[p.museum_id] : undefined}
