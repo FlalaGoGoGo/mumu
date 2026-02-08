@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { StoreProduct } from '@/types/product';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
   product: StoreProduct;
@@ -13,23 +14,53 @@ interface ProductCardProps {
 
 export function ProductCard({ product, museumName, isWishlisted, onToggleWishlist }: ProductCardProps) {
   const [imgError, setImgError] = useState(false);
+  const [img2Error, setImg2Error] = useState(false);
+  const [isImageHovered, setIsImageHovered] = useState(false);
+
+  const primaryImage = product.image_url;
+  const secondaryImage = product.image_url2;
+  const hasSecondary = !!secondaryImage && !img2Error;
 
   const formattedPrice = product.currency === 'USD'
     ? `$${Number(product.price).toFixed(0)}`
     : `${Number(product.price).toFixed(0)} ${product.currency}`;
 
   return (
-    <div className="group gallery-card p-0 overflow-hidden flex flex-col h-full border-gold-border/30 hover:border-gold-border/60 transition-all duration-200">
-      {/* Image — square 1:1 */}
-      <Link to={`/shop/${product.product_id}`} className="block relative aspect-square bg-muted overflow-hidden flex-shrink-0">
-        {!imgError && product.image_url ? (
-          <img
-            src={product.image_url}
-            alt={product.title}
-            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
-            onError={() => setImgError(true)}
-            loading="lazy"
-          />
+    <div className="gallery-card p-0 overflow-hidden flex flex-col h-full border-gold-border/30 hover:border-gold-border/60 transition-all duration-200">
+      {/* Image — square 1:1, hover swap isolated to this area */}
+      <Link
+        to={`/shop/${product.product_id}`}
+        className="block relative aspect-square bg-muted overflow-hidden flex-shrink-0"
+        onMouseEnter={() => hasSecondary && setIsImageHovered(true)}
+        onMouseLeave={() => setIsImageHovered(false)}
+      >
+        {!imgError && primaryImage ? (
+          <>
+            {/* Primary image */}
+            <img
+              src={primaryImage}
+              alt={product.title}
+              className={cn(
+                'absolute inset-0 w-full h-full object-contain transition-opacity duration-200',
+                isImageHovered && hasSecondary ? 'opacity-0' : 'opacity-100',
+              )}
+              onError={() => setImgError(true)}
+              loading="lazy"
+            />
+            {/* Secondary image — preloaded, shown on hover */}
+            {hasSecondary && (
+              <img
+                src={secondaryImage}
+                alt={`${product.title} – alternate view`}
+                className={cn(
+                  'absolute inset-0 w-full h-full object-contain transition-opacity duration-200',
+                  isImageHovered ? 'opacity-100' : 'opacity-0',
+                )}
+                onError={() => setImg2Error(true)}
+                loading="lazy"
+              />
+            )}
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground">
             <ImageOff className="w-10 h-10" />
