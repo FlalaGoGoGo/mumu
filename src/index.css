@@ -241,6 +241,25 @@
   100% { transform: scale(1) rotate(0deg); }
 }
 
+/* Stamp press animation - triggered when user stamps a planned item */
+@keyframes stamp-press {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.12) rotate(var(--stamp-rotation, -3deg)); box-shadow: 0 0 20px hsl(43 60% 45% / 0.3); }
+  35% { transform: scale(0.96) rotate(calc(var(--stamp-rotation, -3deg) * -0.5)); }
+  55% { transform: scale(1.03); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.stamp-press {
+  animation: stamp-press 0.7s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-press {
+    animation: none;
+  }
+}
+
 @layer utilities {
   /* Parchment texture overlay */
   .parchment-texture {
