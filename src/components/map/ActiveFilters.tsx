@@ -4,7 +4,7 @@ import { useLanguage } from '@/lib/i18n';
 import type { MuseumCategory } from './CategoryFilterDropdown';
 
 interface ActiveFilter {
-  type: 'category' | 'location' | 'distance' | 'mustVisit';
+  type: 'category' | 'location' | 'distance' | 'mustVisit' | 'openToday';
   label: string;
   value: string;
 }
@@ -16,10 +16,12 @@ interface ActiveFiltersProps {
   locationCity: string | null;
   maxDistance: number | null;
   mustVisit: boolean;
+  openToday?: boolean;
   onRemoveCategory: (category: MuseumCategory) => void;
   onClearLocation: () => void;
   onClearDistance: () => void;
   onClearMustVisit: () => void;
+  onClearOpenToday?: () => void;
   onClearAll: () => void;
 }
 
@@ -30,10 +32,12 @@ export function ActiveFilters({
   locationCity,
   maxDistance,
   mustVisit,
+  openToday,
   onRemoveCategory,
   onClearLocation,
   onClearDistance,
   onClearMustVisit,
+  onClearOpenToday,
   onClearAll,
 }: ActiveFiltersProps) {
   const { t } = useLanguage();
@@ -80,6 +84,15 @@ export function ActiveFilters({
     });
   }
 
+  // Add open today filter
+  if (openToday) {
+    filters.push({
+      type: 'openToday',
+      label: 'Open Today',
+      value: 'openToday',
+    });
+  }
+
   if (filters.length === 0) return null;
 
   const handleRemove = (filter: ActiveFilter) => {
@@ -95,6 +108,9 @@ export function ActiveFilters({
         break;
       case 'mustVisit':
         onClearMustVisit();
+        break;
+      case 'openToday':
+        onClearOpenToday?.();
         break;
     }
   };
