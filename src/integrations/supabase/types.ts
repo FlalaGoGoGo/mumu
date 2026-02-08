@@ -112,6 +112,7 @@ export type Database = {
           created_at: string
           currency: string
           image_url: string | null
+          image_url2: string | null
           is_featured: boolean
           museum_id: string | null
           official_url: string | null
@@ -124,6 +125,7 @@ export type Database = {
           created_at?: string
           currency?: string
           image_url?: string | null
+          image_url2?: string | null
           is_featured?: boolean
           museum_id?: string | null
           official_url?: string | null
@@ -136,6 +138,7 @@ export type Database = {
           created_at?: string
           currency?: string
           image_url?: string | null
+          image_url2?: string | null
           is_featured?: boolean
           museum_id?: string | null
           official_url?: string | null

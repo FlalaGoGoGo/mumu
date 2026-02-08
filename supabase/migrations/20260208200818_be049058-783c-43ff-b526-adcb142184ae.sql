@@ -1,0 +1,1 @@
+ALTER TABLE public.store_products ADD COLUMN image_url2 text;
