@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal, X, Building2, Tag, LayoutGrid } from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,9 @@ interface ShopFiltersProps {
   museums: { id: string; name: string }[];
   selectedMuseum: string;
   onMuseumChange: (v: string) => void;
+  countries: string[];
+  selectedCountry: string;
+  onCountryChange: (v: string) => void;
   priceRange: [number, number];
   priceMin: number;
   priceMax: number;
@@ -45,6 +48,9 @@ export function ShopFilters({
   museums,
   selectedMuseum,
   onMuseumChange,
+  countries,
+  selectedCountry,
+  onCountryChange,
   priceRange,
   priceMin,
   priceMax,
@@ -62,6 +68,7 @@ export function ShopFilters({
     let count = 0;
     if (selectedCategory) count++;
     if (selectedMuseum) count++;
+    if (selectedCountry) count++;
     if (priceRange[0] > priceMin || priceRange[1] < priceMax) count++;
     return count;
   })();
@@ -119,7 +126,7 @@ export function ShopFilters({
           )}
         </Button>
 
-        {/* Sort — portal with high z-index to stay above filters panel */}
+        {/* Sort */}
         <Select value={sort} onValueChange={(v) => onSortChange(v as SortOption)}>
           <SelectTrigger className="w-[160px] h-10 text-sm flex-shrink-0 relative z-[2100]">
             <SelectValue />
@@ -135,55 +142,60 @@ export function ShopFilters({
       {/* Row 2: Collapsible filter panel */}
       <Collapsible open={panelOpen} onOpenChange={setPanelOpen}>
         <CollapsibleContent>
-          <div className="relative z-[1900] p-4 bg-muted/50 rounded-lg border space-y-3">
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Category chips with icon */}
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <LayoutGrid className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    onClick={() => onCategoryChange('')}
-                    className={`museum-chip cursor-pointer transition-colors text-[10px] ${
-                      !selectedCategory ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-muted'
-                    }`}
-                  >
-                    All
-                  </button>
-                  {categories.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => onCategoryChange(selectedCategory === cat ? '' : cat)}
-                      className={`museum-chip cursor-pointer transition-colors text-[10px] ${
-                        selectedCategory === cat ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-muted'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
+          <div className="relative z-[1900] p-4 bg-muted/50 rounded-lg border space-y-4">
+            <div className="flex flex-wrap items-end gap-4">
+              {/* Category dropdown */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">Category</span>
+                <Select value={selectedCategory || '__all__'} onValueChange={(v) => onCategoryChange(v === '__all__' ? '' : v)}>
+                  <SelectTrigger className="w-[160px] h-8 text-xs">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-[9999]">
+                    <SelectItem value="__all__">All</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Right: Museum dropdown + Price inputs */}
-              <div className="flex items-center gap-3 flex-shrink-0">
-                {/* Museum dropdown with icon */}
-                <div className="flex items-center gap-1.5">
-                  <Building2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <Select value={selectedMuseum || '__all__'} onValueChange={(v) => onMuseumChange(v === '__all__' ? '' : v)}>
-                    <SelectTrigger className="w-[140px] h-8 text-xs">
-                      <SelectValue placeholder="All Museums" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover z-[9999]">
-                      <SelectItem value="__all__">All Museums</SelectItem>
-                      {museums.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Country dropdown */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">Country</span>
+                <Select value={selectedCountry || '__all__'} onValueChange={(v) => onCountryChange(v === '__all__' ? '' : v)}>
+                  <SelectTrigger className="w-[160px] h-8 text-xs">
+                    <SelectValue placeholder="All Countries" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-[9999]">
+                    <SelectItem value="__all__">All Countries</SelectItem>
+                    {countries.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                {/* Min / Max price inputs with icon */}
+              {/* Museum dropdown — wider */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">Museum</span>
+                <Select value={selectedMuseum || '__all__'} onValueChange={(v) => onMuseumChange(v === '__all__' ? '' : v)}>
+                  <SelectTrigger className="w-[240px] h-8 text-xs">
+                    <SelectValue placeholder="All Museums" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-[9999] min-w-[280px]">
+                    <SelectItem value="__all__">All Museums</SelectItem>
+                    {museums.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Price Range */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">Price Range (USD)</span>
                 <div className="flex items-center gap-1.5">
-                  <Tag className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                   <Input
                     type="number"
                     placeholder="Min"
@@ -215,7 +227,6 @@ export function ShopFilters({
             {hasActiveFilters && (
               <div className="pt-2 border-t">
                 <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-muted-foreground">
-                  <X className="w-4 h-4 mr-1" />
                   Clear all filters
                 </Button>
               </div>
