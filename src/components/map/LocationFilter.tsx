@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronDown, ChevronRight, MapPin, X, Search } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/i18n';
 import { getCountryFlag } from '@/lib/countryFlag';
@@ -30,26 +31,12 @@ export function LocationFilter({
   const [isOpen, setIsOpen] = useState(false);
   const [currentLevel, setCurrentLevel] = useState<Level>('country');
   const [searchQuery, setSearchQuery] = useState('');
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-        setSearchQuery('');
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Get unique countries
   const countries = useMemo(() => {
     const unique = [...new Set(availableLocations.map(l => l.country))];
     return unique.sort((a, b) => a.localeCompare(b));
   }, [availableLocations]);
 
-  // Get states for selected country
   const states = useMemo(() => {
     if (!selectedCountry) return [];
     const filtered = availableLocations
@@ -58,7 +45,6 @@ export function LocationFilter({
     return [...new Set(filtered)].sort((a, b) => a.localeCompare(b));
   }, [availableLocations, selectedCountry]);
 
-  // Get cities for selected state (or country if no states)
   const cities = useMemo(() => {
     let filtered = availableLocations;
     if (selectedCountry) {
@@ -77,7 +63,6 @@ export function LocationFilter({
       setIsOpen(false);
     } else {
       onSelectionChange(country, null, null);
-      // Check if this country has states
       const hasStates = availableLocations.some(l => l.country === country && l.state);
       if (hasStates) {
         setCurrentLevel('state');
@@ -130,7 +115,7 @@ export function LocationFilter({
     if (selectedState) parts.push(selectedState);
     if (selectedCity) parts.push(selectedCity);
     
-    if (parts.length === 0) return t('map.state'); // Using 'Location' would need new key
+    if (parts.length === 0) return t('map.state');
     if (parts.length === 1) return parts[0];
     return parts.join(' · ');
   };
@@ -142,9 +127,20 @@ export function LocationFilter({
     );
   };
 
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (open) {
+      if (selectedCity) setCurrentLevel('city');
+      else if (selectedState) setCurrentLevel('state');
+      else setCurrentLevel('country');
+    } else {
+      setSearchQuery('');
+    }
+  };
+
   const renderLevel = () => {
     switch (currentLevel) {
-      case 'country':
+      case 'country': {
         const filteredCountries = getFilteredItems(countries);
         return (
           <>
@@ -189,8 +185,9 @@ export function LocationFilter({
             </div>
           </>
         );
+      }
 
-      case 'state':
+      case 'state': {
         const filteredStates = getFilteredItems(states);
         return (
           <>
@@ -244,8 +241,9 @@ export function LocationFilter({
             </div>
           </>
         );
+      }
 
-      case 'city':
+      case 'city': {
         const filteredCities = getFilteredItems(cities);
         const backLabel = selectedState || selectedCountry;
         return (
@@ -296,58 +294,57 @@ export function LocationFilter({
             </div>
           </>
         );
+      }
     }
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => {
-          setIsOpen(!isOpen);
-          if (!isOpen) {
-            // Reset to appropriate level when opening
-            if (selectedCity) setCurrentLevel('city');
-            else if (selectedState) setCurrentLevel('state');
-            else setCurrentLevel('country');
-          }
-        }}
-        className={cn(
-          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all",
-          "border focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
-          hasSelection
-            ? "bg-primary text-primary-foreground border-primary shadow-sm"
-            : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground hover:border-accent"
-        )}
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <button
+          className={cn(
+            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all",
+            "border focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+            hasSelection
+              ? "bg-primary text-primary-foreground border-primary shadow-sm"
+              : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground hover:border-accent"
+          )}
+        >
+          <MapPin className="w-3.5 h-3.5" />
+          <span className="max-w-[150px] truncate">{getButtonLabel()}</span>
+          <ChevronDown className={cn(
+            "w-3.5 h-3.5 transition-transform shrink-0",
+            isOpen && "rotate-180"
+          )} />
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        className="w-64 p-0 z-[9999]"
+        align="start"
+        side="bottom"
+        sideOffset={8}
+        collisionPadding={12}
+        avoidCollisions
       >
-        <MapPin className="w-3.5 h-3.5" />
-        <span className="max-w-[150px] truncate">{getButtonLabel()}</span>
-        <ChevronDown className={cn(
-          "w-3.5 h-3.5 transition-transform shrink-0",
-          isOpen && "rotate-180"
-        )} />
-      </button>
-
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-64 bg-background border border-border rounded-lg shadow-lg z-50 overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Location
-            </span>
-            {hasSelection && (
-              <button
-                onClick={clearFilter}
-                className="text-xs text-primary hover:underline flex items-center gap-1"
-              >
-                <X className="w-3 h-3" />
-                {t('common.clear')}
-              </button>
-            )}
-          </div>
-
-          {renderLevel()}
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Location
+          </span>
+          {hasSelection && (
+            <button
+              onClick={clearFilter}
+              className="text-xs text-primary hover:underline flex items-center gap-1"
+            >
+              <X className="w-3 h-3" />
+              {t('common.clear')}
+            </button>
+          )}
         </div>
-      )}
-    </div>
+
+        {renderLevel()}
+      </PopoverContent>
+    </Popover>
   );
 }
