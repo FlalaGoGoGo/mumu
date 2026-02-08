@@ -20,13 +20,13 @@ export function ProductCard({ product, museumName, isWishlisted, onToggleWishlis
 
   return (
     <div className="group gallery-card p-0 overflow-hidden flex flex-col h-full border-gold-border/30 hover:border-gold-border/60 transition-all duration-200">
-      {/* Image — fixed height */}
-      <Link to={`/shop/${product.product_id}`} className="block relative h-[180px] bg-muted overflow-hidden flex-shrink-0">
+      {/* Image — square 1:1 */}
+      <Link to={`/shop/${product.product_id}`} className="block relative aspect-square bg-muted overflow-hidden flex-shrink-0">
         {!imgError && product.image_url ? (
           <img
             src={product.image_url}
             alt={product.title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
             onError={() => setImgError(true)}
             loading="lazy"
           />
