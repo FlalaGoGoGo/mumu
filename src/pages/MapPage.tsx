@@ -15,8 +15,10 @@ import { LocationFilter } from '@/components/map/LocationFilter';
 import { DistanceFilter } from '@/components/map/DistanceFilter';
 import { MustVisitFilter } from '@/components/map/MustVisitFilter';
 import { ActiveFilters } from '@/components/map/ActiveFilters';
+import { OpenTodayFilter } from '@/components/map/OpenTodayFilter';
 import { calculateDistance, formatDistance } from '@/lib/distance';
 import { useLanguage } from '@/lib/i18n';
+import { isOpenToday } from '@/lib/parseOpeningHours';
 import type { Museum } from '@/types/museum';
 
 export default function MapPage() {
@@ -38,6 +40,7 @@ export default function MapPage() {
   const [locationCity, setLocationCity] = useState<string | null>(null);
   const [maxDistanceFilter, setMaxDistanceFilter] = useState<number | null>(null);
   const [mustVisitFilter, setMustVisitFilter] = useState(false);
+  const [openTodayFilter, setOpenTodayFilter] = useState(false);
 
   // Count active filters
   const activeFilterCount = useMemo(() => {
@@ -46,8 +49,9 @@ export default function MapPage() {
     if (locationCountry || locationState || locationCity) count++;
     if (maxDistanceFilter !== null) count++;
     if (mustVisitFilter) count++;
+    if (openTodayFilter) count++;
     return count;
-  }, [categoryFilter, locationCountry, locationState, locationCity, maxDistanceFilter, mustVisitFilter]);
+  }, [categoryFilter, locationCountry, locationState, locationCity, maxDistanceFilter, mustVisitFilter, openTodayFilter]);
 
   const handleClearFilters = () => {
     setCategoryFilter([]);
@@ -56,6 +60,7 @@ export default function MapPage() {
     setLocationCity(null);
     setMaxDistanceFilter(null);
     setMustVisitFilter(false);
+    setOpenTodayFilter(false);
   };
 
   const visitedIds = new Set(visits.map(v => v.museum_id));
@@ -95,7 +100,8 @@ export default function MapPage() {
         (!locationCity || museum.city === locationCity);
       const matchesDistance = maxDistanceFilter === null || (distance !== null && distance <= maxDistanceFilter);
       const matchesMustVisit = !mustVisitFilter || museum.highlight;
-      return matchesSearch && matchesLocation && matchesDistance && matchesMustVisit;
+      const matchesOpenToday = !openTodayFilter || isOpenToday(museum.opening_hours);
+      return matchesSearch && matchesLocation && matchesDistance && matchesMustVisit && matchesOpenToday;
     });
 
     return {
@@ -105,7 +111,7 @@ export default function MapPage() {
       nature: baseFiltered.filter(m => m.museum.tags === 'nature').length,
       temple: baseFiltered.filter(m => m.museum.tags === 'temple').length,
     };
-  }, [museumsWithData, searchQuery, locationCountry, locationState, locationCity, maxDistanceFilter, mustVisitFilter]);
+  }, [museumsWithData, searchQuery, locationCountry, locationState, locationCity, maxDistanceFilter, mustVisitFilter, openTodayFilter]);
 
   // Count Must-Visit museums (based on current filtered set minus mustVisit filter itself)
   const mustVisitCount = useMemo(() => {
@@ -133,7 +139,8 @@ export default function MapPage() {
       (!locationCity || museum.city === locationCity);
     const matchesDistance = maxDistanceFilter === null || (distance !== null && distance <= maxDistanceFilter);
     const matchesMustVisit = !mustVisitFilter || museum.highlight;
-    return matchesSearch && matchesCategory && matchesLocation && matchesDistance && matchesMustVisit;
+    const matchesOpenToday = !openTodayFilter || isOpenToday(museum.opening_hours);
+    return matchesSearch && matchesCategory && matchesLocation && matchesDistance && matchesMustVisit && matchesOpenToday;
   });
 
   // Sort by distance (nearest first), null distances go to end
@@ -215,6 +222,10 @@ export default function MapPage() {
               onToggle={setMustVisitFilter}
               count={mustVisitCount}
             />
+            <OpenTodayFilter
+              enabled={openTodayFilter}
+              onToggle={setOpenTodayFilter}
+            />
             <div className="flex-shrink-0">
               <LocationFilter
                 availableLocations={availableLocations}
@@ -246,16 +257,19 @@ export default function MapPage() {
             locationCity={locationCity}
             maxDistance={maxDistanceFilter}
             mustVisit={mustVisitFilter}
+            openToday={openTodayFilter}
             onRemoveCategory={(cat) => setCategoryFilter(categoryFilter.filter(c => c !== cat))}
             onClearLocation={() => handleLocationChange(null, null, null)}
             onClearDistance={() => setMaxDistanceFilter(null)}
             onClearMustVisit={() => setMustVisitFilter(false)}
+            onClearOpenToday={() => setOpenTodayFilter(false)}
             onClearAll={handleClearFilters}
           />
 
           <p className="text-xs text-muted-foreground">
             {sortedMuseums.length} {t('map.museums')} • {visitedIds.size} {t('map.visited')}
             {latitude !== null && <span> • {t('map.sortedByDistance')}</span>}
+            {openTodayFilter && <span> • Showing museums open today</span>}
           </p>
         </div>
 

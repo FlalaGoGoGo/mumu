@@ -61,8 +61,9 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
   };
   const locationString = buildLocationString();
 
-  // Determine open/closed status
-  const isOpen = isOpenToday(museum.opening_hours);
+  // Determine open/closed/unknown status
+  const hasHours = !!museum.opening_hours;
+  const isOpen = hasHours ? isOpenToday(museum.opening_hours) : null;
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -73,20 +74,20 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
     return (
       <div className="gallery-card cursor-pointer hover:border-primary/30 transition-colors relative overflow-hidden">
         {/* Corner Ribbon Status */}
-        {museum.opening_hours && (
-          <div 
-            className={cn(
-              "absolute top-0 right-0 text-[9px] font-medium px-4 py-0.5",
-              "origin-center rotate-0",
-              "rounded-bl-md",
-              isOpen 
-                ? 'bg-green-100 text-green-700' 
-                : 'bg-red-100 text-red-700'
-            )}
-          >
-            {isOpen ? 'Open' : 'Closed'}
-          </div>
-        )}
+        <div 
+          className={cn(
+            "absolute top-0 right-0 text-[9px] font-medium px-4 py-0.5",
+            "origin-center rotate-0",
+            "rounded-bl-md",
+            isOpen === true
+              ? 'bg-green-100 text-green-700' 
+              : isOpen === false
+                ? 'bg-red-100 text-red-700'
+                : 'bg-muted text-muted-foreground'
+          )}
+        >
+          {isOpen === true ? 'Open' : isOpen === false ? 'Closed' : 'Hours N/A'}
+        </div>
 
         <div className="flex gap-3">
           {/* Hero Image */}
@@ -174,17 +175,19 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
               <Heart className={cn("w-5 h-5", saved && "fill-current")} />
             </button>
           )}
-          {museum.opening_hours && (
+          {(
             <Badge 
               variant="outline" 
               className={cn(
                 "text-[10px] px-2 py-0.5 h-5 whitespace-nowrap",
-                isOpen 
+                isOpen === true
                   ? 'bg-green-50 text-green-700 border-green-200' 
-                  : 'bg-red-50 text-red-700 border-red-200'
+                  : isOpen === false
+                    ? 'bg-red-50 text-red-700 border-red-200'
+                    : 'bg-muted/50 text-muted-foreground border-border'
               )}
             >
-              {isOpen ? 'Open Today' : 'Closed Today'}
+              {isOpen === true ? 'Open Today' : isOpen === false ? 'Closed Today' : 'Hours N/A'}
             </Badge>
           )}
         </div>
