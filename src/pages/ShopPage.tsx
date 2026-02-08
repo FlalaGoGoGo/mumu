@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react'; // kept for empty state icon
 import { useProducts } from '@/hooks/useProducts';
 import { useMuseums } from '@/hooks/useMuseums';
 import { useWishlist } from '@/hooks/useWishlist';
@@ -98,14 +98,11 @@ export default function ShopPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 space-y-6">
+    <div className="container mx-auto px-4 py-6 space-y-6">
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <ShoppingBag className="h-5 w-5 text-accent" />
-          <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">Museum Shop</h1>
-        </div>
-        <p className="text-sm text-muted-foreground">
+      <div className="mb-6">
+        <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Museum Shop</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Curated finds from world-renowned museum stores
         </p>
       </div>
