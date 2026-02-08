@@ -1,6 +1,7 @@
-import { Search, X, SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -8,8 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-import { useLanguage } from '@/lib/i18n';
+import {
+  Collapsible,
+  CollapsibleContent,
+} from '@/components/ui/collapsible';
 import { useState } from 'react';
 
 export type SortOption = 'recommended' | 'price_asc' | 'price_desc';
@@ -51,20 +54,45 @@ export function ShopFilters({
   hasActiveFilters,
   onClearFilters,
 }: ShopFiltersProps) {
-  const { t } = useLanguage();
-  const [showPriceFilter, setShowPriceFilter] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [minInput, setMinInput] = useState('');
+  const [maxInput, setMaxInput] = useState('');
+
+  const activeFilterCount = (() => {
+    let count = 0;
+    if (selectedCategory) count++;
+    if (selectedMuseum) count++;
+    if (priceRange[0] > priceMin || priceRange[1] < priceMax) count++;
+    return count;
+  })();
+
+  const applyPrice = () => {
+    let min = minInput ? Number(minInput) : priceMin;
+    let max = maxInput ? Number(maxInput) : priceMax;
+    if (isNaN(min)) min = priceMin;
+    if (isNaN(max)) max = priceMax;
+    if (min > max) [min, max] = [max, min];
+    min = Math.max(min, priceMin);
+    max = Math.min(max, priceMax);
+    onPriceChange([min, max]);
+  };
+
+  const handlePriceKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') applyPrice();
+  };
 
   return (
-    <div className="space-y-3">
-      {/* Row 1: Search + Sort */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <div className="flex flex-col gap-3">
+      {/* Row 1: Search + Filters + Sort */}
+      <div className="flex items-center gap-2">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search products..."
-            className="pl-9 h-9 text-sm"
+            className="pl-10"
           />
           {search && (
             <button
@@ -75,8 +103,25 @@ export function ShopFilters({
             </button>
           )}
         </div>
+
+        {/* Filters toggle */}
+        <Button
+          variant="outline"
+          className="gap-2 h-10 flex-shrink-0"
+          onClick={() => setPanelOpen(!panelOpen)}
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          <span className="hidden sm:inline">Filters</span>
+          {activeFilterCount > 0 && (
+            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+              {activeFilterCount}
+            </Badge>
+          )}
+        </Button>
+
+        {/* Sort */}
         <Select value={sort} onValueChange={(v) => onSortChange(v as SortOption)}>
-          <SelectTrigger className="w-[160px] h-9 text-sm">
+          <SelectTrigger className="w-[160px] h-10 text-sm flex-shrink-0">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-popover z-50">
@@ -87,78 +132,90 @@ export function ShopFilters({
         </Select>
       </div>
 
-      {/* Row 2: Category chips + Museum + Price */}
-      <div className="flex flex-wrap gap-2 items-center">
-        {/* Category chips */}
-        <button
-          onClick={() => onCategoryChange('')}
-          className={`museum-chip cursor-pointer transition-colors text-[10px] ${
-            !selectedCategory ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-muted'
-          }`}
-        >
-          All
-        </button>
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => onCategoryChange(selectedCategory === cat ? '' : cat)}
-            className={`museum-chip cursor-pointer transition-colors text-[10px] ${
-              selectedCategory === cat ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-muted'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
+      {/* Row 2: Collapsible filter panel */}
+      <Collapsible open={panelOpen} onOpenChange={setPanelOpen}>
+        <CollapsibleContent>
+          <div className="relative z-[2000] p-4 bg-muted/50 rounded-lg border space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Left: Category chips */}
+              <div className="flex flex-wrap gap-1.5 flex-1 min-w-0">
+                <button
+                  onClick={() => onCategoryChange('')}
+                  className={`museum-chip cursor-pointer transition-colors text-[10px] ${
+                    !selectedCategory ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-muted'
+                  }`}
+                >
+                  All
+                </button>
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => onCategoryChange(selectedCategory === cat ? '' : cat)}
+                    className={`museum-chip cursor-pointer transition-colors text-[10px] ${
+                      selectedCategory === cat ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-muted'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
 
-        <div className="ml-auto flex gap-2 items-center">
-          {/* Museum dropdown */}
-          <Select value={selectedMuseum || '__all__'} onValueChange={(v) => onMuseumChange(v === '__all__' ? '' : v)}>
-            <SelectTrigger className="w-[140px] h-8 text-xs">
-              <SelectValue placeholder="All Museums" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover z-50">
-              <SelectItem value="__all__">All Museums</SelectItem>
-              {museums.map((m) => (
-                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              {/* Right: Museum dropdown + Price inputs */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {/* Museum dropdown */}
+                <Select value={selectedMuseum || '__all__'} onValueChange={(v) => onMuseumChange(v === '__all__' ? '' : v)}>
+                  <SelectTrigger className="w-[140px] h-8 text-xs">
+                    <SelectValue placeholder="All Museums" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-[9999]">
+                    <SelectItem value="__all__">All Museums</SelectItem>
+                    {museums.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-          {/* Price toggle */}
-          <Button
-            variant={showPriceFilter ? 'default' : 'outline'}
-            size="sm"
-            className="h-8 text-xs gap-1"
-            onClick={() => setShowPriceFilter(!showPriceFilter)}
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            Price
-          </Button>
+                {/* Min / Max price inputs */}
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    type="number"
+                    placeholder="Min"
+                    value={minInput}
+                    onChange={(e) => setMinInput(e.target.value)}
+                    onBlur={applyPrice}
+                    onKeyDown={handlePriceKeyDown}
+                    className="w-[72px] h-8 text-xs px-2"
+                    min={priceMin}
+                    max={priceMax}
+                  />
+                  <span className="text-xs text-muted-foreground">–</span>
+                  <Input
+                    type="number"
+                    placeholder="Max"
+                    value={maxInput}
+                    onChange={(e) => setMaxInput(e.target.value)}
+                    onBlur={applyPrice}
+                    onKeyDown={handlePriceKeyDown}
+                    className="w-[72px] h-8 text-xs px-2"
+                    min={priceMin}
+                    max={priceMax}
+                  />
+                </div>
+              </div>
+            </div>
 
-          {/* Clear filters */}
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={onClearFilters}>
-              <X className="h-3 w-3 mr-1" /> Clear
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Price slider row */}
-      {showPriceFilter && (
-        <div className="flex items-center gap-4 px-1 py-2 bg-muted/50 rounded-sm">
-          <span className="text-xs text-muted-foreground min-w-[40px]">${priceRange[0]}</span>
-          <Slider
-            value={priceRange}
-            min={priceMin}
-            max={priceMax}
-            step={1}
-            onValueChange={(v) => onPriceChange(v as [number, number])}
-            className="flex-1"
-          />
-          <span className="text-xs text-muted-foreground min-w-[40px] text-right">${priceRange[1]}</span>
-        </div>
-      )}
+            {/* Clear Filters */}
+            {hasActiveFilters && (
+              <div className="pt-2 border-t">
+                <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-muted-foreground">
+                  <X className="w-4 h-4 mr-1" />
+                  Clear all filters
+                </Button>
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
