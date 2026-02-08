@@ -4,7 +4,7 @@ import { useLanguage } from '@/lib/i18n';
 import type { MuseumCategory } from './CategoryFilterDropdown';
 
 interface ActiveFilter {
-  type: 'category' | 'location' | 'distance' | 'mustVisit' | 'openToday';
+  type: 'category' | 'location' | 'distance' | 'mustVisit' | 'openToday' | 'wishList';
   label: string;
   value: string;
 }
@@ -17,11 +17,13 @@ interface ActiveFiltersProps {
   maxDistance: number | null;
   mustVisit: boolean;
   openToday?: boolean;
+  wishList?: boolean;
   onRemoveCategory: (category: MuseumCategory) => void;
   onClearLocation: () => void;
   onClearDistance: () => void;
   onClearMustVisit: () => void;
   onClearOpenToday?: () => void;
+  onClearWishList?: () => void;
   onClearAll: () => void;
 }
 
@@ -33,11 +35,13 @@ export function ActiveFilters({
   maxDistance,
   mustVisit,
   openToday,
+  wishList,
   onRemoveCategory,
   onClearLocation,
   onClearDistance,
   onClearMustVisit,
   onClearOpenToday,
+  onClearWishList,
   onClearAll,
 }: ActiveFiltersProps) {
   const { t } = useLanguage();
@@ -93,6 +97,15 @@ export function ActiveFilters({
     });
   }
 
+  // Add wish list filter
+  if (wishList) {
+    filters.push({
+      type: 'wishList',
+      label: 'Wish List',
+      value: 'wishList',
+    });
+  }
+
   if (filters.length === 0) return null;
 
   const handleRemove = (filter: ActiveFilter) => {
@@ -111,6 +124,9 @@ export function ActiveFilters({
         break;
       case 'openToday':
         onClearOpenToday?.();
+        break;
+      case 'wishList':
+        onClearWishList?.();
         break;
     }
   };
