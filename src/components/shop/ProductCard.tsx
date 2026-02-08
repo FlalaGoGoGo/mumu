@@ -19,7 +19,7 @@ export function ProductCard({ product, museumName, isWishlisted, onToggleWishlis
     : `${Number(product.price).toFixed(0)} ${product.currency}`;
 
   return (
-    <div className="group gallery-card p-0 overflow-hidden flex flex-col border-gold-border/30 hover:border-gold-border/60 transition-all duration-200">
+    <div className="group gallery-card p-0 overflow-hidden flex flex-col h-full border-gold-border/30 hover:border-gold-border/60 transition-all duration-200">
       {/* Image */}
       <Link to={`/shop/${product.product_id}`} className="block relative aspect-square bg-muted overflow-hidden">
         {!imgError && product.image_url ? (
@@ -57,7 +57,7 @@ export function ProductCard({ product, museumName, isWishlisted, onToggleWishlis
         )}
 
         <div className="flex items-center justify-between mt-auto pt-2">
-          <span className="font-display text-base font-bold text-foreground">{formattedPrice}</span>
+          <span className="font-display text-lg font-bold text-foreground">{formattedPrice}</span>
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"

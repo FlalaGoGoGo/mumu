@@ -117,26 +117,28 @@ export default function ShopPage() {
         />
       )}
 
-      {/* Filters */}
+      {/* Filters — sticky frosted glass */}
       {!isLoading && (
-        <ShopFilters
-          search={search}
-          onSearchChange={setSearch}
-          categories={categories}
-          selectedCategory={category}
-          onCategoryChange={setCategory}
-          museums={museumOptions}
-          selectedMuseum={museum}
-          onMuseumChange={setMuseum}
-          priceRange={effectivePriceRange}
-          priceMin={priceMin}
-          priceMax={priceMax}
-          onPriceChange={(v) => setPriceRange(v)}
-          sort={sort}
-          onSortChange={setSort}
-          hasActiveFilters={hasActiveFilters}
-          onClearFilters={clearFilters}
-        />
+        <div className="sticky top-0 z-[1500] -mx-4 mb-4 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
+          <ShopFilters
+            search={search}
+            onSearchChange={setSearch}
+            categories={categories}
+            selectedCategory={category}
+            onCategoryChange={setCategory}
+            museums={museumOptions}
+            selectedMuseum={museum}
+            onMuseumChange={setMuseum}
+            priceRange={effectivePriceRange}
+            priceMin={priceMin}
+            priceMax={priceMax}
+            onPriceChange={(v) => setPriceRange(v)}
+            sort={sort}
+            onSortChange={setSort}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={clearFilters}
+          />
+        </div>
       )}
 
       {/* Loading state */}
