@@ -4,10 +4,29 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import { Locate, Globe, Plus, Minus } from 'lucide-react';
+import 'leaflet.heat';
+import { Locate, Globe, Plus, Minus, Layers, MapPin, Flame, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MiniMap } from './MiniMap';
 import type { Museum } from '@/types/museum';
+
+// Extend L to include heat
+declare module 'leaflet' {
+  function heatLayer(
+    latlngs: Array<[number, number, number?]>,
+    options?: {
+      radius?: number;
+      blur?: number;
+      maxZoom?: number;
+      max?: number;
+      minOpacity?: number;
+      gradient?: Record<number, string>;
+    }
+  ): L.Layer;
+}
+
+type MapLayerMode = 'pins' | 'heatmap';
 
 interface MuseumMapProps {
   museums: Museum[];
@@ -167,11 +186,13 @@ const createClusterIcon = (cluster: L.MarkerCluster) => {
 export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocation, locationFilter, className = '' }: MuseumMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
+  const heatLayerRef = useRef<L.Layer | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const userMarkerRef = useRef<L.Marker | null>(null);
   const accuracyCircleRef = useRef<L.Circle | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [layerMode, setLayerMode] = useState<MapLayerMode>('pins');
   const prevLocationFilterRef = useRef<{ country: string | null; state: string | null; city: string | null } | null>(null);
 
   // Initialize map
@@ -250,34 +271,72 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
     }
   }, [userLocation]);
 
-  // Add markers to cluster group
+  // Add markers / heatmap based on layer mode
   useEffect(() => {
     if (!mapRef.current || !clusterGroupRef.current) return;
 
-    // Clear existing markers
+    // Clear all visualization layers
     clusterGroupRef.current.clearLayers();
     markersRef.current.clear();
+    if (heatLayerRef.current) {
+      mapRef.current.removeLayer(heatLayerRef.current);
+      heatLayerRef.current = null;
+    }
 
-    museums.forEach((museum) => {
-      const isAic = museum.has_full_content;
-      const isSelected = selectedMuseum?.museum_id === museum.museum_id;
-      const category = getMuseumCategory(museum.tags);
-      const icon = isSelected ? createSelectedMarkerIcon(isAic, category) : createMarkerIcon(isAic, category);
-      
-      const marker = L.marker([museum.lat, museum.lng], { icon })
-        .on('click', () => onSelectMuseum(museum));
+    if (layerMode === 'pins') {
+      // Show cluster group layer
+      if (!mapRef.current.hasLayer(clusterGroupRef.current)) {
+        mapRef.current.addLayer(clusterGroupRef.current);
+      }
 
-      // Add tooltip with museum name
-      marker.bindTooltip(museum.name, {
-        direction: 'top',
-        offset: [0, -14],
-        className: 'mumu-tooltip',
+      museums.forEach((museum) => {
+        const isAic = museum.has_full_content;
+        const isSelected = selectedMuseum?.museum_id === museum.museum_id;
+        const category = getMuseumCategory(museum.tags);
+        const icon = isSelected ? createSelectedMarkerIcon(isAic, category) : createMarkerIcon(isAic, category);
+        
+        const marker = L.marker([museum.lat, museum.lng], { icon })
+          .on('click', () => onSelectMuseum(museum));
+
+        // Add tooltip with museum name
+        marker.bindTooltip(museum.name, {
+          direction: 'top',
+          offset: [0, -14],
+          className: 'mumu-tooltip',
+        });
+
+        clusterGroupRef.current!.addLayer(marker);
+        markersRef.current.set(museum.museum_id, marker);
       });
+    } else {
+      // Heatmap mode — hide cluster group, show heat layer
+      if (mapRef.current.hasLayer(clusterGroupRef.current)) {
+        mapRef.current.removeLayer(clusterGroupRef.current);
+      }
 
-      clusterGroupRef.current!.addLayer(marker);
-      markersRef.current.set(museum.museum_id, marker);
-    });
-  }, [museums, selectedMuseum, onSelectMuseum]);
+      if (museums.length > 0) {
+        const heatPoints: [number, number, number][] = museums.map(m => [
+          m.lat,
+          m.lng,
+          m.highlight ? 1.5 : 1,
+        ]);
+
+        heatLayerRef.current = L.heatLayer(heatPoints, {
+          radius: 25,
+          blur: 15,
+          maxZoom: 10,
+          minOpacity: 0.3,
+          gradient: {
+            0.4: 'hsl(43, 60%, 70%)',
+            0.65: 'hsl(348, 45%, 50%)',
+            1: 'hsl(348, 45%, 32%)',
+          },
+        });
+
+        mapRef.current.addLayer(heatLayerRef.current);
+      }
+    }
+  }, [museums, selectedMuseum, onSelectMuseum, layerMode]);
 
   // Pan to selected museum
   useEffect(() => {
@@ -382,6 +441,47 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
       
       {/* Map Controls */}
       <div className="absolute bottom-6 right-4 flex flex-col gap-2 z-[1000]">
+        {/* Layers toggle */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-primary hover:text-primary-foreground hover:border-primary"
+              aria-label="Layers"
+              title="Layers"
+            >
+              <Layers className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="left" align="start" className="w-40 p-1 z-[9999]">
+            <button
+              onClick={() => setLayerMode('pins')}
+              className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                layerMode === 'pins'
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-muted text-foreground'
+              }`}
+            >
+              <MapPin className="h-4 w-4 shrink-0" />
+              <span className="flex-1 text-left">Pins</span>
+              {layerMode === 'pins' && <Check className="h-3.5 w-3.5 shrink-0" />}
+            </button>
+            <button
+              onClick={() => setLayerMode('heatmap')}
+              className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                layerMode === 'heatmap'
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-muted text-foreground'
+              }`}
+            >
+              <Flame className="h-4 w-4 shrink-0" />
+              <span className="flex-1 text-left">Heatmap</span>
+              {layerMode === 'heatmap' && <Check className="h-3.5 w-3.5 shrink-0" />}
+            </button>
+          </PopoverContent>
+        </Popover>
+
         {/* Zoom Controls */}
         <div className="flex flex-col rounded-md overflow-hidden shadow-md">
           <Button
