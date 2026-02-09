@@ -174,7 +174,7 @@ export function MuseumHoursCard({ hours, closedDates = [] }: MuseumHoursCardProp
                 // Selected + today: add gold ring
                 isTodayAndSelected && 'ring-2 ring-accent ring-offset-1 ring-offset-card',
                 // Today (not selected): gold accent
-                isTodayNotSelected && 'font-bold bg-accent/30 text-accent-foreground ring-1 ring-accent',
+                isTodayNotSelected && 'font-bold bg-accent/30 text-foreground ring-1 ring-accent',
                 // Closed (not selected): bold + muted red
                 closed && !selected && 'text-destructive font-bold',
                 // Normal
@@ -200,18 +200,20 @@ export function MuseumHoursCard({ hours, closedDates = [] }: MuseumHoursCardProp
       </div>
 
       {/* Selected day summary */}
-      <div className="mt-3 border-t border-border pt-3 pb-2 flex flex-col justify-center">
-        <p className="text-xs text-muted-foreground leading-tight">
-          {formatSelectedDate()}
-        </p>
-        <p
-          className={cn(
-            'text-sm font-semibold leading-snug mt-0.5',
-            selectedIsClosed ? 'text-destructive' : 'text-foreground'
-          )}
-        >
-          {selectedIsClosed ? 'CLOSED' : `Open ${selectedHours}`}
-        </p>
+      <div className="mt-3 border-t border-border pt-3 pb-1 flex items-center min-h-[3rem]">
+        <div>
+          <p className="text-xs text-muted-foreground leading-tight">
+            {formatSelectedDate()}
+          </p>
+          <p
+            className={cn(
+              'text-sm font-semibold leading-snug mt-0.5',
+              selectedIsClosed ? 'text-destructive' : 'text-foreground'
+            )}
+          >
+            {selectedIsClosed ? 'CLOSED' : `Open ${selectedHours}`}
+          </p>
+        </div>
       </div>
 
       {/* Weekly hours list */}
@@ -224,10 +226,7 @@ export function MuseumHoursCard({ hours, closedDates = [] }: MuseumHoursCardProp
             const isClosed = h.hours.toLowerCase() === 'closed';
             return (
               <div key={h.day} className="flex justify-between text-sm">
-                <span className={cn(
-                  'text-muted-foreground',
-                  isClosed && 'font-semibold'
-                )}>{h.day}</span>
+                <span className="text-muted-foreground">{h.day}</span>
                 <span
                   className={cn(
                     isClosed
