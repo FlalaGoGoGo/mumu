@@ -13,6 +13,7 @@ import { RoutePlannerDrawer } from '@/components/museum/RoutePlannerDrawer';
 import { TicketsDiscountsDrawer } from '@/components/museum/TicketsDiscountsDrawer';
 import { MuseumArtworkCard } from '@/components/museum/MuseumArtworkCard';
 import { MuseumHoursCard } from '@/components/museum/MuseumHoursCard';
+import { DiscountCalculator } from '@/components/museum/DiscountCalculator';
 import { ArtworkDetailSheet } from '@/components/art/ArtworkDetailSheet';
 import { getArtworkImageUrl, type EnrichedArtwork } from '@/types/art';
 import { useImageLoad } from '@/contexts/ImageLoadContext';
@@ -121,14 +122,8 @@ export default function MuseumDetailPage() {
               </div>
             </div>
 
-            {/* Free Admission Note */}
-            <div className="p-4 bg-accent/10 border border-accent/30 rounded-lg">
-              <p className="text-sm font-medium text-foreground mb-1">Free Admission</p>
-              <p className="text-sm text-muted-foreground">{config.freeAdmissionNote}</p>
-            </div>
-
-            {/* Member Note */}
-            <p className="text-xs text-muted-foreground px-1">{config.memberNote}</p>
+            {/* Discount Calculator */}
+            <DiscountCalculator config={config} />
           </div>
 
           {/* Artworks Section */}
