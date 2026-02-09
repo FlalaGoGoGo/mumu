@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Clock, Ticket, DoorOpen } from 'lucide-react';
+import { Ticket } from 'lucide-react';
 import { useEnrichedArtworks } from '@/hooks/useArtworks';
 import { getMuseumConfig } from '@/config/museumConfig';
 import { MuseumDetailHeader } from '@/components/museum/MuseumDetailHeader';
@@ -12,6 +12,7 @@ import { MuseumQuickActions } from '@/components/museum/MuseumQuickActions';
 import { RoutePlannerDrawer } from '@/components/museum/RoutePlannerDrawer';
 import { TicketsDiscountsDrawer } from '@/components/museum/TicketsDiscountsDrawer';
 import { MuseumArtworkCard } from '@/components/museum/MuseumArtworkCard';
+import { MuseumHoursCard } from '@/components/museum/MuseumHoursCard';
 import { ArtworkDetailSheet } from '@/components/art/ArtworkDetailSheet';
 import { getArtworkImageUrl, type EnrichedArtwork } from '@/types/art';
 import { useImageLoad } from '@/contexts/ImageLoadContext';
@@ -100,36 +101,9 @@ export default function MuseumDetailPage() {
         <div className="grid md:grid-cols-3 gap-8">
           {/* Key Info Panel */}
           <div className="md:col-span-1 space-y-6">
-            {/* Alternate Entrance */}
-            {config.alternateEntrance && (
-              <div className="p-4 bg-card border border-border rounded-lg">
-                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <DoorOpen className="w-3.5 h-3.5" />
-                  Alternate Entrance
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {config.alternateEntrance}
-                </p>
-              </div>
-            )}
 
-            {/* Hours */}
-            <div className="p-4 bg-card border border-border rounded-lg">
-              <h3 className="font-display font-semibold mb-3 flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Hours
-              </h3>
-              <div className="space-y-1.5">
-                {config.hours.map((h) => (
-                  <div key={h.day} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{h.day}</span>
-                    <span className={h.hours === 'Closed' ? 'text-destructive' : ''}>
-                      {h.hours}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Hours (interactive calendar) */}
+            <MuseumHoursCard hours={config.hours} />
 
             {/* Admission */}
             <div className="p-4 bg-card border border-border rounded-lg">

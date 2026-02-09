@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, ExternalLink, Navigation, Landmark } from 'lucide-react';
+import { ExternalLink, Navigation, Landmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -116,7 +116,7 @@ export function MuseumDetailHeader({ config }: MuseumDetailHeaderProps) {
                 <img
                   src={config.logoUrl}
                   alt={`${config.name} logo`}
-                  className="h-full w-full object-contain p-1"
+                  className="h-full w-full object-cover"
                 />
               ) : (
                 <Landmark className={cn('text-muted-foreground', isSticky ? 'h-5 w-5' : 'h-7 w-7')} />
@@ -133,9 +133,8 @@ export function MuseumDetailHeader({ config }: MuseumDetailHeaderProps) {
               >
                 {config.name}
               </h1>
-              <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate">
-                <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                <span className="truncate">{fullAddress}</span>
+              <p className="text-sm text-muted-foreground mt-0.5 truncate">
+                {fullAddress}
               </p>
             </div>
 
