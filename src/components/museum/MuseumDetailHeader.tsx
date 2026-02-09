@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ExternalLink, Navigation, Landmark } from 'lucide-react';
+import { ExternalLink, Navigation, Landmark, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -41,6 +41,7 @@ interface MuseumDetailHeaderProps {
 
 export function MuseumDetailHeader({ config }: MuseumDetailHeaderProps) {
   const [isSticky, setIsSticky] = useState(false);
+  const [copied, setCopied] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -133,9 +134,31 @@ export function MuseumDetailHeader({ config }: MuseumDetailHeaderProps) {
               >
                 {config.name}
               </h1>
-              <p className="text-sm text-muted-foreground mt-0.5 truncate">
-                {fullAddress}
-              </p>
+              <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                <p className="text-sm text-muted-foreground truncate">
+                  {fullAddress}
+                </p>
+                {fullAddress && (
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(fullAddress);
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 1500);
+                          }}
+                          className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+                          aria-label="Copy address"
+                        >
+                          {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">{copied ? 'Copied!' : 'Copy'}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
             </div>
 
             {/* Social Icons + Open in Maps */}
