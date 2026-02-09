@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MapPin, Image as ImageIcon, Calendar, Trophy } from 'lucide-react';
 import { PassportHero } from '@/components/passport/PassportHero';
+import { PassportVisitedMap } from '@/components/passport/PassportVisitedMap';
 import { YearFilter } from '@/components/passport/YearFilter';
 import { PassportStats } from '@/components/passport/PassportStats';
 import { MuseumsTab } from '@/components/passport/MuseumsTab';
@@ -31,7 +32,7 @@ export default function PassportPage() {
 
   const [activeTab, setActiveTab] = useState('museums');
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  
   const [selectedCategory, setSelectedCategory] = useState<CategoryProgress | null>(null);
 
   // Passport number
@@ -108,14 +109,17 @@ export default function PassportPage() {
   return (
     <ScrollArea className="h-[calc(100vh-80px)] md:h-[calc(100vh-73px)]">
       <div className="container max-w-4xl py-4 md:py-6 px-4 space-y-5">
-        {/* 1. Passport Hero */}
-        <PassportHero
-          displayName={nickname}
-          avatarUrl={avatarUrl}
-          passportNo={passportNo}
-          issueDate={issueDate}
-          homeCity={homeCity}
-        />
+        {/* 1. Passport Hero + Visited Map (seamless block) */}
+        <div className="shadow-[0_1px_3px_hsl(var(--foreground)/0.04)]">
+          <PassportHero
+            displayName={nickname}
+            avatarUrl={avatarUrl}
+            passportNo={passportNo}
+            issueDate={issueDate}
+            homeCity={homeCity}
+          />
+          <PassportVisitedMap museums={passportMuseums} />
+        </div>
 
         {/* 2. Year Filter */}
         <YearFilter
@@ -156,10 +160,7 @@ export default function PassportPage() {
           <TabsContent value="museums" className="mt-0">
             <MuseumsTab
               museums={passportMuseums}
-              countries={countries}
               selectedYear={selectedYear}
-              selectedCountry={selectedCountry}
-              onCountrySelect={setSelectedCountry}
             />
           </TabsContent>
 

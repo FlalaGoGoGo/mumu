@@ -26,7 +26,7 @@ export function PassportHero({
   const mrzLine2 = `${passportNo.replace(/-/g, '')}<<<MUSEUM<<<<PASSPORT<<<<`;
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-gold-border/40 shadow-gallery">
+    <div className="relative overflow-hidden rounded-t-lg border border-b-0 border-gold-border/40">
       {/* Light ivory passport background */}
       <div className="bg-card parchment-texture text-foreground">
         {/* Top gold accent line */}

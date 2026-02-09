@@ -6,15 +6,11 @@ import { toast } from '@/hooks/use-toast';
 import { useAddEvent, useRemoveEvent } from '@/hooks/useUserEvents';
 import { PassportSegmentedFilter } from './PassportSegmentedFilter';
 import { MuseumStampCard } from './MuseumStampCard';
-import { PassportWorldMap } from './PassportWorldMap';
 import type { PassportMuseum } from '@/hooks/usePassportData';
 
 interface MuseumsTabProps {
   museums: PassportMuseum[];
-  countries: string[];
   selectedYear: number | null;
-  selectedCountry: string | null;
-  onCountrySelect: (country: string | null) => void;
 }
 
 const SEGMENTS = [
@@ -25,13 +21,12 @@ const SEGMENTS = [
 ];
 
 export function MuseumsTab({
-  museums, countries, selectedYear, selectedCountry, onCountrySelect,
+  museums, selectedYear,
 }: MuseumsTabProps) {
   const navigate = useNavigate();
   const addEvent = useAddEvent();
   const removeEvent = useRemoveEvent();
   const [segment, setSegment] = useState('all');
-  const [mapFilter, setMapFilter] = useState<'visited' | 'planned' | 'both'>('visited');
   const [justStamped, setJustStamped] = useState<Set<string>>(new Set());
 
   // Year-filter base
@@ -61,12 +56,6 @@ export function MuseumsTab({
     });
   }, [yearFiltered, segment]);
 
-  // Map museums
-  const mapMuseums = useMemo(() => {
-    if (mapFilter === 'visited') return yearFiltered.filter(m => m.status === 'visited' || m.status === 'completed');
-    if (mapFilter === 'planned') return yearFiltered.filter(m => m.status === 'planned' || m.status === 'completed');
-    return yearFiltered;
-  }, [yearFiltered, mapFilter]);
 
   const handleStamp = useCallback(async (museumId: string) => {
     try {
@@ -94,16 +83,6 @@ export function MuseumsTab({
   return (
     <div className="space-y-4">
       <PassportSegmentedFilter segments={segments} value={segment} onChange={setSegment} />
-
-      {/* Map */}
-      <PassportWorldMap
-        museums={mapMuseums}
-        mapFilter={mapFilter}
-        onMapFilterChange={setMapFilter}
-        countries={countries}
-        selectedCountry={selectedCountry}
-        onCountrySelect={onCountrySelect}
-      />
 
       {/* Museum list */}
       {filtered.length === 0 ? (
