@@ -112,7 +112,7 @@ export function MuseumHoursCard({ hours, closedDates = [] }: MuseumHoursCardProp
     <div className="p-4 bg-card border border-border rounded-lg">
       <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
         <Clock className="w-4 h-4" />
-        Hours
+        Visit Schedule
       </h3>
 
       {/* Calendar header */}
@@ -159,6 +159,9 @@ export function MuseumHoursCard({ hours, closedDates = [] }: MuseumHoursCardProp
           const todayMatch = isToday(day);
           const selected = isSelected(day);
 
+          const isTodayNotSelected = todayMatch && !selected;
+          const isTodayAndSelected = todayMatch && selected;
+
           return (
             <button
               key={day}
@@ -166,30 +169,48 @@ export function MuseumHoursCard({ hours, closedDates = [] }: MuseumHoursCardProp
               className={cn(
                 'h-8 w-full text-xs rounded-md transition-colors relative',
                 'hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                closed && !selected && 'text-destructive/70',
-                todayMatch && !selected && 'font-bold bg-accent text-accent-foreground',
+                // Selected state (deep red)
                 selected && 'bg-primary text-primary-foreground font-semibold',
+                // Selected + today: add gold ring
+                isTodayAndSelected && 'ring-2 ring-accent ring-offset-1 ring-offset-card',
+                // Today (not selected): gold accent
+                isTodayNotSelected && 'font-bold bg-accent/30 text-accent-foreground ring-1 ring-accent',
+                // Closed (not selected): bold + muted red
+                closed && !selected && 'text-destructive font-bold',
+                // Normal
                 !closed && !todayMatch && !selected && 'text-foreground'
               )}
             >
               {day}
+              {/* Diagonal slash for closed dates */}
+              {closed && (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 pointer-events-none overflow-hidden rounded-md"
+                >
+                  <span className={cn(
+                    "absolute top-1/2 left-1/2 w-[140%] h-[1.5px] -translate-x-1/2 -translate-y-1/2 rotate-[-45deg]",
+                    selected ? "bg-primary-foreground/50" : "bg-destructive/50"
+                  )} />
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
       {/* Selected day summary */}
-      <div className="mt-3 px-1 py-2 border-t border-border">
-        <p className="text-xs text-muted-foreground mb-0.5">
+      <div className="mt-3 border-t border-border pt-3 pb-2 flex flex-col justify-center">
+        <p className="text-xs text-muted-foreground leading-tight">
           {formatSelectedDate()}
         </p>
         <p
           className={cn(
-            'text-sm font-medium',
+            'text-sm font-semibold leading-snug mt-0.5',
             selectedIsClosed ? 'text-destructive' : 'text-foreground'
           )}
         >
-          {selectedIsClosed ? 'Closed' : `Open ${selectedHours}`}
+          {selectedIsClosed ? 'CLOSED' : `Open ${selectedHours}`}
         </p>
       </div>
 
@@ -199,20 +220,26 @@ export function MuseumHoursCard({ hours, closedDates = [] }: MuseumHoursCardProp
           Weekly Hours
         </p>
         <div className="space-y-1">
-          {hours.map((h) => (
-            <div key={h.day} className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{h.day}</span>
-              <span
-                className={cn(
-                  h.hours.toLowerCase() === 'closed'
-                    ? 'text-destructive font-medium'
-                    : 'text-foreground'
-                )}
-              >
-                {h.hours}
-              </span>
-            </div>
-          ))}
+          {hours.map((h) => {
+            const isClosed = h.hours.toLowerCase() === 'closed';
+            return (
+              <div key={h.day} className="flex justify-between text-sm">
+                <span className={cn(
+                  'text-muted-foreground',
+                  isClosed && 'font-semibold'
+                )}>{h.day}</span>
+                <span
+                  className={cn(
+                    isClosed
+                      ? 'text-destructive font-bold uppercase tracking-wide'
+                      : 'text-foreground'
+                  )}
+                >
+                  {isClosed ? 'CLOSED' : h.hours}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
