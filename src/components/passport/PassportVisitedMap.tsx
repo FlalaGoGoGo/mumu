@@ -1,10 +1,35 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import 'leaflet.heat';
 import type { PassportMuseum } from '@/hooks/usePassportData';
+
+// Extend L to include heat
+declare module 'leaflet' {
+  function heatLayer(
+    latlngs: Array<[number, number, number?]>,
+    options?: {
+      minOpacity?: number;
+      maxZoom?: number;
+      max?: number;
+      radius?: number;
+      blur?: number;
+      gradient?: Record<number, string>;
+    }
+  ): L.Layer & { setLatLngs(latlngs: Array<[number, number, number?]>): void; setOptions(options: Record<string, unknown>): void; redraw(): void };
+}
+
+function getHeatParams(zoom: number): { radius: number; blur: number } {
+  if (zoom <= 3) return { radius: 8, blur: 6 };
+  if (zoom <= 5) return { radius: 12, blur: 10 };
+  if (zoom <= 7) return { radius: 18, blur: 14 };
+  if (zoom <= 9) return { radius: 28, blur: 18 };
+  if (zoom <= 11) return { radius: 45, blur: 24 };
+  return { radius: 60, blur: 30 };
+}
 
 interface PassportVisitedMapProps {
   museums: PassportMuseum[];
@@ -38,11 +63,25 @@ export function PassportVisitedMap({ museums }: PassportVisitedMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const clusterRef = useRef<L.MarkerClusterGroup | null>(null);
+  const heatLayerRef = useRef<L.Layer | null>(null);
+  const lastZoomBucket = useRef<number>(-1);
 
   // Only visited/completed museums
   const visitedMuseums = museums.filter(
     (m) => m.status === 'visited' || m.status === 'completed'
   );
+
+  const updateHeatParams = useCallback((map: L.Map) => {
+    if (!heatLayerRef.current) return;
+    const zoom = map.getZoom();
+    // Bucket by the zoom table to avoid unnecessary redraws
+    const bucket = zoom <= 3 ? 0 : zoom <= 5 ? 1 : zoom <= 7 ? 2 : zoom <= 9 ? 3 : zoom <= 11 ? 4 : 5;
+    if (bucket === lastZoomBucket.current) return;
+    lastZoomBucket.current = bucket;
+    const { radius, blur } = getHeatParams(zoom);
+    (heatLayerRef.current as any).setOptions({ radius, blur });
+    (heatLayerRef.current as any).redraw();
+  }, []);
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -62,13 +101,17 @@ export function PassportVisitedMap({ museums }: PassportVisitedMapProps) {
       { subdomains: 'abcd', maxZoom: 19 }
     ).addTo(map);
 
+    map.on('zoomend', () => updateHeatParams(map));
+
     mapInstanceRef.current = map;
 
     return () => {
       map.remove();
       mapInstanceRef.current = null;
+      heatLayerRef.current = null;
+      lastZoomBucket.current = -1;
     };
-  }, []);
+  }, [updateHeatParams]);
 
   // Update markers when data changes
   useEffect(() => {
@@ -78,18 +121,26 @@ export function PassportVisitedMap({ museums }: PassportVisitedMapProps) {
     if (clusterRef.current) {
       map.removeLayer(clusterRef.current);
     }
+    if (heatLayerRef.current) {
+      map.removeLayer(heatLayerRef.current);
+      heatLayerRef.current = null;
+      lastZoomBucket.current = -1;
+    }
 
     if (visitedMuseums.length === 0) {
       clusterRef.current = null;
       return;
     }
 
+    // --- Cluster / pin layer ---
     const cluster = (L as any).markerClusterGroup({
       maxClusterRadius: 40,
       spiderfyOnMaxZoom: true,
       showCoverageOnHover: false,
       iconCreateFunction: createClusterIcon,
     });
+
+    const heatPoints: Array<[number, number, number]> = [];
 
     visitedMuseums.forEach((pm) => {
       const { museum, status, visitDate } = pm;
@@ -109,16 +160,38 @@ export function PassportVisitedMap({ museums }: PassportVisitedMapProps) {
       `;
       marker.bindTooltip(tooltipContent, { className: 'mumu-tooltip' });
       cluster.addLayer(marker);
+
+      heatPoints.push([museum.lat, museum.lng, 1]);
     });
 
     map.addLayer(cluster);
     clusterRef.current = cluster;
 
+    // --- Heatmap layer (adaptive radius/blur) ---
+    const initialParams = getHeatParams(map.getZoom());
+    const heat = L.heatLayer(heatPoints, {
+      minOpacity: 0.25,
+      maxZoom: 18,
+      radius: initialParams.radius,
+      blur: initialParams.blur,
+      gradient: {
+        0.2: 'hsl(43, 50%, 85%)',
+        0.4: 'hsl(43, 55%, 70%)',
+        0.6: 'hsl(43, 60%, 55%)',
+        0.8: 'hsl(35, 65%, 45%)',
+        1.0: 'hsl(28, 70%, 38%)',
+      },
+    });
+    map.addLayer(heat);
+    heatLayerRef.current = heat;
+    lastZoomBucket.current = -1;
+    updateHeatParams(map);
+
     const bounds = L.latLngBounds(
       visitedMuseums.map((pm) => [pm.museum.lat, pm.museum.lng])
     );
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 6 });
-  }, [visitedMuseums]);
+  }, [visitedMuseums, updateHeatParams]);
 
   return (
     <div className="relative">
