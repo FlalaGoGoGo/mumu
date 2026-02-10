@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, MapPin, ImageOff, Loader2 } from 'lucide-react';
 import { useExhibition } from '@/hooks/useExhibitions';
 import { RelatedArtworksGallery } from '@/components/exhibition/RelatedArtworksGallery';
+import { ExhibitionArtworksMap } from '@/components/exhibition/ExhibitionArtworksMap';
 import { ArtworkDetailSheet } from '@/components/art/ArtworkDetailSheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -135,6 +136,17 @@ export default function ExhibitionDetailPage() {
             <RelatedArtworksGallery
               artworkIds={exhibition.related_artwork_ids}
               onArtworkClick={handleArtworkClick}
+            />
+          </div>
+        )}
+
+        {/* Artworks on Map */}
+        {exhibition.related_artwork_ids.length > 0 && (
+          <div className="gallery-card p-6 mt-6">
+            <ExhibitionArtworksMap
+              artworkIds={exhibition.related_artwork_ids}
+              venueMuseumId={exhibition.museum_id}
+              venueMuseumName={exhibition.museum_name}
             />
           </div>
         )}

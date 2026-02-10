@@ -2,6 +2,7 @@ import { useEffect, useCallback } from 'react';
 import { X, ExternalLink, ImageOff, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { RelatedArtworksGallery } from '@/components/exhibition/RelatedArtworksGallery';
+import { ExhibitionArtworksMap } from '@/components/exhibition/ExhibitionArtworksMap';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -220,6 +221,15 @@ function ExhibitionPanelContent({
           <RelatedArtworksGallery
             artworkIds={exhibition.related_artwork_ids}
             onArtworkClick={onArtworkClick}
+          />
+        )}
+
+        {/* Artworks on Map */}
+        {exhibition.related_artwork_ids.length > 0 && (
+          <ExhibitionArtworksMap
+            artworkIds={exhibition.related_artwork_ids}
+            venueMuseumId={exhibition.museum_id}
+            venueMuseumName={exhibition.museum_name}
           />
         )}
 
