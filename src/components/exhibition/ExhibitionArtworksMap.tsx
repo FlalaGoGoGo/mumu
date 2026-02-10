@@ -266,29 +266,29 @@ export function ExhibitionArtworksMap({
 
   return (
     <div className={`space-y-1.5 ${className}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-display text-sm font-semibold text-foreground tracking-wide uppercase">
-            Artworks on Map
-          </h3>
-          <p className="text-[11px] text-muted-foreground leading-tight">
-            Museums that contributed artworks to this exhibition.
-          </p>
-        </div>
-        {venueMuseumId && (
-          <button
-            onClick={() => setShowVenue((v) => !v)}
-            className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md border border-border bg-background"
-            title={showVenue ? 'Hide venue' : 'Show venue'}
-          >
-            {showVenue ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-            Venue
-          </button>
-        )}
-      </div>
+      <h3 className="font-display text-sm font-semibold text-foreground tracking-wide uppercase">
+        Artworks on Map
+      </h3>
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        Museums that contributed artworks to this exhibition.
+      </p>
 
       <div className="relative w-full rounded-lg overflow-hidden border border-border" style={{ height: 'clamp(240px, 30vw, 340px)' }}>
         <div ref={containerRef} className="w-full h-full" />
+
+        {/* Venue toggle – top-right overlay */}
+        {venueMuseumId && (
+          <div className="absolute top-3 right-3 z-[1000]">
+            <button
+              onClick={() => setShowVenue((v) => !v)}
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md border border-border bg-background/95 backdrop-blur-sm shadow-md"
+              title={showVenue ? 'Hide venue' : 'Show venue'}
+            >
+              {showVenue ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+              Venue
+            </button>
+          </div>
+        )}
 
         {/* Zoom controls */}
         <div className="absolute bottom-3 right-3 flex flex-col gap-1.5 z-[1000]">
