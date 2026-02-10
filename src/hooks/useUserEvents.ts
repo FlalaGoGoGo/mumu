@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useSession } from './useSession';
 import { toast } from '@/hooks/use-toast';
+import { getSessionClient } from '@/lib/supabaseSession';
 
 export type EventType = 'visit_museum' | 'see_artwork' | 'attend_exhibition' | 'wishlist_add' | 'wishlist_complete';
 export type ItemType = 'museum' | 'exhibition' | 'artwork';
@@ -24,6 +24,7 @@ export function useUserEvents(eventType?: EventType) {
     queryKey: ['user-events', sessionId, eventType],
     queryFn: async (): Promise<UserEvent[]> => {
       if (!sessionId) return [];
+      const supabase = getSessionClient(sessionId);
       let query = supabase
         .from('user_events')
         .select('*')
@@ -50,6 +51,7 @@ export function useAddEvent() {
       meta?: Record<string, unknown>;
     }) => {
       if (!sessionId) throw new Error('No session');
+      const supabase = getSessionClient(sessionId);
       const { error } = await supabase.from('user_events').insert({
         session_id: sessionId,
         event_type: params.event_type,
@@ -76,6 +78,7 @@ export function useRemoveEvent() {
   return useMutation({
     mutationFn: async (params: { event_type: EventType; item_id: string }) => {
       if (!sessionId) throw new Error('No session');
+      const supabase = getSessionClient(sessionId);
       const { error } = await supabase
         .from('user_events')
         .delete()
@@ -97,6 +100,7 @@ export function useCompleteWishlistItem() {
   return useMutation({
     mutationFn: async (params: { item_type: ItemType; item_id: string }) => {
       if (!sessionId) throw new Error('No session');
+      const supabase = getSessionClient(sessionId);
       // Insert completion event
       const { error } = await supabase.from('user_events').insert({
         session_id: sessionId,
