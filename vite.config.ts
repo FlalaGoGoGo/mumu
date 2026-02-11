@@ -12,8 +12,9 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
+  base: '/',
   build: {
-    target: ['es2020', 'safari14'],
+    target: 'es2015',
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
