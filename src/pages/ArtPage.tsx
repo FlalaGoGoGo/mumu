@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { useEnrichedArtworks } from '@/hooks/useArtworks';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -39,6 +39,11 @@ export default function ArtPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState<ArtView>('grid');
+
+  // Infinite scroll state
+  const PAGE_SIZE = 36;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Map drawer state
   const [selectedMuseumGroup, setSelectedMuseumGroup] = useState<ArtMuseumGroup | null>(null);
@@ -196,6 +201,34 @@ export default function ArtPage() {
     return new Set(filteredArtworks.map(a => a.artwork_id));
   }, [filteredArtworks]);
 
+  // Visible (paginated) slice for the grid
+  const visibleArtworks = useMemo(() => {
+    return filteredArtworks.slice(0, visibleCount);
+  }, [filteredArtworks, visibleCount]);
+
+  const hasMore = visibleCount < filteredArtworks.length;
+
+  // Reset pagination when filters, search, or sort change
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [filters, searchQuery, sortOrder]);
+
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setVisibleCount(prev => prev + PAGE_SIZE);
+        }
+      },
+      { rootMargin: '400px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore]);
+
   // Get selected artist
   const selectedArtist: Artist | null = useMemo(() => {
     if (!filters.artistId) return null;
@@ -318,20 +351,31 @@ export default function ArtPage() {
 
             {/* Grid */}
             {filteredArtworks.length > 0 ? (
-              <div className={
-                selectedArtist && !isMobile
-                  ? "grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
-                  : "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8"
-              }>
-                {filteredArtworks.map((artwork) => (
-                  <ArtworkCard
-                    key={artwork.artwork_id}
-                    artwork={artwork}
-                    onClick={() => handleArtworkClick(artwork)}
-                    compact={!!selectedArtist && !isMobile}
-                  />
-                ))}
-              </div>
+              <>
+                <div className={
+                  selectedArtist && !isMobile
+                    ? "grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+                    : "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8"
+                }>
+                  {visibleArtworks.map((artwork) => (
+                    <ArtworkCard
+                      key={artwork.artwork_id}
+                      artwork={artwork}
+                      onClick={() => handleArtworkClick(artwork)}
+                      compact={!!selectedArtist && !isMobile}
+                    />
+                  ))}
+                </div>
+
+                {/* Infinite scroll sentinel */}
+                {hasMore && (
+                  <div ref={loadMoreRef} className="flex justify-center py-8">
+                    <p className="text-sm text-muted-foreground">
+                      {visibleArtworks.length} / {filteredArtworks.length}
+                    </p>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <p className="text-muted-foreground">{t('art.noResults')}</p>
