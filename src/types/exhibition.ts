@@ -1,14 +1,11 @@
 export interface ExhibitionRaw {
   exhibition_id: string;
   museum_id: string;
-  museum_name: string;
   exhibition_name: string;
   cover_image_url: string;
   start_date: string;
   end_date: string;
   official_url: string;
-  city: string;
-  state: string;
   short_description: string;
   related_artworks: string;
 }
@@ -21,6 +18,10 @@ export interface Exhibition extends Omit<ExhibitionRaw, 'start_date' | 'end_date
   status: ExhibitionStatus;
   date_label: string;
   related_artwork_ids: string[];
+  /** Populated from museums lookup */
+  museum_name: string;
+  city: string;
+  state: string;
 }
 
 export function computeExhibitionStatus(
@@ -90,5 +91,9 @@ export function parseExhibition(raw: ExhibitionRaw): Exhibition {
     status: computeExhibitionStatus(startDate, endDate),
     date_label: computeDateLabel(startDate, endDate),
     related_artwork_ids: parseRelatedArtworks(related_artworks),
+    // Will be populated from museum lookup
+    museum_name: '',
+    city: '',
+    state: '',
   };
 }

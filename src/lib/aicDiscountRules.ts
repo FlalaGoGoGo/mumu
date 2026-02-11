@@ -404,7 +404,7 @@ export function getMemberNote(eligibilities: EligibilityItem[]): {
   text: string;
 } {
   const hasMembership = eligibilities.some(
-    e => e.type === 'museum_membership' && e.museum_memberships?.some(m => m.museum_id === 'museum_00001')
+    e => e.type === 'museum_membership' && e.museum_memberships?.some(m => m.museum_id === 'the-art-institute-of-chicago-us')
   );
   return {
     isMember: hasMembership,
