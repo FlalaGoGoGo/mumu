@@ -47,6 +47,7 @@ export function ArtGalleryTile({ artwork, onClick }: ArtGalleryTileProps) {
           alt={artwork.title}
           className="absolute inset-0 w-full h-full object-cover"
           loading="lazy"
+          decoding="async"
           onLoad={() => reportImageLoaded(artwork.artwork_id)}
           onError={handleImageError}
         />

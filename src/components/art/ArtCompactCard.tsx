@@ -59,6 +59,7 @@ export function ArtCompactCard({ artwork, onClick }: ArtCompactCardProps) {
             alt={artwork.title}
             className="absolute inset-0 w-full h-full object-cover"
             loading="lazy"
+            decoding="async"
             onLoad={() => reportImageLoaded(artwork.artwork_id)}
             onError={handleImageError}
           />

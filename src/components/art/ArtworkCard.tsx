@@ -66,6 +66,7 @@ export function ArtworkCard({ artwork, onClick, compact = false }: ArtworkCardPr
             src={imageUrl}
             alt={artwork.title}
             loading="lazy"
+            decoding="async"
             onLoad={handleImageLoad}
             onError={handleImageError}
             className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
