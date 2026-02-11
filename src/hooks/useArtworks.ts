@@ -1,22 +1,36 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useMuseums } from '@/hooks/useMuseums';
 import type { Artist, Artwork, EnrichedArtwork } from '@/types/art';
 import type { Museum } from '@/types/museum';
+
+function countQuotes(str: string): number {
+  return (str.match(/"/g) || []).length;
+}
 
 async function parseCSV<T>(url: string): Promise<T[]> {
   const response = await fetch(url);
   const text = await response.text();
-  const lines = text.split('\n').filter(line => line.trim());
+  const lines = text.split('\n');
   
   if (lines.length === 0) return [];
   
   // Parse header - handle BOM character
-  const headerLine = lines[0].replace(/^\uFEFF/, '');
+  const headerLine = lines[0].replace(/^\uFEFF/, '').trim();
   const headers = parseCSVLine(headerLine);
   
   const results: T[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i]);
+  let i = 1;
+  while (i < lines.length) {
+    let currentLine = lines[i];
+    if (!currentLine.trim()) { i++; continue; }
+
+    // Handle multi-line fields (quoted strings with newlines)
+    while (i < lines.length - 1 && countQuotes(currentLine) % 2 !== 0) {
+      i++;
+      currentLine += '\n' + lines[i];
+    }
+
+    const values = parseCSVLine(currentLine);
     const obj: Record<string, unknown> = {};
     
     headers.forEach((header, index) => {
@@ -36,6 +50,7 @@ async function parseCSV<T>(url: string): Promise<T[]> {
     });
     
     results.push(obj as T);
+    i++;
   }
   
   return results;
@@ -82,25 +97,16 @@ export function useArtworksRaw() {
   return useQuery({
     queryKey: ['artworks-raw'],
     queryFn: async (): Promise<Artwork[]> => {
-      return parseCSV<Artwork>('/data/artworks.csv');
+      const all = await parseCSV<Artwork>('/data/artworks.csv');
+      // Filter out empty rows (trailing rows with no artwork_id)
+      return all.filter(a => a.artwork_id && String(a.artwork_id).trim() !== '');
     },
     staleTime: Infinity,
   });
 }
 
 export function useMuseumsForArt() {
-  return useQuery({
-    queryKey: ['museums'],
-    queryFn: async (): Promise<Museum[]> => {
-      const { data, error } = await supabase
-        .from('museums')
-        .select('*')
-        .order('name');
-      
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  return useMuseums();
 }
 
 export function useEnrichedArtworks() {
@@ -120,17 +126,15 @@ export function useEnrichedArtworks() {
       const artist = artistById.get(artwork.artist_id);
       const museum = museumById.get(artwork.museum_id);
       
-      if (artist && museum) {
-        enrichedArtworks.push({
-          ...artwork,
-          artist_name: artist.artist_name,
-          artist_portrait_url: artist.portrait_url,
-          museum_name: museum.name,
-          museum_address: museum.address,
-          museum_lat: museum.lat,
-          museum_lng: museum.lng,
-        });
-      }
+      enrichedArtworks.push({
+        ...artwork,
+        artist_name: artist?.artist_name || 'Unknown Artist',
+        artist_portrait_url: artist?.portrait_url || null,
+        museum_name: museum?.name || 'Unknown Museum',
+        museum_address: museum?.address || null,
+        museum_lat: museum?.lat || 0,
+        museum_lng: museum?.lng || 0,
+      });
     }
   }
   

@@ -25,7 +25,7 @@ export interface MuseumConfig {
 }
 
 export const AIC_CONFIG: MuseumConfig = {
-  museum_id: 'museum_00001',
+  museum_id: 'the-art-institute-of-chicago-us',
   name: 'The Art Institute of Chicago',
   address: '111 S Michigan Ave, Chicago, IL 60603',
   country: 'United States',
