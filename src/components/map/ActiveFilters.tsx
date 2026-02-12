@@ -1,10 +1,11 @@
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/i18n';
+import { isToday, format } from 'date-fns';
 import type { MuseumCategory } from './CategoryFilterDropdown';
 
 interface ActiveFilter {
-  type: 'category' | 'location' | 'distance' | 'mustVisit' | 'openToday' | 'wishList';
+  type: 'category' | 'location' | 'distance' | 'mustVisit' | 'openToday' | 'wishList' | 'date';
   label: string;
   value: string;
 }
@@ -18,12 +19,14 @@ interface ActiveFiltersProps {
   mustVisit: boolean;
   openToday?: boolean;
   wishList?: boolean;
+  selectedDate?: Date;
   onRemoveCategory: (category: MuseumCategory) => void;
   onClearLocation: () => void;
   onClearDistance: () => void;
   onClearMustVisit: () => void;
   onClearOpenToday?: () => void;
   onClearWishList?: () => void;
+  onClearDate?: () => void;
   onClearAll: () => void;
 }
 
@@ -36,12 +39,14 @@ export function ActiveFilters({
   mustVisit,
   openToday,
   wishList,
+  selectedDate,
   onRemoveCategory,
   onClearLocation,
   onClearDistance,
   onClearMustVisit,
   onClearOpenToday,
   onClearWishList,
+  onClearDate,
   onClearAll,
 }: ActiveFiltersProps) {
   const { t } = useLanguage();
@@ -106,6 +111,15 @@ export function ActiveFilters({
     });
   }
 
+  // Add date filter (only if not today)
+  if (selectedDate && !isToday(selectedDate)) {
+    filters.push({
+      type: 'date',
+      label: `Date: ${format(selectedDate, 'EEE, MMM d')}`,
+      value: 'date',
+    });
+  }
+
   if (filters.length === 0) return null;
 
   const handleRemove = (filter: ActiveFilter) => {
@@ -127,6 +141,9 @@ export function ActiveFilters({
         break;
       case 'wishList':
         onClearWishList?.();
+        break;
+      case 'date':
+        onClearDate?.();
         break;
     }
   };

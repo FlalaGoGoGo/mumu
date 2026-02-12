@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { startOfDay, isToday, format } from 'date-fns';
 import { useMuseums } from '@/hooks/useMuseums';
 import { useVisits, useAddVisit, useRemoveVisit } from '@/hooks/usePassport';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -16,10 +17,11 @@ import { DistanceFilter } from '@/components/map/DistanceFilter';
 import { MustVisitFilter } from '@/components/map/MustVisitFilter';
 import { ActiveFilters } from '@/components/map/ActiveFilters';
 import { OpenTodayFilter } from '@/components/map/OpenTodayFilter';
+import { DateFilter } from '@/components/map/DateFilter';
 import { WishListFilter } from '@/components/map/WishListFilter';
 import { calculateDistance, formatDistance } from '@/lib/distance';
 import { useLanguage } from '@/lib/i18n';
-import { isOpenToday } from '@/lib/parseOpeningHours';
+import { isOpenOnDate } from '@/lib/parseOpeningHours';
 import { useSavedMuseums } from '@/hooks/useSavedMuseums';
 import type { Museum } from '@/types/museum';
 
@@ -45,6 +47,7 @@ export default function MapPage() {
   const [mustVisitFilter, setMustVisitFilter] = useState(false);
   const [openTodayFilter, setOpenTodayFilter] = useState(false);
   const [wishListFilter, setWishListFilter] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
 
   // Count active filters
   const activeFilterCount = useMemo(() => {
@@ -67,6 +70,7 @@ export default function MapPage() {
     setMustVisitFilter(false);
     setOpenTodayFilter(false);
     setWishListFilter(false);
+    setSelectedDate(startOfDay(new Date()));
   };
 
   const visitedIds = new Set(visits.map(v => v.museum_id));
@@ -106,7 +110,7 @@ export default function MapPage() {
         (!locationCity || museum.city === locationCity);
       const matchesDistance = maxDistanceFilter === null || (distance !== null && distance <= maxDistanceFilter);
       const matchesMustVisit = !mustVisitFilter || museum.highlight;
-      const matchesOpenToday = !openTodayFilter || isOpenToday(museum.opening_hours);
+      const matchesOpenToday = !openTodayFilter || isOpenOnDate(museum.opening_hours, selectedDate);
       const matchesWishList = !wishListFilter || isSaved(museum.museum_id);
       return matchesSearch && matchesLocation && matchesDistance && matchesMustVisit && matchesOpenToday && matchesWishList;
     });
@@ -118,7 +122,7 @@ export default function MapPage() {
       nature: baseFiltered.filter(m => m.museum.tags === 'nature').length,
       temple: baseFiltered.filter(m => m.museum.tags === 'temple').length,
     };
-  }, [museumsWithData, searchQuery, locationCountry, locationState, locationCity, maxDistanceFilter, mustVisitFilter, openTodayFilter, wishListFilter, isSaved]);
+  }, [museumsWithData, searchQuery, locationCountry, locationState, locationCity, maxDistanceFilter, mustVisitFilter, openTodayFilter, wishListFilter, isSaved, selectedDate]);
 
   // Count Must-Visit museums (based on current filtered set minus mustVisit filter itself)
   const mustVisitCount = useMemo(() => {
@@ -146,7 +150,7 @@ export default function MapPage() {
       (!locationCity || museum.city === locationCity);
     const matchesDistance = maxDistanceFilter === null || (distance !== null && distance <= maxDistanceFilter);
     const matchesMustVisit = !mustVisitFilter || museum.highlight;
-    const matchesOpenToday = !openTodayFilter || isOpenToday(museum.opening_hours);
+    const matchesOpenToday = !openTodayFilter || isOpenOnDate(museum.opening_hours, selectedDate);
     const matchesWishList = !wishListFilter || isSaved(museum.museum_id);
     return matchesSearch && matchesCategory && matchesLocation && matchesDistance && matchesMustVisit && matchesOpenToday && matchesWishList;
   });
@@ -259,6 +263,10 @@ export default function MapPage() {
               onSelectionChange={setCategoryFilter}
               counts={categoryCounts}
             />
+            <DateFilter
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+            />
           </div>
 
           {/* Active Filters Row */}
@@ -271,20 +279,23 @@ export default function MapPage() {
             mustVisit={mustVisitFilter}
             openToday={openTodayFilter}
             wishList={wishListFilter}
+            selectedDate={selectedDate}
             onRemoveCategory={(cat) => setCategoryFilter(categoryFilter.filter(c => c !== cat))}
             onClearLocation={() => handleLocationChange(null, null, null)}
             onClearDistance={() => setMaxDistanceFilter(null)}
             onClearMustVisit={() => setMustVisitFilter(false)}
             onClearOpenToday={() => setOpenTodayFilter(false)}
             onClearWishList={() => setWishListFilter(false)}
+            onClearDate={() => setSelectedDate(startOfDay(new Date()))}
             onClearAll={handleClearFilters}
           />
 
           <p className="text-xs text-muted-foreground">
             {sortedMuseums.length} {t('map.museums')} • {visitedIds.size} {t('map.visited')}
+            {!isToday(selectedDate) && <span> • Date: {format(selectedDate, 'MMM d')}</span>}
             {latitude !== null && <span> • {t('map.sortedByDistance')}</span>}
-            {openTodayFilter && <span> • Showing museums open today</span>}
-            {wishListFilter && <span> • Showing wish list museums</span>}
+            {openTodayFilter && <span> • Open only</span>}
+            {wishListFilter && <span> • Wish list</span>}
           </p>
         </div>
 
@@ -306,6 +317,7 @@ export default function MapPage() {
                   onViewPlan={selectedMuseum.has_full_content ? handleViewPlan : undefined}
                   stateCode={selectedMuseum.state}
                   distance={selectedMuseumData.distanceFormatted}
+                  selectedDate={selectedDate}
                 />
               </div>
             ) : (
@@ -333,6 +345,7 @@ export default function MapPage() {
                         compact 
                         stateCode={museum.state}
                         distance={distanceFormatted}
+                        selectedDate={selectedDate}
                       />
                     </div>
                   ))
@@ -390,6 +403,7 @@ export default function MapPage() {
             onViewPlan={selectedMuseum.has_full_content ? handleViewPlan : undefined}
             stateCode={selectedMuseum.state}
             distance={selectedMuseumData.distanceFormatted}
+            selectedDate={selectedDate}
           />
         )}
       </MobileBottomSheet>

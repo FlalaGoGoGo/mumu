@@ -5,7 +5,8 @@ import { toast } from '@/hooks/use-toast';
 import type { Museum } from '@/types/museum';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { isOpenToday } from '@/lib/parseOpeningHours';
+import { isOpenToday, isOpenOnDate } from '@/lib/parseOpeningHours';
+import { isToday, startOfDay } from 'date-fns';
 import { useSavedMuseums } from '@/hooks/useSavedMuseums';
 import { cn } from '@/lib/utils';
 
@@ -18,9 +19,10 @@ interface MuseumCardProps {
   stateCode?: string | null;
   distance?: string | null;
   showSaveButton?: boolean;
+  selectedDate?: Date;
 }
 
-export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compact = false, stateCode, distance, showSaveButton = true }: MuseumCardProps) {
+export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compact = false, stateCode, distance, showSaveButton = true, selectedDate }: MuseumCardProps) {
   const navigate = useNavigate();
   const { isSaved, toggleSave } = useSavedMuseums();
   const saved = isSaved(museum.museum_id);
@@ -61,9 +63,16 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
   };
   const locationString = buildLocationString();
 
-  // Determine open/closed/unknown status
+  // Determine open/closed/unknown status based on selectedDate
   const hasHours = !!museum.opening_hours;
-  const isOpen = hasHours ? isOpenToday(museum.opening_hours) : null;
+  const dateToCheck = selectedDate ?? new Date();
+  const isDateToday = isToday(startOfDay(dateToCheck));
+  const isOpen = hasHours ? isOpenOnDate(museum.opening_hours, dateToCheck) : null;
+  const statusLabel = isOpen === true
+    ? (isDateToday ? 'Open' : 'Open')
+    : isOpen === false
+      ? (isDateToday ? 'Closed' : 'Closed')
+      : 'Hours N/A';
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -86,7 +95,7 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
                 : 'bg-muted text-muted-foreground'
           )}
         >
-          {isOpen === true ? 'Open' : isOpen === false ? 'Closed' : 'Hours N/A'}
+          {statusLabel}
         </div>
 
         <div className="flex gap-3">
@@ -187,7 +196,7 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
                     : 'bg-muted/50 text-muted-foreground border-border'
               )}
             >
-              {isOpen === true ? 'Open Today' : isOpen === false ? 'Closed Today' : 'Hours N/A'}
+              {statusLabel}
             </Badge>
           )}
         </div>
