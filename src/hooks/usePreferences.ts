@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { getSessionClient } from '@/lib/supabaseSession';
 import { useSession } from './useSession';
 
 export interface UserPreferences {
@@ -50,6 +50,7 @@ const LOCAL_STORAGE_KEY = 'mumu_user_preferences';
 
 export function usePreferences() {
   const sessionId = useSession();
+  const client = useMemo(() => sessionId ? getSessionClient(sessionId) : null, [sessionId]);
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [isLoading, setIsLoading] = useState(true);
@@ -64,7 +65,7 @@ export function usePreferences() {
       setIsLoading(true);
       try {
         // Try to load from Supabase first
-        const { data, error } = await supabase
+        const { data, error } = await client!
           .from('user_preferences')
           .select('*')
           .eq('session_id', sessionId)
@@ -131,7 +132,7 @@ export function usePreferences() {
     localStorage.setItem(LOCAL_STORAGE_KEY, prefsString);
 
     try {
-      const { error } = await supabase
+      const { error } = await client!
         .from('user_preferences')
         .upsert({
           session_id: sessionId,
@@ -186,7 +187,7 @@ export function usePreferences() {
     
     if (sessionId) {
       try {
-        await supabase
+        await client!
           .from('user_preferences')
           .delete()
           .eq('session_id', sessionId);
