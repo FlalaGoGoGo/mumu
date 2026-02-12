@@ -19,7 +19,7 @@ export function OpenTodayFilter({ enabled, onToggle }: OpenTodayFilterProps) {
       )}
     >
       <Clock className="w-3.5 h-3.5" />
-      <span>Open Today</span>
+      <span>Open</span>
     </button>
   );
 }

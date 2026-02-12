@@ -88,3 +88,10 @@ export function isOpenToday(openingHours: string | null): boolean {
   const today = new Date().getDay(); // 0 = Sunday, 6 = Saturday
   return isOpenOnDay(openingHours, today);
 }
+
+/**
+ * Returns true if the museum is open on a specific date
+ */
+export function isOpenOnDate(openingHours: string | null, date: Date): boolean {
+  return isOpenOnDay(openingHours, date.getDay());
+}
