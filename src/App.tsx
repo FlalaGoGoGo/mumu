@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LanguageProvider } from "@/lib/i18n";
 import { ImageLoadProvider } from "@/contexts/ImageLoadContext";
@@ -17,6 +17,7 @@ import ExhibitionDetailPage from "./pages/ExhibitionDetailPage";
 import AdminCacheImagesPage from "./pages/AdminCacheImagesPage";
 import ShopPage from "./pages/ShopPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
+import TripPlanPage from "./pages/TripPlanPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,7 +37,7 @@ function AppWithLanguage() {
             <Route path="/" element={<Index />} />
             <Route path="/art" element={<ArtPage />} />
             <Route path="/museum/:museum_id" element={<MuseumDetailPage />} />
-            <Route path="/plan" element={<Navigate to="/" replace />} />
+            <Route path="/plan" element={<TripPlanPage />} />
             <Route path="/passport" element={<PassportPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/exhibitions" element={<ExhibitionsPage />} />
