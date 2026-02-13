@@ -9,7 +9,8 @@ import { MuseumCard } from '@/components/museum/MuseumCard';
 import { MobileBottomSheet } from '@/components/layout/MobileBottomSheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, X } from 'lucide-react';
+import { Search, X, CalendarRange } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CategoryFilterDropdown, type MuseumCategory } from '@/components/map/CategoryFilterDropdown';
 import { LocationFilter } from '@/components/map/LocationFilter';
@@ -366,6 +367,16 @@ export default function MapPage() {
           locationFilter={{ country: locationCountry, state: locationState, city: locationCity }}
           className="w-full h-full"
         />
+
+        {/* Plan a Trip CTA */}
+        <Button
+          onClick={() => navigate('/plan')}
+          className="absolute top-4 right-4 z-[1000] shadow-lg"
+          size="sm"
+        >
+          <CalendarRange className="w-4 h-4 mr-1.5" />
+          Plan a Trip
+        </Button>
 
         {/* Mobile: Quick info overlay when museum selected */}
         {selectedMuseum && (

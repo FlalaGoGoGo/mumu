@@ -1,0 +1,181 @@
+{
+  "the-art-institute-of-chicago-us": {
+    "currency": "USD",
+    "basePrice": 35,
+    "pricingNotes": "Timed-entry tickets recommended. Illinois residents get discounts.",
+    "rules": [
+      { "id": "aic-il-resident-free", "type": "free", "eligibility": { "residentState": "Illinois" }, "dateConstraint": null, "notes": "Free for Illinois residents", "requiresReservation": true },
+      { "id": "aic-chicago-resident-free", "type": "free", "eligibility": { "residentCity": "Chicago" }, "dateConstraint": null, "notes": "Free for Chicago residents", "requiresReservation": true },
+      { "id": "aic-student", "type": "discount", "discountAmount": 7, "eligibility": { "isStudent": true }, "dateConstraint": null, "notes": "Student discount with valid ID" },
+      { "id": "aic-senior", "type": "discount", "discountAmount": 6, "eligibility": { "isSenior": true }, "dateConstraint": null, "notes": "Seniors 65+" },
+      { "id": "aic-child-free", "type": "free", "eligibility": { "maxAge": 13 }, "dateConstraint": null, "notes": "Free for children under 14" },
+      { "id": "aic-bofa", "type": "free", "eligibility": { "hasProgram": "bofa_museums_on_us" }, "dateConstraint": { "weekRule": "first_full_weekend" }, "notes": "Bank of America Museums on Us — first full weekend each month" },
+      { "id": "aic-icom", "type": "free", "eligibility": { "hasProgram": "icom" }, "dateConstraint": null, "notes": "ICOM members admitted free" }
+    ]
+  },
+  "the-metropolitan-museum-of-art-newyorkcity-us": {
+    "currency": "USD",
+    "basePrice": 30,
+    "pricingNotes": "Pay-what-you-wish for NY State residents and students from NY/NJ/CT.",
+    "rules": [
+      { "id": "met-ny-resident-pwyw", "type": "discount", "discountAmount": 30, "eligibility": { "residentState": "New York" }, "dateConstraint": null, "notes": "Pay-what-you-wish for NY residents" },
+      { "id": "met-nj-student", "type": "discount", "discountAmount": 30, "eligibility": { "isStudent": true, "residentState": "New Jersey" }, "dateConstraint": null, "notes": "Pay-what-you-wish for NJ/CT students" },
+      { "id": "met-ct-student", "type": "discount", "discountAmount": 30, "eligibility": { "isStudent": true, "residentState": "Connecticut" }, "dateConstraint": null, "notes": "Pay-what-you-wish for NJ/CT students" },
+      { "id": "met-senior", "type": "discount", "discountAmount": 8, "eligibility": { "isSenior": true }, "dateConstraint": null, "notes": "Seniors 65+" },
+      { "id": "met-child-free", "type": "free", "eligibility": { "maxAge": 11 }, "dateConstraint": null, "notes": "Free for children under 12" },
+      { "id": "met-snap", "type": "discount", "discountAmount": 29, "eligibility": { "hasProgram": "snap_ebt" }, "dateConstraint": null, "notes": "Museums for All: $1 admission with EBT card" }
+    ]
+  },
+  "the-museum-of-modern-art-newyorkcity-us": {
+    "currency": "USD",
+    "basePrice": 28,
+    "pricingNotes": "Free Friday evenings 4–8 PM (UNIQLO Free Friday Nights).",
+    "rules": [
+      { "id": "moma-fri-free", "type": "free", "eligibility": null, "dateConstraint": { "dayOfWeek": [5], "timeWindow": "16:00-20:00" }, "notes": "UNIQLO Free Friday Nights (4–8 PM)" },
+      { "id": "moma-student", "type": "discount", "discountAmount": 10, "eligibility": { "isStudent": true }, "dateConstraint": null, "notes": "Student discount with valid ID" },
+      { "id": "moma-senior", "type": "discount", "discountAmount": 3, "eligibility": { "isSenior": true }, "dateConstraint": null, "notes": "Seniors 65+" },
+      { "id": "moma-child-free", "type": "free", "eligibility": { "maxAge": 15 }, "dateConstraint": null, "notes": "Free for children 16 and under" }
+    ]
+  },
+  "solomon-r-guggenheim-museum-newyorkcity-us": {
+    "currency": "USD",
+    "basePrice": 30,
+    "pricingNotes": "Pay-what-you-wish on Saturdays 4–6 PM.",
+    "rules": [
+      { "id": "gug-sat-pwyw", "type": "discount", "discountAmount": 30, "eligibility": null, "dateConstraint": { "dayOfWeek": [6], "timeWindow": "16:00-18:00" }, "notes": "Pay-what-you-wish Saturdays 4–6 PM" },
+      { "id": "gug-student", "type": "discount", "discountAmount": 8, "eligibility": { "isStudent": true }, "dateConstraint": null, "notes": "Student discount with valid ID" },
+      { "id": "gug-senior", "type": "discount", "discountAmount": 6, "eligibility": { "isSenior": true }, "dateConstraint": null, "notes": "Seniors 65+" },
+      { "id": "gug-child-free", "type": "free", "eligibility": { "maxAge": 11 }, "dateConstraint": null, "notes": "Free for children under 12" }
+    ]
+  },
+  "the-getty-losangeles-us": {
+    "currency": "USD",
+    "basePrice": 0,
+    "pricingNotes": "Always free admission. Parking $20.",
+    "rules": []
+  },
+  "the-getty-villa-pacificpalisades-us": {
+    "currency": "USD",
+    "basePrice": 0,
+    "pricingNotes": "Always free admission. Parking $20. Reservation required.",
+    "rules": []
+  },
+  "national-gallery-of-art-washingtondc-us": {
+    "currency": "USD",
+    "basePrice": 0,
+    "pricingNotes": "Always free admission (Smithsonian).",
+    "rules": []
+  },
+  "smithsonians-national-air-and-space-museum-washingtondc-us": {
+    "currency": "USD",
+    "basePrice": 0,
+    "pricingNotes": "Always free admission (Smithsonian). Timed-entry pass required.",
+    "rules": []
+  },
+  "national-museum-of-african-american-history-and-culture-washingtondc-us": {
+    "currency": "USD",
+    "basePrice": 0,
+    "pricingNotes": "Always free admission (Smithsonian). Timed-entry pass required.",
+    "rules": []
+  },
+  "national-museum-of-asian-art-washingtondc-us": {
+    "currency": "USD",
+    "basePrice": 0,
+    "pricingNotes": "Always free admission (Smithsonian).",
+    "rules": []
+  },
+  "the-british-museum-london-uk": {
+    "currency": "GBP",
+    "basePrice": 0,
+    "pricingNotes": "Free admission. Some special exhibitions have charges.",
+    "rules": []
+  },
+  "the-national-gallery-london-uk": {
+    "currency": "GBP",
+    "basePrice": 0,
+    "pricingNotes": "Free admission. Special exhibitions ticketed separately.",
+    "rules": []
+  },
+  "louvre-museum-paris-france": {
+    "currency": "EUR",
+    "basePrice": 22,
+    "pricingNotes": "Free first Sunday of each month (Oct–Mar). Free for EU residents under 26.",
+    "rules": [
+      { "id": "louvre-first-sun-free", "type": "free", "eligibility": null, "dateConstraint": { "weekRule": "first_sunday", "monthRange": [10,11,12,1,2,3] }, "notes": "Free first Sunday of the month (October–March)" },
+      { "id": "louvre-under26-eu", "type": "free", "eligibility": { "maxAge": 25, "residentRegion": "Europe" }, "dateConstraint": null, "notes": "Free for EU residents under 26" },
+      { "id": "louvre-child-free", "type": "free", "eligibility": { "maxAge": 17 }, "dateConstraint": null, "notes": "Free for visitors under 18" },
+      { "id": "louvre-icom", "type": "free", "eligibility": { "hasProgram": "icom" }, "dateConstraint": null, "notes": "Free for ICOM members" }
+    ]
+  },
+  "musée-d'orsay-paris-france": {
+    "currency": "EUR",
+    "basePrice": 16,
+    "pricingNotes": "Free first Sunday of each month.",
+    "rules": [
+      { "id": "orsay-first-sun-free", "type": "free", "eligibility": null, "dateConstraint": { "weekRule": "first_sunday" }, "notes": "Free first Sunday of the month" },
+      { "id": "orsay-under26-eu", "type": "free", "eligibility": { "maxAge": 25, "residentRegion": "Europe" }, "dateConstraint": null, "notes": "Free for EU residents under 26" },
+      { "id": "orsay-child-free", "type": "free", "eligibility": { "maxAge": 17 }, "dateConstraint": null, "notes": "Free for visitors under 18" }
+    ]
+  },
+  "rijksmuseum-amsterdam-netherlands": {
+    "currency": "EUR",
+    "basePrice": 22.50,
+    "pricingNotes": "Online tickets only. Free for children under 18.",
+    "rules": [
+      { "id": "rijks-child-free", "type": "free", "eligibility": { "maxAge": 17 }, "dateConstraint": null, "notes": "Free for visitors under 18" },
+      { "id": "rijks-icom", "type": "free", "eligibility": { "hasProgram": "icom" }, "dateConstraint": null, "notes": "Free for ICOM members" }
+    ]
+  },
+  "the-cleveland-museum-of-art-cleveland-us": {
+    "currency": "USD",
+    "basePrice": 0,
+    "pricingNotes": "Always free general admission.",
+    "rules": []
+  },
+  "museum-of-fine-arts-boston-us": {
+    "currency": "USD",
+    "basePrice": 27,
+    "pricingNotes": "Free for children under 18 on weekdays and weekends after 3 PM. Wednesday evening after 4 PM free.",
+    "rules": [
+      { "id": "mfa-child-free", "type": "free", "eligibility": { "maxAge": 17 }, "dateConstraint": null, "notes": "Free for visitors 17 and under" },
+      { "id": "mfa-wed-free", "type": "free", "eligibility": null, "dateConstraint": { "dayOfWeek": [3], "timeWindow": "16:00-22:00" }, "notes": "Free Wednesday evenings after 4 PM" },
+      { "id": "mfa-student", "type": "discount", "discountAmount": 2, "eligibility": { "isStudent": true }, "dateConstraint": null, "notes": "Student discount with valid ID" },
+      { "id": "mfa-senior", "type": "discount", "discountAmount": 2, "eligibility": { "isSenior": true }, "dateConstraint": null, "notes": "Seniors 65+" },
+      { "id": "mfa-snap", "type": "discount", "discountAmount": 25, "eligibility": { "hasProgram": "snap_ebt" }, "dateConstraint": null, "notes": "Museums for All: $2 admission with EBT" },
+      { "id": "mfa-bofa", "type": "free", "eligibility": { "hasProgram": "bofa_museums_on_us" }, "dateConstraint": { "weekRule": "first_full_weekend" }, "notes": "Bank of America Museums on Us" }
+    ]
+  },
+  "philadelphia-museum-of-art-philadelphia-us": {
+    "currency": "USD",
+    "basePrice": 25,
+    "pricingNotes": "Pay-what-you-wish first Sunday of each month and every Friday evening.",
+    "rules": [
+      { "id": "pma-first-sun", "type": "discount", "discountAmount": 25, "eligibility": null, "dateConstraint": { "weekRule": "first_sunday" }, "notes": "Pay-what-you-wish first Sunday" },
+      { "id": "pma-fri-eve", "type": "discount", "discountAmount": 25, "eligibility": null, "dateConstraint": { "dayOfWeek": [5], "timeWindow": "17:00-20:45" }, "notes": "Pay-what-you-wish Friday evenings" },
+      { "id": "pma-student", "type": "discount", "discountAmount": 11, "eligibility": { "isStudent": true }, "dateConstraint": null, "notes": "Student discount" },
+      { "id": "pma-child-free", "type": "free", "eligibility": { "maxAge": 12 }, "dateConstraint": null, "notes": "Free for children 12 and under" }
+    ]
+  },
+  "san-francisco-museum-of-modern-art-sanfrancisco-us": {
+    "currency": "USD",
+    "basePrice": 30,
+    "pricingNotes": "Free for visitors 18 and under.",
+    "rules": [
+      { "id": "sfmoma-child-free", "type": "free", "eligibility": { "maxAge": 18 }, "dateConstraint": null, "notes": "Free for visitors 18 and under" },
+      { "id": "sfmoma-student", "type": "discount", "discountAmount": 5, "eligibility": { "isStudent": true }, "dateConstraint": null, "notes": "Student discount" },
+      { "id": "sfmoma-senior", "type": "discount", "discountAmount": 5, "eligibility": { "isSenior": true }, "dateConstraint": null, "notes": "Seniors 65+" },
+      { "id": "sfmoma-snap", "type": "discount", "discountAmount": 29, "eligibility": { "hasProgram": "snap_ebt" }, "dateConstraint": null, "notes": "Museums for All: $1 with EBT" }
+    ]
+  },
+  "denver-art-museum-denver-us": {
+    "currency": "USD",
+    "basePrice": 15,
+    "pricingNotes": "Free for Colorado residents on first Saturday of each month.",
+    "rules": [
+      { "id": "dam-first-sat-co", "type": "free", "eligibility": { "residentState": "Colorado" }, "dateConstraint": { "weekRule": "first_saturday" }, "notes": "Free for Colorado residents on first Saturday" },
+      { "id": "dam-child-free", "type": "free", "eligibility": { "maxAge": 17 }, "dateConstraint": null, "notes": "Free for visitors 17 and under" },
+      { "id": "dam-student", "type": "discount", "discountAmount": 3, "eligibility": { "isStudent": true }, "dateConstraint": null, "notes": "Student discount" },
+      { "id": "dam-senior", "type": "discount", "discountAmount": 3, "eligibility": { "isSenior": true }, "dateConstraint": null, "notes": "Seniors 65+" }
+    ]
+  }
+}
