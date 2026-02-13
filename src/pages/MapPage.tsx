@@ -12,16 +12,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Search, X, SlidersHorizontal, CalendarRange } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { PlanSidebarTab } from '@/components/map/PlanSidebarTab';
-import { CategoryFilterDropdown, type MuseumCategory } from '@/components/map/CategoryFilterDropdown';
-import { LocationFilter } from '@/components/map/LocationFilter';
-import { DistanceFilter } from '@/components/map/DistanceFilter';
-import { MustVisitFilter } from '@/components/map/MustVisitFilter';
-import { ActiveFilters } from '@/components/map/ActiveFilters';
-import { OpenTodayFilter } from '@/components/map/OpenTodayFilter';
-import { DateFilter } from '@/components/map/DateFilter';
-import { WishListFilter } from '@/components/map/WishListFilter';
+import { Badge } from '@/components/ui/badge';
+import { FilterOverlay } from '@/components/map/FilterOverlay';
+import { type MuseumCategory } from '@/components/map/CategoryFilterDropdown';
 import { calculateDistance, formatDistance } from '@/lib/distance';
 import { useLanguage } from '@/lib/i18n';
 import { isOpenOnDate } from '@/lib/parseOpeningHours';
@@ -40,8 +33,9 @@ export default function MapPage() {
   
   const [selectedMuseum, setSelectedMuseum] = useState<Museum | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterOverlayOpen, setFilterOverlayOpen] = useState(false);
   
-  // New filter states
+  // Filter states
   const [categoryFilter, setCategoryFilter] = useState<MuseumCategory[]>([]);
   const [locationCountry, setLocationCountry] = useState<string | null>(null);
   const [locationState, setLocationState] = useState<string | null>(null);
@@ -209,9 +203,9 @@ export default function MapPage() {
     <div className="h-[calc(100vh-128px)] md:h-[calc(100vh-73px)] flex flex-col md:flex-row">
       {/* Desktop: Side Panel */}
       <div className="hidden md:flex md:w-96 lg:w-[420px] flex-col border-r border-border bg-background">
-        {/* Global search — always visible */}
-        <div className="p-4 pb-2">
-          <div className="relative">
+        {/* Top row: Search + Filter button */}
+        <div className="p-4 pb-2 flex items-center gap-2">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder={t('map.searchPlaceholder')}
@@ -228,136 +222,86 @@ export default function MapPage() {
               </button>
             )}
           </div>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 flex-shrink-0 relative"
+            onClick={() => setFilterOverlayOpen(!filterOverlayOpen)}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            {activeFilterCount > 0 && (
+              <Badge variant="secondary" className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 text-[10px] leading-none">
+                {activeFilterCount}
+              </Badge>
+            )}
+          </Button>
         </div>
 
-        {/* Tabs: Filter | Plan */}
-        <Tabs defaultValue="filter" className="flex flex-col flex-1 min-h-0">
-          <div className="px-4 pb-2">
-            <TabsList className="w-full">
-              <TabsTrigger value="filter" className="flex-1 gap-1.5">
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                Filter
-              </TabsTrigger>
-              <TabsTrigger value="plan" className="flex-1 gap-1.5">
-                <CalendarRange className="w-3.5 h-3.5" />
-                Plan
-              </TabsTrigger>
-            </TabsList>
-          </div>
+        {/* Summary line */}
+        <div className="px-4 pb-2">
+          <p className="text-xs text-muted-foreground">
+            {sortedMuseums.length} {t('map.museums')} • {visitedIds.size} {t('map.visited')}
+            {!isToday(selectedDate) && <span> • Date: {format(selectedDate, 'MMM d')}</span>}
+            {latitude !== null && <span> • {t('map.sortedByDistance')}</span>}
+          </p>
+        </div>
 
-          {/* ——— Filter Tab ——— */}
-          <TabsContent value="filter" className="flex-1 flex flex-col min-h-0 mt-0">
-            <div className="px-4 pb-3 space-y-3 border-b border-border">
-              {/* Quick Toggles */}
-              <div className="flex flex-wrap items-center gap-2">
-                <MustVisitFilter enabled={mustVisitFilter} onToggle={setMustVisitFilter} count={mustVisitCount} />
-                <OpenTodayFilter enabled={openTodayFilter} onToggle={setOpenTodayFilter} />
-                <WishListFilter enabled={wishListFilter} onToggle={setWishListFilter} />
-              </div>
-
-              {/* Sort & Browse / Location / Date */}
-              <div className="flex flex-wrap items-center gap-2">
-                <LocationFilter
-                  availableLocations={availableLocations}
-                  selectedCountry={locationCountry}
-                  selectedState={locationState}
-                  selectedCity={locationCity}
-                  onSelectionChange={handleLocationChange}
+        {/* Museum List */}
+        <ScrollArea className="flex-1">
+          <div className="p-4 pt-0">
+            {selectedMuseum && selectedMuseumData ? (
+              <div className="space-y-4">
+                <button onClick={() => setSelectedMuseum(null)} className="text-sm text-primary hover:underline">
+                  {t('map.backToList')}
+                </button>
+                <MuseumCard
+                  museum={selectedMuseum}
+                  isVisited={visitedIds.has(selectedMuseum.museum_id)}
+                  onMarkVisited={() => handleMarkVisited(selectedMuseum.museum_id)}
+                  onViewPlan={selectedMuseum.has_full_content ? handleViewPlan : undefined}
+                  stateCode={selectedMuseum.state}
+                  distance={selectedMuseumData.distanceFormatted}
+                  selectedDate={selectedDate}
                 />
-                <DistanceFilter maxDistance={maxDistanceFilter} onMaxDistanceChange={setMaxDistanceFilter} hasLocation={latitude !== null} />
-                <CategoryFilterDropdown selected={categoryFilter} onSelectionChange={setCategoryFilter} counts={categoryCounts} />
-                <DateFilter selectedDate={selectedDate} onDateChange={setSelectedDate} />
               </div>
-
-              {/* Active Filters */}
-              <ActiveFilters
-                categories={categoryFilter}
-                locationCountry={locationCountry}
-                locationState={locationState}
-                locationCity={locationCity}
-                maxDistance={maxDistanceFilter}
-                mustVisit={mustVisitFilter}
-                openToday={openTodayFilter}
-                wishList={wishListFilter}
-                selectedDate={selectedDate}
-                onRemoveCategory={(cat) => setCategoryFilter(categoryFilter.filter(c => c !== cat))}
-                onClearLocation={() => handleLocationChange(null, null, null)}
-                onClearDistance={() => setMaxDistanceFilter(null)}
-                onClearMustVisit={() => setMustVisitFilter(false)}
-                onClearOpenToday={() => setOpenTodayFilter(false)}
-                onClearWishList={() => setWishListFilter(false)}
-                onClearDate={() => setSelectedDate(startOfDay(new Date()))}
-                onClearAll={handleClearFilters}
-              />
-
-              {/* Summary */}
-              <p className="text-xs text-muted-foreground">
-                {sortedMuseums.length} {t('map.museums')} • {visitedIds.size} {t('map.visited')}
-                {!isToday(selectedDate) && <span> • Date: {format(selectedDate, 'MMM d')}</span>}
-                {latitude !== null && <span> • {t('map.sortedByDistance')}</span>}
-                {openTodayFilter && <span> • Open only</span>}
-                {wishListFilter && <span> • Wish list</span>}
-              </p>
-
-              {/* Reset Filters */}
-              {activeFilterCount > 0 && (
-                <Button variant="ghost" size="sm" onClick={handleClearFilters} className="text-muted-foreground h-7 text-xs">
-                  <X className="w-3 h-3 mr-1" /> Reset Filters
-                </Button>
-              )}
-            </div>
-
-            {/* Museum List */}
-            <ScrollArea className="flex-1">
-              <div className="p-4">
-                {selectedMuseum && selectedMuseumData ? (
-                  <div className="space-y-4">
-                    <button onClick={() => setSelectedMuseum(null)} className="text-sm text-primary hover:underline">
-                      {t('map.backToList')}
-                    </button>
-                    <MuseumCard
-                      museum={selectedMuseum}
-                      isVisited={visitedIds.has(selectedMuseum.museum_id)}
-                      onMarkVisited={() => handleMarkVisited(selectedMuseum.museum_id)}
-                      onViewPlan={selectedMuseum.has_full_content ? handleViewPlan : undefined}
-                      stateCode={selectedMuseum.state}
-                      distance={selectedMuseumData.distanceFormatted}
-                      selectedDate={selectedDate}
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {sortedMuseums.length === 0 ? (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground mb-4">{t('map.noResults')}</p>
-                        {activeFilterCount > 0 && (
-                          <button onClick={handleClearFilters} className="text-sm text-primary hover:underline">
-                            {t('common.clear')} filters
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      sortedMuseums.map(({ museum, distanceFormatted }) => (
-                        <div key={museum.museum_id} onClick={() => setSelectedMuseum(museum)}>
-                          <MuseumCard museum={museum} compact stateCode={museum.state} distance={distanceFormatted} selectedDate={selectedDate} />
-                        </div>
-                      ))
+            ) : (
+              <div className="space-y-3">
+                {sortedMuseums.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-4">{t('map.noResults')}</p>
+                    {activeFilterCount > 0 && (
+                      <button onClick={handleClearFilters} className="text-sm text-primary hover:underline">
+                        {t('common.clear')} filters
+                      </button>
                     )}
                   </div>
+                ) : (
+                  sortedMuseums.map(({ museum, distanceFormatted }) => (
+                    <div key={museum.museum_id} onClick={() => setSelectedMuseum(museum)}>
+                      <MuseumCard museum={museum} compact stateCode={museum.state} distance={distanceFormatted} selectedDate={selectedDate} />
+                    </div>
+                  ))
                 )}
               </div>
-            </ScrollArea>
-          </TabsContent>
+            )}
+          </div>
+        </ScrollArea>
 
-          {/* ——— Plan Tab ——— */}
-          <TabsContent value="plan" className="flex-1 min-h-0 mt-0">
-            <ScrollArea className="h-full">
-              <div className="p-4">
-                <PlanSidebarTab museums={museums} currentCity={locationCity} />
-              </div>
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
+        {/* Sticky bottom CTA */}
+        <div className="p-4 pt-2 border-t border-border">
+          <Button
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-12 text-base"
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (locationCity) params.set('city', locationCity);
+              params.set('mode', 'money');
+              navigate(`/plan${params.toString() ? `?${params}` : ''}`);
+            }}
+          >
+            <CalendarRange className="w-5 h-5 mr-2" />
+            Plan a Visit
+          </Button>
+        </div>
       </div>
 
       {/* Map */}
@@ -369,6 +313,34 @@ export default function MapPage() {
           userLocation={latitude !== null && longitude !== null ? { latitude, longitude, accuracy } : null}
           locationFilter={{ country: locationCountry, state: locationState, city: locationCity }}
           className="w-full h-full"
+        />
+
+        {/* Filter Overlay */}
+        <FilterOverlay
+          open={filterOverlayOpen}
+          onClose={() => setFilterOverlayOpen(false)}
+          mustVisitFilter={mustVisitFilter}
+          onMustVisitToggle={setMustVisitFilter}
+          mustVisitCount={mustVisitCount}
+          openTodayFilter={openTodayFilter}
+          onOpenTodayToggle={setOpenTodayFilter}
+          wishListFilter={wishListFilter}
+          onWishListToggle={setWishListFilter}
+          locationCountry={locationCountry}
+          locationState={locationState}
+          locationCity={locationCity}
+          onLocationChange={handleLocationChange}
+          availableLocations={availableLocations}
+          maxDistance={maxDistanceFilter}
+          onMaxDistanceChange={setMaxDistanceFilter}
+          hasLocation={latitude !== null}
+          categoryFilter={categoryFilter}
+          onCategoryChange={setCategoryFilter}
+          categoryCounts={categoryCounts}
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          activeFilterCount={activeFilterCount}
+          onClearAll={handleClearFilters}
         />
 
 
