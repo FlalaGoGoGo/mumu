@@ -278,8 +278,8 @@ export interface PlannerInput {
 export function generatePlan(input: PlannerInput): { itinerary: ItineraryDay[]; ticketPlan: TicketPlanItem[] } {
   const { city, startDate, endDate, mode, eligibility, userLocations, museums, ticketRules } = input;
 
-  // Step A: Filter museums by city
-  const cityMuseums = museums.filter(m => m.city.toLowerCase() === city.toLowerCase());
+  // Step A: Filter museums by city (if city provided), otherwise use all passed museums
+  const cityMuseums = city ? museums.filter(m => m.city.toLowerCase() === city.toLowerCase()) : museums;
   const dates = getDateRange(startDate, endDate);
 
   // Compute price for each museum across all dates (best price)

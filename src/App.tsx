@@ -18,6 +18,8 @@ import AdminCacheImagesPage from "./pages/AdminCacheImagesPage";
 import ShopPage from "./pages/ShopPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import TripPlanPage from "./pages/TripPlanPage";
+import VisitEditPage from "./pages/VisitEditPage";
+import VisitResultsPage from "./pages/VisitResultsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +40,8 @@ function AppWithLanguage() {
             <Route path="/art" element={<ArtPage />} />
             <Route path="/museum/:museum_id" element={<MuseumDetailPage />} />
             <Route path="/plan" element={<TripPlanPage />} />
+            <Route path="/plan/:visitId" element={<VisitResultsPage />} />
+            <Route path="/plan/:visitId/edit" element={<VisitEditPage />} />
             <Route path="/passport" element={<PassportPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/exhibitions" element={<ExhibitionsPage />} />
