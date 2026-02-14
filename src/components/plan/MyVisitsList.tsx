@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, CalendarRange, Pencil, Trash2, Copy, MapPin, Clock, DollarSign, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useVisitPlans } from '@/hooks/useVisitPlans';
+import { useVisitPlans, generateVisitName } from '@/hooks/useVisitPlans';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,7 +75,7 @@ export function MyVisitsList() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-display text-lg font-semibold truncate">
-                      {visit.name || 'Untitled Visit'}
+                      {visit.name || generateVisitName(visit)}
                     </h3>
                     <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
                       {/* Date info */}
