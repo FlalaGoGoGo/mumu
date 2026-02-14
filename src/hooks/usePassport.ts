@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { getSessionClient } from '@/lib/supabaseSession';
 import { useSession } from './useSession';
 import type { UserVisit, UserHighlightCompletion } from '@/types/museum';
 
@@ -10,6 +10,7 @@ export function useVisits() {
     queryKey: ['visits', sessionId],
     queryFn: async (): Promise<UserVisit[]> => {
       if (!sessionId) return [];
+      const supabase = getSessionClient(sessionId);
       
       const { data, error } = await supabase
         .from('user_visits')
@@ -30,6 +31,8 @@ export function useAddVisit() {
 
   return useMutation({
     mutationFn: async (museumId: string) => {
+      if (!sessionId) throw new Error('No session');
+      const supabase = getSessionClient(sessionId);
       const { error } = await supabase
         .from('user_visits')
         .insert({ museum_id: museumId, session_id: sessionId });
@@ -48,6 +51,8 @@ export function useRemoveVisit() {
 
   return useMutation({
     mutationFn: async (museumId: string) => {
+      if (!sessionId) throw new Error('No session');
+      const supabase = getSessionClient(sessionId);
       const { error } = await supabase
         .from('user_visits')
         .delete()
@@ -69,6 +74,7 @@ export function useHighlightCompletions() {
     queryKey: ['completions', sessionId],
     queryFn: async (): Promise<UserHighlightCompletion[]> => {
       if (!sessionId) return [];
+      const supabase = getSessionClient(sessionId);
       
       const { data, error } = await supabase
         .from('user_highlight_completions')
@@ -88,6 +94,8 @@ export function useToggleHighlightCompletion() {
 
   return useMutation({
     mutationFn: async ({ articId, isCompleted }: { articId: string; isCompleted: boolean }) => {
+      if (!sessionId) throw new Error('No session');
+      const supabase = getSessionClient(sessionId);
       if (isCompleted) {
         const { error } = await supabase
           .from('user_highlight_completions')
