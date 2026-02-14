@@ -288,15 +288,10 @@ export default function MapPage() {
         </ScrollArea>
 
         {/* Sticky bottom CTA */}
-        <div className="p-4 pt-2 border-t border-border">
+        <div className="p-4 pt-2 border-t border-border flex justify-center">
           <Button
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-12 text-base"
-            onClick={() => {
-              const params = new URLSearchParams();
-              if (locationCity) params.set('city', locationCity);
-              params.set('mode', 'money');
-              navigate(`/plan${params.toString() ? `?${params}` : ''}`);
-            }}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-12 text-base w-full max-w-[260px]"
+            onClick={() => navigate('/plan')}
           >
             <CalendarRange className="w-5 h-5 mr-2" />
             Plan a Visit
