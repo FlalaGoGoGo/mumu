@@ -1,9 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Pencil } from 'lucide-react';
-import { format } from 'date-fns';
+import { ArrowLeft, Pencil, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { useVisitPlans } from '@/hooks/useVisitPlans';
+import { useVisitPlans, generateVisitName } from '@/hooks/useVisitPlans';
 import { ItineraryTab } from '@/components/plan/ItineraryTab';
 import { TicketPlanTab } from '@/components/plan/TicketPlanTab';
 import { VisitRouteMap } from '@/components/plan/VisitRouteMap';
@@ -16,11 +15,57 @@ export function VisitResults() {
 
   const visit = visitId ? getVisit(visitId) : undefined;
 
-  if (!visit || !visit.generatedAt || !visit.itinerary) {
+  // Visit not found at all
+  if (!visit) {
     return (
-      <div className="container max-w-3xl py-8 text-center">
-        <p className="text-muted-foreground mb-4">No results found for this visit.</p>
+      <div className="container max-w-3xl py-16 text-center">
+        <h2 className="font-display text-xl font-semibold mb-2">Visit not found</h2>
+        <p className="text-muted-foreground mb-6">This visit may have been deleted.</p>
         <Button onClick={() => navigate('/plan')}>Back to My Visits</Button>
+      </div>
+    );
+  }
+
+  // Visit exists but no generated results
+  if (!visit.generatedAt || !visit.itinerary || !Array.isArray(visit.itinerary) || visit.itinerary.length === 0) {
+    return (
+      <div className="container max-w-3xl py-16 text-center">
+        <h2 className="font-display text-xl font-semibold mb-2">
+          {visit.name || generateVisitName(visit)}
+        </h2>
+        <p className="text-muted-foreground mb-6">
+          This visit hasn't been generated yet. Edit it and click "Generate Plan" to create your itinerary.
+        </p>
+        <div className="flex gap-3 justify-center">
+          <Button variant="outline" onClick={() => navigate(`/plan/${visitId}/edit`)} className="gap-2">
+            <Pencil className="w-4 h-4" />
+            Edit Visit
+          </Button>
+          <Button onClick={() => navigate(`/plan/${visitId}/edit`)} className="gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Generate Now
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if itinerary has any museums at all
+  const hasMuseums = visit.itinerary.some((d: any) => d.museums && d.museums.length > 0);
+
+  if (!hasMuseums) {
+    return (
+      <div className="container max-w-3xl py-16 text-center">
+        <h2 className="font-display text-xl font-semibold mb-2">
+          {visit.name || generateVisitName(visit)}
+        </h2>
+        <p className="text-muted-foreground mb-6">
+          No museums were found matching your selected places and dates. Try expanding the radius or adding more destinations.
+        </p>
+        <Button onClick={() => navigate(`/plan/${visitId}/edit`)} className="gap-2">
+          <Pencil className="w-4 h-4" />
+          Edit Visit
+        </Button>
       </div>
     );
   }
@@ -51,7 +96,7 @@ export function VisitResults() {
             <div className="flex items-start justify-between mb-6">
               <div>
                 <h1 className="font-display text-2xl font-bold text-foreground">
-                  {visit.name || 'Untitled Visit'}
+                  {visit.name || generateVisitName(visit)}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
                   {stopNames && <span>{stopNames} • </span>}

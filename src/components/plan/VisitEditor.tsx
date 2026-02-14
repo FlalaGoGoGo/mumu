@@ -9,11 +9,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useVisitPlans } from '@/hooks/useVisitPlans';
+import { useVisitPlans, generateVisitName } from '@/hooks/useVisitPlans';
 import { useMuseums } from '@/hooks/useMuseums';
 import { useEligibility } from '@/hooks/useEligibility';
 import { useTicketRules } from '@/hooks/useTicketRules';
-import { buildLocationHierarchy, getCitiesForStop } from '@/lib/locationHierarchy';
+import { buildLocationHierarchy } from '@/lib/locationHierarchy';
 import { generatePlan } from '@/lib/plannerUtils';
 import { EligibilitySection } from '@/components/plan/EligibilitySummary';
 import type { Stop, Visit } from '@/types/visit';
@@ -32,15 +32,19 @@ export function VisitEditor() {
   const existingVisit = visitId ? getVisit(visitId) : undefined;
   const [visit, setVisit] = useState<Visit>(() => {
     if (existingVisit) return { ...existingVisit };
-    // Should not happen normally — redirect
     const v = createVisit();
+    // Navigate to the canonical edit URL for the new visit
+    setTimeout(() => navigate(`/plan/${v.id}/edit`, { replace: true }), 0);
     return v;
   });
+
+  // Stable visitId: prefer URL param, fall back to local visit id
+  const effectiveId = visitId || visit.id;
 
   const update = (changes: Partial<Visit>) => {
     const updated = { ...visit, ...changes };
     setVisit(updated);
-    if (visitId) updateVisit(visitId, changes);
+    updateVisit(effectiveId, changes);
   };
 
   // Stop management
@@ -90,7 +94,7 @@ export function VisitEditor() {
       : addDays(startDate, (visit.flexibleDays || 3) - 1);
 
     const plan = generatePlan({
-      city: '', // not used when we pass museums directly
+      city: '',
       startDate,
       endDate,
       mode: visit.mode,
@@ -100,7 +104,11 @@ export function VisitEditor() {
       ticketRules,
     });
 
+    // Auto-generate name if empty
+    const finalName = visit.name.trim() || generateVisitName(visit);
+
     const updates: Partial<Visit> = {
+      name: finalName,
       generatedAt: new Date().toISOString(),
       itinerary: plan.itinerary.map(d => ({
         ...d,
@@ -109,11 +117,10 @@ export function VisitEditor() {
       ticketPlan: plan.ticketPlan,
     };
 
-    update(updates);
-    if (visitId) {
-      updateVisit(visitId, updates);
-      navigate(`/plan/${visitId}`);
-    }
+    // Persist FIRST, then navigate
+    updateVisit(effectiveId, updates);
+    setVisit(prev => ({ ...prev, ...updates }));
+    navigate(`/plan/${effectiveId}`);
   };
 
   return (
@@ -136,8 +143,13 @@ export function VisitEditor() {
             <Input
               value={visit.name}
               onChange={e => update({ name: e.target.value })}
-              placeholder="e.g. Seattle Weekend Museums"
+              placeholder={generateVisitName(visit) || "e.g. Seattle Weekend Museums"}
             />
+            {!visit.name.trim() && visit.stops.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Auto-name: {generateVisitName(visit)}
+              </p>
+            )}
           </section>
 
           {/* 2) Places / Stops */}
@@ -393,13 +405,14 @@ function StopCard({
         <div className="space-y-1">
           <label className="text-xs font-medium">Region</label>
           <Select
-            value={stop.region || ''}
-            onValueChange={v => onUpdate({ region: v || undefined, country: undefined, state: undefined, city: undefined })}
+            value={stop.region || '__none__'}
+            onValueChange={v => onUpdate({ region: v === '__none__' ? undefined : v, country: undefined, state: undefined, city: undefined })}
           >
             <SelectTrigger className="text-sm">
               <SelectValue placeholder="Select region" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="__none__">Select region</SelectItem>
               {hierarchy.regions.map(r => (
                 <SelectItem key={r} value={r}>{r}</SelectItem>
               ))}
@@ -411,14 +424,15 @@ function StopCard({
         <div className="space-y-1">
           <label className="text-xs font-medium">Country</label>
           <Select
-            value={stop.country || ''}
-            onValueChange={v => onUpdate({ country: v || undefined, state: undefined, city: undefined })}
+            value={stop.country || '__none__'}
+            onValueChange={v => onUpdate({ country: v === '__none__' ? undefined : v, state: undefined, city: undefined })}
             disabled={!stop.region}
           >
             <SelectTrigger className="text-sm">
               <SelectValue placeholder="Select country" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="__none__">Select country</SelectItem>
               {countriesForRegion.map(c => (
                 <SelectItem key={c} value={c}>{c}</SelectItem>
               ))}
