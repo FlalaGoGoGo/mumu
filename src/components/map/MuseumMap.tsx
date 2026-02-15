@@ -1,14 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.heat';
-import { Locate, Globe, Plus, Minus, Layers, MapPin, Flame, Check } from 'lucide-react';
+import { Locate, Globe, Plus, Minus, Layers, MapPin, Flame, Check, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MiniMap } from './MiniMap';
+import { HeatmapSettingsPanel } from './HeatmapSettingsPanel';
+import { HeatmapLegend } from './HeatmapLegend';
+import { type HeatmapParams, DEFAULT_PARAMS, loadHeatmapParams, saveHeatmapParams } from './heatmapDefaults';
 import type { Museum } from '@/types/museum';
 
 // Extend L to include heat
@@ -30,11 +33,14 @@ type MapLayerMode = 'pins' | 'heatmap';
 
 interface MuseumMapProps {
   museums: Museum[];
+  allMuseums?: Museum[];
   selectedMuseum: Museum | null;
   onSelectMuseum: (museum: Museum) => void;
   userLocation?: { latitude: number; longitude: number; accuracy?: number | null } | null;
   locationFilter?: { country: string | null; state: string | null; city: string | null } | null;
   className?: string;
+  visitedIds?: Set<string>;
+  savedIds?: Set<string>;
 }
 
 // Create user location marker icon
@@ -55,17 +61,11 @@ const createUserLocationIcon = () => {
 
 // SVG paths for category icons (matching filter chips)
 const categoryIconSvgs: Record<string, string> = {
-  // Palette icon for Art
   art: `<circle cx="13.5" cy="6.5" r=".5" fill="white"/><circle cx="17.5" cy="10.5" r=".5" fill="white"/><circle cx="8.5" cy="7.5" r=".5" fill="white"/><circle cx="6.5" cy="12.5" r=".5" fill="white"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z" stroke="white" stroke-width="2" fill="none"/>`,
-  // Scroll icon for History
   history: `<path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M19 17V5a2 2 0 0 0-2-2H4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
-  // Flask icon for Science
   science: `<path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8.5 2h7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M7 16h10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
-  // Leaf icon for Nature
   nature: `<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
-  // Landmark icon for Temple
   temple: `<line x1="3" x2="21" y1="22" y2="22" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="6" x2="6" y1="18" y2="11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="10" x2="10" y1="18" y2="11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="14" x2="14" y1="18" y2="11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="18" x2="18" y1="18" y2="11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polygon points="12 2 20 7 4 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="3" x2="21" y1="18" y2="18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
-  // Default building icon (fallback)
   default: `<path d="M3 21h18" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 21V7l7-4 7 4v14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 21v-8h6v8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`,
 };
 
@@ -73,9 +73,7 @@ const categoryIconSvgs: Record<string, string> = {
 const getMuseumCategory = (tags: string | null): string => {
   if (!tags) return 'default';
   const tag = tags.toLowerCase();
-  if (['art', 'history', 'science', 'nature', 'temple'].includes(tag)) {
-    return tag;
-  }
+  if (['art', 'history', 'science', 'nature', 'temple'].includes(tag)) return tag;
   return 'default';
 };
 
@@ -86,25 +84,7 @@ const createMarkerIcon = (isAic: boolean, category: string) => {
   
   return L.divIcon({
     className: 'custom-marker-wrapper',
-    html: `
-      <div style="
-        width: 28px;
-        height: 28px;
-        background: ${color};
-        border: 2px solid hsl(40, 33%, 97%);
-        border-radius: 50%;
-        box-shadow: 0 2px 8px hsla(24, 10%, 18%, 0.25);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: transform 0.15s ease;
-      ">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-          ${iconSvg}
-        </svg>
-      </div>
-    `,
+    html: `<div style="width:28px;height:28px;background:${color};border:2px solid hsl(40,33%,97%);border-radius:50%;box-shadow:0 2px 8px hsla(24,10%,18%,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.15s ease;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none">${iconSvg}</svg></div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 14],
     popupAnchor: [0, -14],
@@ -117,25 +97,7 @@ const createSelectedMarkerIcon = (isAic: boolean, category: string) => {
   
   return L.divIcon({
     className: 'custom-marker-wrapper selected',
-    html: `
-      <div style="
-        width: 36px;
-        height: 36px;
-        background: ${color};
-        border: 3px solid hsl(40, 33%, 97%);
-        border-radius: 50%;
-        box-shadow: 0 4px 12px hsla(24, 10%, 18%, 0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transform: scale(1.1);
-      ">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          ${iconSvg}
-        </svg>
-      </div>
-    `,
+    html: `<div style="width:36px;height:36px;background:${color};border:3px solid hsl(40,33%,97%);border-radius:50%;box-shadow:0 4px 12px hsla(24,10%,18%,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;transform:scale(1.1);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none">${iconSvg}</svg></div>`,
     iconSize: [36, 36],
     iconAnchor: [18, 18],
     popupAnchor: [0, -18],
@@ -158,32 +120,44 @@ const createClusterIcon = (cluster: L.MarkerCluster) => {
   
   return L.divIcon({
     className: `mumu-cluster mumu-cluster-${size}`,
-    html: `
-      <div style="
-        width: ${dimensions}px;
-        height: ${dimensions}px;
-        background: hsl(348, 45%, 32%);
-        border: 3px solid hsl(40, 33%, 97%);
-        border-radius: 50%;
-        box-shadow: 0 3px 10px hsla(24, 10%, 18%, 0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        font-family: 'Source Sans 3', sans-serif;
-        font-weight: 600;
-        font-size: ${count >= 100 ? '12px' : '14px'};
-        color: hsl(40, 33%, 97%);
-      ">
-        ${count}
-      </div>
-    `,
+    html: `<div style="width:${dimensions}px;height:${dimensions}px;background:hsl(348,45%,32%);border:3px solid hsl(40,33%,97%);border-radius:50%;box-shadow:0 3px 10px hsla(24,10%,18%,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:${count >= 100 ? '12px' : '14px'};color:hsl(40,33%,97%);">${count}</div>`,
     iconSize: [dimensions, dimensions],
     iconAnchor: [dimensions / 2, dimensions / 2],
   });
 };
 
-export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocation, locationFilter, className = '' }: MuseumMapProps) {
+/** Convert 0-100 slider values to leaflet.heat params */
+function sliderToLeaflet(params: HeatmapParams) {
+  return {
+    radius: Math.round(5 + (params.radius / 100) * 55), // 5–60
+    blur: Math.round(5 + (params.blur / 100) * 35),      // 5–40
+    minOpacity: params.opacity / 100,
+    maxZoom: params.normalization === 'viewport' ? 18 : 10,
+    max: params.clampOutliers ? 0.95 : 1.0,
+  };
+}
+
+function getWeight(m: Museum, params: HeatmapParams, visitedIds?: Set<string>, savedIds?: Set<string>): number {
+  let w = 1;
+  if (params.weighting === 'boost-must-visit' && m.highlight) w = 1.5;
+  else if (params.weighting === 'boost-wish-list' && savedIds?.has(m.museum_id)) w = 1.5;
+  else if (params.weighting === 'boost-visited' && visitedIds?.has(m.museum_id)) w = 1.5;
+  // Scale by intensity slider (0.3 – 2.0)
+  w *= 0.3 + (params.intensity / 100) * 1.7;
+  return w;
+}
+
+export function MuseumMap({
+  museums,
+  allMuseums,
+  selectedMuseum,
+  onSelectMuseum,
+  userLocation,
+  locationFilter,
+  className = '',
+  visitedIds,
+  savedIds,
+}: MuseumMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
   const heatLayerRef = useRef<L.Layer | null>(null);
@@ -193,7 +167,30 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
   const containerRef = useRef<HTMLDivElement>(null);
   const [mapReady, setMapReady] = useState(false);
   const [layerMode, setLayerMode] = useState<MapLayerMode>('pins');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [heatParams, setHeatParams] = useState<HeatmapParams>(loadHeatmapParams);
   const prevLocationFilterRef = useRef<{ country: string | null; state: string | null; city: string | null } | null>(null);
+
+  // Close settings when switching away from heatmap
+  useEffect(() => {
+    if (layerMode !== 'heatmap') setSettingsOpen(false);
+  }, [layerMode]);
+
+  const handleHeatParamsChange = useCallback((next: HeatmapParams) => {
+    setHeatParams(next);
+    saveHeatmapParams(next);
+  }, []);
+
+  // Get museums for heatmap data source
+  const getHeatmapMuseums = useCallback((): Museum[] => {
+    if (heatParams.dataSource === 'all') return allMuseums || museums;
+    if (heatParams.dataSource === 'filtered') return museums;
+    if (heatParams.dataSource === 'my') {
+      const all = allMuseums || museums;
+      return all.filter(m => visitedIds?.has(m.museum_id) || savedIds?.has(m.museum_id) || m.highlight);
+    }
+    return museums;
+  }, [heatParams.dataSource, museums, allMuseums, visitedIds, savedIds]);
 
   // Initialize map
   useEffect(() => {
@@ -271,7 +268,7 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
     }
   }, [userLocation]);
 
-  // Add markers / heatmap based on layer mode
+  // Add markers / heatmap based on layer mode + heatmap params
   useEffect(() => {
     if (!mapRef.current || !clusterGroupRef.current) return;
 
@@ -314,18 +311,17 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
         mapRef.current.removeLayer(clusterGroupRef.current);
       }
 
-      if (museums.length > 0) {
-        const heatPoints: [number, number, number][] = museums.map(m => [
+      const heatMuseums = getHeatmapMuseums();
+      if (heatMuseums.length > 0) {
+        const heatPoints: [number, number, number][] = heatMuseums.map(m => [
           m.lat,
           m.lng,
-          m.highlight ? 1.5 : 1,
+          getWeight(m, heatParams, visitedIds, savedIds),
         ]);
 
+        const leafletParams = sliderToLeaflet(heatParams);
         heatLayerRef.current = L.heatLayer(heatPoints, {
-          radius: 25,
-          blur: 15,
-          maxZoom: 10,
-          minOpacity: 0.3,
+          ...leafletParams,
           gradient: {
             0.4: 'hsl(43, 60%, 70%)',
             0.65: 'hsl(348, 45%, 50%)',
@@ -336,7 +332,7 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
         mapRef.current.addLayer(heatLayerRef.current);
       }
     }
-  }, [museums, selectedMuseum, onSelectMuseum, layerMode]);
+  }, [museums, selectedMuseum, onSelectMuseum, layerMode, heatParams, getHeatmapMuseums, visitedIds, savedIds]);
 
   // Pan to selected museum
   useEffect(() => {
@@ -428,6 +424,8 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
     mapRef.current.zoomOut();
   };
 
+  const heatmapMuseumCount = layerMode === 'heatmap' ? getHeatmapMuseums().length : 0;
+
   return (
     <div className={`relative w-full h-full ${className}`} style={{ minHeight: '300px' }}>
       <div ref={containerRef} className="w-full h-full" />
@@ -439,48 +437,86 @@ export function MuseumMap({ museums, selectedMuseum, onSelectMuseum, userLocatio
         </div>
       )}
       
+      {/* Heatmap Legend */}
+      {layerMode === 'heatmap' && heatParams.showLegend && heatmapMuseumCount > 0 && (
+        <div className="absolute bottom-[220px] right-4 z-[1000]">
+          <HeatmapLegend />
+        </div>
+      )}
+      
+      {/* Heatmap Settings Panel */}
+      {settingsOpen && layerMode === 'heatmap' && (
+        <>
+          {/* Click-outside backdrop */}
+          <div className="absolute inset-0 z-[1001]" onClick={() => setSettingsOpen(false)} />
+          <div className="absolute bottom-[220px] right-4 z-[1002]">
+            <HeatmapSettingsPanel
+              params={heatParams}
+              onChange={handleHeatParamsChange}
+              onClose={() => setSettingsOpen(false)}
+              museumCount={heatmapMuseumCount}
+              hasVisitedData={(visitedIds?.size ?? 0) > 0}
+              hasWishListData={(savedIds?.size ?? 0) > 0}
+            />
+          </div>
+        </>
+      )}
+      
       {/* Map Controls */}
       <div className="absolute bottom-6 right-4 flex flex-col gap-2 z-[1000]">
-        {/* Layers toggle */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-primary hover:text-primary-foreground hover:border-primary"
-              aria-label="Layers"
-              title="Layers"
-            >
-              <Layers className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent side="left" align="start" className="w-40 p-1 z-[9999]">
+        {/* Layers toggle with settings badge */}
+        <div className="relative">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                aria-label="Layers"
+                title="Layers"
+              >
+                <Layers className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent side="left" align="start" className="w-40 p-1 z-[9999]">
+              <button
+                onClick={() => setLayerMode('pins')}
+                className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  layerMode === 'pins'
+                    ? 'bg-primary/10 text-primary'
+                    : 'hover:bg-muted text-foreground'
+                }`}
+              >
+                <MapPin className="h-4 w-4 shrink-0" />
+                <span className="flex-1 text-left">Pins</span>
+                {layerMode === 'pins' && <Check className="h-3.5 w-3.5 shrink-0" />}
+              </button>
+              <button
+                onClick={() => setLayerMode('heatmap')}
+                className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  layerMode === 'heatmap'
+                    ? 'bg-primary/10 text-primary'
+                    : 'hover:bg-muted text-foreground'
+                }`}
+              >
+                <Flame className="h-4 w-4 shrink-0" />
+                <span className="flex-1 text-left">Heatmap</span>
+                {layerMode === 'heatmap' && <Check className="h-3.5 w-3.5 shrink-0" />}
+              </button>
+            </PopoverContent>
+          </Popover>
+
+          {/* Settings badge — only visible when heatmap active */}
+          {layerMode === 'heatmap' && (
             <button
-              onClick={() => setLayerMode('pins')}
-              className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                layerMode === 'pins'
-                  ? 'bg-primary/10 text-primary'
-                  : 'hover:bg-muted text-foreground'
-              }`}
+              onClick={() => setSettingsOpen(prev => !prev)}
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-accent text-accent-foreground flex items-center justify-center shadow-sm border border-background hover:scale-110 transition-transform"
+              title="Heatmap Settings"
             >
-              <MapPin className="h-4 w-4 shrink-0" />
-              <span className="flex-1 text-left">Pins</span>
-              {layerMode === 'pins' && <Check className="h-3.5 w-3.5 shrink-0" />}
+              <Settings2 className="h-3 w-3" />
             </button>
-            <button
-              onClick={() => setLayerMode('heatmap')}
-              className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                layerMode === 'heatmap'
-                  ? 'bg-primary/10 text-primary'
-                  : 'hover:bg-muted text-foreground'
-              }`}
-            >
-              <Flame className="h-4 w-4 shrink-0" />
-              <span className="flex-1 text-left">Heatmap</span>
-              {layerMode === 'heatmap' && <Check className="h-3.5 w-3.5 shrink-0" />}
-            </button>
-          </PopoverContent>
-        </Popover>
+          )}
+        </div>
 
         {/* Zoom Controls */}
         <div className="flex flex-col rounded-md overflow-hidden shadow-md">
