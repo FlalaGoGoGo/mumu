@@ -29,7 +29,8 @@ export default function MapPage() {
   const addVisit = useAddVisit();
   const removeVisit = useRemoveVisit();
   const { latitude, longitude, accuracy } = useGeolocation(true);
-  const { isSaved } = useSavedMuseums();
+  const { isSaved, savedMuseums } = useSavedMuseums();
+  const savedIdsSet = useMemo(() => new Set(savedMuseums.map(m => m.museum_id)), [savedMuseums]);
   
   const [selectedMuseum, setSelectedMuseum] = useState<Museum | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -303,11 +304,14 @@ export default function MapPage() {
       <div className="flex-1 relative">
         <MuseumMap
           museums={sortedMuseums.map(m => m.museum)}
+          allMuseums={museums}
           selectedMuseum={selectedMuseum}
           onSelectMuseum={setSelectedMuseum}
           userLocation={latitude !== null && longitude !== null ? { latitude, longitude, accuracy } : null}
           locationFilter={{ country: locationCountry, state: locationState, city: locationCity }}
           className="w-full h-full"
+          visitedIds={visitedIds}
+          savedIds={savedIdsSet}
         />
 
         {/* Filter Overlay */}
