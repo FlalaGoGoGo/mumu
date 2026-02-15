@@ -9,6 +9,7 @@ import { isOpenToday, isOpenOnDate } from '@/lib/parseOpeningHours';
 import { isToday, startOfDay } from 'date-fns';
 import { useSavedMuseums } from '@/hooks/useSavedMuseums';
 import { cn } from '@/lib/utils';
+import mumuLogo from '@/assets/mumu-logo.png';
 
 interface MuseumCardProps {
   museum: Museum;
@@ -100,13 +101,11 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
 
         <div className="flex gap-3">
           {/* Hero Image */}
-          {museum.hero_image_url && (
-            <img 
-              src={museum.hero_image_url} 
-              alt={museum.name}
-              className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
-            />
-          )}
+          <img 
+            src={museum.hero_image_url || mumuLogo} 
+            alt={museum.name}
+            className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+          />
           
           {/* Left Column: Info */}
           <div className="min-w-0 flex-1 pr-8">
@@ -154,15 +153,13 @@ export function MuseumCard({ museum, isVisited, onMarkVisited, onViewPlan, compa
   return (
     <div className="gallery-card fade-in">
       {/* Hero Image */}
-      {museum.hero_image_url && (
-        <div className="mb-4 flex justify-center">
-          <img 
-            src={museum.hero_image_url} 
-            alt={museum.name}
-            className="w-24 h-24 object-cover rounded-lg shadow-sm"
-          />
-        </div>
-      )}
+      <div className="mb-4 flex justify-center">
+        <img 
+          src={museum.hero_image_url || mumuLogo} 
+          alt={museum.name}
+          className="w-24 h-24 object-cover rounded-lg shadow-sm"
+        />
+      </div>
 
       {/* Header Row: Name + Heart + Badge */}
       <div className="flex items-center justify-between gap-3 mb-2">
