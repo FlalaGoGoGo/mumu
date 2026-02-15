@@ -12,9 +12,9 @@ export interface HeatmapParams {
 }
 
 export const PRESETS: Record<'soft' | 'balanced' | 'punchy', Pick<HeatmapParams, 'radius' | 'intensity' | 'blur' | 'opacity'>> = {
-  soft: { radius: 30, intensity: 40, blur: 25, opacity: 55 },
-  balanced: { radius: 50, intensity: 60, blur: 50, opacity: 70 },
-  punchy: { radius: 70, intensity: 85, blur: 30, opacity: 85 },
+  soft:     { radius: 35, intensity: 30, blur: 40, opacity: 50 },
+  balanced: { radius: 22, intensity: 45, blur: 28, opacity: 60 },
+  punchy:   { radius: 14, intensity: 70, blur: 15, opacity: 80 },
 };
 
 export const DEFAULT_PARAMS: HeatmapParams = {
