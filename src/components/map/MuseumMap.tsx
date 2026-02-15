@@ -129,8 +129,8 @@ const createClusterIcon = (cluster: L.MarkerCluster) => {
 /** Convert 0-100 slider values to leaflet.heat params */
 function sliderToLeaflet(params: HeatmapParams) {
   return {
-    radius: Math.round(5 + (params.radius / 100) * 55), // 5–60
-    blur: Math.round(5 + (params.blur / 100) * 35),      // 5–40
+    radius: Math.round(4 + (params.radius / 100) * 36), // 4–40
+    blur: Math.round(4 + (params.blur / 100) * 26),      // 4–30
     minOpacity: params.opacity / 100,
     maxZoom: params.normalization === 'viewport' ? 18 : 10,
     max: params.clampOutliers ? 0.95 : 1.0,
@@ -437,9 +437,9 @@ export function MuseumMap({
         </div>
       )}
       
-      {/* Heatmap Legend */}
+      {/* Heatmap Legend — bottom-left */}
       {layerMode === 'heatmap' && heatParams.showLegend && heatmapMuseumCount > 0 && (
-        <div className="absolute bottom-[220px] right-4 z-[1000]">
+        <div className="absolute bottom-4 left-4 z-[1000]">
           <HeatmapLegend />
         </div>
       )}
@@ -447,9 +447,8 @@ export function MuseumMap({
       {/* Heatmap Settings Panel */}
       {settingsOpen && layerMode === 'heatmap' && (
         <>
-          {/* Click-outside backdrop */}
           <div className="absolute inset-0 z-[1001]" onClick={() => setSettingsOpen(false)} />
-          <div className="absolute bottom-[220px] right-4 z-[1002]">
+          <div className="absolute bottom-6 right-16 z-[1002]">
             <HeatmapSettingsPanel
               params={heatParams}
               onChange={handleHeatParamsChange}
@@ -464,59 +463,60 @@ export function MuseumMap({
       
       {/* Map Controls */}
       <div className="absolute bottom-6 right-4 flex flex-col gap-2 z-[1000]">
-        {/* Layers toggle with settings badge */}
-        <div className="relative">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                aria-label="Layers"
-                title="Layers"
-              >
-                <Layers className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent side="left" align="start" className="w-40 p-1 z-[9999]">
-              <button
-                onClick={() => setLayerMode('pins')}
-                className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  layerMode === 'pins'
-                    ? 'bg-primary/10 text-primary'
-                    : 'hover:bg-muted text-foreground'
-                }`}
-              >
-                <MapPin className="h-4 w-4 shrink-0" />
-                <span className="flex-1 text-left">Pins</span>
-                {layerMode === 'pins' && <Check className="h-3.5 w-3.5 shrink-0" />}
-              </button>
-              <button
-                onClick={() => setLayerMode('heatmap')}
-                className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  layerMode === 'heatmap'
-                    ? 'bg-primary/10 text-primary'
-                    : 'hover:bg-muted text-foreground'
-                }`}
-              >
-                <Flame className="h-4 w-4 shrink-0" />
-                <span className="flex-1 text-left">Heatmap</span>
-                {layerMode === 'heatmap' && <Check className="h-3.5 w-3.5 shrink-0" />}
-              </button>
-            </PopoverContent>
-          </Popover>
+        {/* Heatmap Settings button — only when heatmap active */}
+        {layerMode === 'heatmap' && (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setSettingsOpen(prev => !prev)}
+            className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-primary hover:text-primary-foreground hover:border-primary"
+            aria-label="Heatmap Settings"
+            title="Heatmap Settings"
+          >
+            <Settings2 className="h-4 w-4" />
+          </Button>
+        )}
 
-          {/* Settings badge — only visible when heatmap active */}
-          {layerMode === 'heatmap' && (
-            <button
-              onClick={() => setSettingsOpen(prev => !prev)}
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-accent text-accent-foreground flex items-center justify-center shadow-sm border border-background hover:scale-110 transition-transform"
-              title="Heatmap Settings"
+        {/* Layers toggle */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-primary hover:text-primary-foreground hover:border-primary"
+              aria-label="Layers"
+              title="Layers"
             >
-              <Settings2 className="h-3 w-3" />
+              <Layers className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="left" align="start" className="w-40 p-1 z-[9999]">
+            <button
+              onClick={() => setLayerMode('pins')}
+              className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                layerMode === 'pins'
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-muted text-foreground'
+              }`}
+            >
+              <MapPin className="h-4 w-4 shrink-0" />
+              <span className="flex-1 text-left">Pins</span>
+              {layerMode === 'pins' && <Check className="h-3.5 w-3.5 shrink-0" />}
             </button>
-          )}
-        </div>
+            <button
+              onClick={() => setLayerMode('heatmap')}
+              className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                layerMode === 'heatmap'
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-muted text-foreground'
+              }`}
+            >
+              <Flame className="h-4 w-4 shrink-0" />
+              <span className="flex-1 text-left">Heatmap</span>
+              {layerMode === 'heatmap' && <Check className="h-3.5 w-3.5 shrink-0" />}
+            </button>
+          </PopoverContent>
+        </Popover>
 
         {/* Zoom Controls */}
         <div className="flex flex-col rounded-md overflow-hidden shadow-md">
