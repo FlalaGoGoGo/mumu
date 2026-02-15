@@ -12,6 +12,7 @@ import { MiniMap } from './MiniMap';
 import { HeatmapSettingsPanel } from './HeatmapSettingsPanel';
 import { HeatmapLegend } from './HeatmapLegend';
 import { type HeatmapParams, DEFAULT_PARAMS, loadHeatmapParams, saveHeatmapParams } from './heatmapDefaults';
+import { useLanguage } from '@/lib/i18n';
 import type { Museum } from '@/types/museum';
 
 // Extend L to include heat
@@ -158,6 +159,7 @@ export function MuseumMap({
   visitedIds,
   savedIds,
 }: MuseumMapProps) {
+  const { t } = useLanguage();
   const mapRef = useRef<L.Map | null>(null);
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
   const heatLayerRef = useRef<L.Layer | null>(null);
@@ -470,8 +472,8 @@ export function MuseumMap({
             size="icon"
             onClick={() => setSettingsOpen(prev => !prev)}
             className="bg-background/95 backdrop-blur-sm shadow-md hover:bg-primary hover:text-primary-foreground hover:border-primary"
-            aria-label="Heatmap Settings"
-            title="Heatmap Settings"
+            aria-label={t('heatmap.settings')}
+            title={t('heatmap.settings')}
           >
             <Settings2 className="h-4 w-4" />
           </Button>
