@@ -63,13 +63,16 @@ export function FilterOverlay({
     return () => window.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
-  // Close on click outside
+  // Close on click outside (but not on Radix portaled content like popovers/selects)
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (overlayRef.current && !overlayRef.current.contains(e.target as Node)) {
-        onClose();
-      }
+      const target = e.target as HTMLElement;
+      // Don't close if clicking inside the overlay
+      if (overlayRef.current && overlayRef.current.contains(target)) return;
+      // Don't close if clicking inside a Radix portal (popover, select, etc.)
+      if (target.closest('[data-radix-popper-content-wrapper]') || target.closest('[role="listbox"]') || target.closest('[data-radix-select-viewport]')) return;
+      onClose();
     };
     // Delay to avoid immediate close on the same click that opens
     const timer = setTimeout(() => {
