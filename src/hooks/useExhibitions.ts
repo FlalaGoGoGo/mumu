@@ -103,6 +103,89 @@ export function useExhibitionsPage(params: ExhibitionPageParams) {
 }
 
 /**
+ * Fetch distinct museums matching current filters (excluding museum_id).
+ * Used for the Museum filter dropdown so it reflects the full filtered set.
+ */
+export interface ExhibitionFilterMuseumParams {
+  search?: string | null;
+  country?: string | null;
+  state?: string | null;
+  city?: string | null;
+  statuses?: ExhibitionStatus[] | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  hasImage?: boolean;
+}
+
+interface FilterMuseumRow {
+  museum_id: string;
+  name: string;
+  city: string;
+  country: string;
+}
+
+export function useExhibitionFilterMuseums(params: ExhibitionFilterMuseumParams) {
+  return useQuery({
+    queryKey: ['exhibition-filter-museums', params],
+    queryFn: async (): Promise<FilterMuseumRow[]> => {
+      const { data, error } = await supabase.rpc('get_exhibition_filter_museums', {
+        p_search: params.search || null,
+        p_country: params.country || null,
+        p_state: params.state || null,
+        p_city: params.city || null,
+        p_statuses: params.statuses && params.statuses.length > 0 ? params.statuses : null,
+        p_date_from: params.dateFrom || null,
+        p_date_to: params.dateTo || null,
+        p_has_image: params.hasImage ?? false,
+      });
+      if (error) throw error;
+      return (data as unknown as FilterMuseumRow[] | null) ?? [];
+    },
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * Fetch ALL filtered exhibitions (no pagination) for map/heatmap views.
+ */
+export interface ExhibitionMapParams {
+  search?: string | null;
+  country?: string | null;
+  state?: string | null;
+  city?: string | null;
+  statuses?: ExhibitionStatus[] | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  museumId?: string | null;
+  hasImage?: boolean;
+  enabled?: boolean;
+}
+
+export function useExhibitionsForMap(params: ExhibitionMapParams) {
+  return useQuery({
+    queryKey: ['exhibitions-for-map', params],
+    queryFn: async (): Promise<Exhibition[]> => {
+      const { data, error } = await supabase.rpc('get_exhibitions_for_map', {
+        p_search: params.search || null,
+        p_country: params.country || null,
+        p_state: params.state || null,
+        p_city: params.city || null,
+        p_statuses: params.statuses && params.statuses.length > 0 ? params.statuses : null,
+        p_date_from: params.dateFrom || null,
+        p_date_to: params.dateTo || null,
+        p_museum_id: params.museumId || null,
+        p_has_image: params.hasImage ?? false,
+      });
+      if (error) throw error;
+      const rows = (data as unknown as RawExhibitionRow[] | null) ?? [];
+      return rows.map(parseRow);
+    },
+    enabled: params.enabled !== false,
+    staleTime: 30_000,
+  });
+}
+
+/**
  * Fetch all exhibitions (for passport/lookup use cases).
  * Fetches from Supabase in paginated chunks.
  */

@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2, ImageOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { format } from 'date-fns';
-import { useExhibitionsPage } from '@/hooks/useExhibitions';
+import { useExhibitionsPage, useExhibitionFilterMuseums, useExhibitionsForMap } from '@/hooks/useExhibitions';
 import { useMuseums } from '@/hooks/useMuseums';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { usePreferences } from '@/hooks/usePreferences';
@@ -120,6 +120,34 @@ export default function ExhibitionsPage() {
     hasImage: hasImageFilter,
   });
 
+  // Fetch museum options from the FULL filtered set (excluding museum filter)
+  const { data: filterMuseums } = useExhibitionFilterMuseums({
+    search: debouncedSearch || null,
+    country: selectedRegion,
+    state: selectedStateProvince,
+    city: selectedCity,
+    statuses: selectedStatuses.length > 0 && selectedStatuses.length < USER_VISIBLE_STATUSES.length
+      ? selectedStatuses : null,
+    dateFrom: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : null,
+    dateTo: dateTo ? format(dateTo, 'yyyy-MM-dd') : null,
+    hasImage: hasImageFilter,
+  });
+
+  // Fetch ALL filtered exhibitions for map view (no pagination)
+  const { data: mapExhibitions } = useExhibitionsForMap({
+    search: debouncedSearch || null,
+    country: selectedRegion,
+    state: selectedStateProvince,
+    city: selectedCity,
+    statuses: selectedStatuses.length > 0 && selectedStatuses.length < USER_VISIBLE_STATUSES.length
+      ? selectedStatuses : null,
+    dateFrom: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : null,
+    dateTo: dateTo ? format(dateTo, 'yyyy-MM-dd') : null,
+    museumId: selectedMuseumId,
+    hasImage: hasImageFilter,
+    enabled: currentView === 'map',
+  });
+
   const exhibitions = pageResult?.data ?? [];
   const totalCount = pageResult?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -144,24 +172,13 @@ export default function ExhibitionsPage() {
     return Array.from(locationSet.values());
   }, [museums]);
 
-  // Available museums for filter dropdown (scoped to current exhibitions)
+  // Available museums for filter dropdown — from FULL filtered set, not page items
   const availableMuseums = useMemo((): MuseumOption[] => {
-    const museumIds = new Set(exhibitions.map(e => e.museum_id));
-    const result: MuseumOption[] = [];
-    museumIds.forEach(id => {
-      const m = museumMap.get(id);
-      if (m) {
-        result.push({ museum_id: m.museum_id, name: m.name, city: m.city, country: m.country });
-      } else {
-        const ex = exhibitions.find(e => e.museum_id === id);
-        if (ex) {
-          result.push({ museum_id: id, name: ex.museum_name, city: ex.city });
-        }
-      }
-    });
-    result.sort((a, b) => a.name.localeCompare(b.name));
-    return result;
-  }, [exhibitions, museumMap]);
+    if (!filterMuseums) return [];
+    return filterMuseums
+      .map(m => ({ museum_id: m.museum_id, name: m.name, city: m.city, country: m.country }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [filterMuseums]);
 
   // Auto-reset museum filter if selected museum is no longer available
   useEffect(() => {
@@ -316,10 +333,10 @@ export default function ExhibitionsPage() {
     return entry?.distanceFormatted ?? null;
   }, [exhibitionsWithDistance]);
 
-  // Filtered exhibitions as plain array for map
+  // Full filtered exhibitions for map (all results, not just current page)
   const filteredExhibitionsList = useMemo(
-    () => displayExhibitions,
-    [displayExhibitions]
+    () => mapExhibitions ?? [],
+    [mapExhibitions]
   );
 
   const userLocation = hasGeoLocation ? { latitude: latitude!, longitude: longitude! } : null;
