@@ -335,11 +335,15 @@ export default function ExhibitionsPage() {
   }
 
   if (exhibitionsError) {
+    console.error('[ExhibitionsPage] Load error:', exhibitionsError);
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
         <ImageOff className="w-12 h-12 text-muted-foreground mb-4" />
         <h2 className="font-display text-xl font-semibold mb-2">{t('exhibitions.failedToLoad')}</h2>
-        <p className="text-muted-foreground">{t('exhibitions.tryAgainLater')}</p>
+        <p className="text-muted-foreground mb-4">{t('exhibitions.tryAgainLater')}</p>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
       </div>
     );
   }
