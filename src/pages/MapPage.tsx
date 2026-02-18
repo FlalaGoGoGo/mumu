@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { startOfDay, isToday, format } from 'date-fns';
-import { useMuseums } from '@/hooks/useMuseums';
+import { useMuseums, useMuseumsInBbox } from '@/hooks/useMuseums';
 import { useVisits, useAddVisit, useRemoveVisit } from '@/hooks/usePassport';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { useDebounce } from '@/hooks/useDebounce';
 import { MuseumMap } from '@/components/map/MuseumMap';
 import { MuseumCard } from '@/components/museum/MuseumCard';
 import { MobileBottomSheet } from '@/components/layout/MobileBottomSheet';
@@ -34,7 +35,20 @@ export default function MapPage() {
   
   const [selectedMuseum, setSelectedMuseum] = useState<Museum | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 250);
   const [filterOverlayOpen, setFilterOverlayOpen] = useState(false);
+  
+  // Map viewport bounds
+  const [mapBounds, setMapBounds] = useState<{ west: number; south: number; east: number; north: number } | null>(null);
+  const boundsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Throttled bounds change handler
+  const handleBoundsChange = useCallback((bounds: { west: number; south: number; east: number; north: number }) => {
+    if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current);
+    boundsTimerRef.current = setTimeout(() => {
+      setMapBounds(bounds);
+    }, 200);
+  }, []);
   
   // Filter states
   const [categoryFilter, setCategoryFilter] = useState<MuseumCategory[]>([]);
@@ -46,6 +60,18 @@ export default function MapPage() {
   const [openTodayFilter, setOpenTodayFilter] = useState(false);
   const [wishListFilter, setWishListFilter] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
+
+  // Viewport-based museums for map
+  const bboxParams = useMemo(() => {
+    if (!mapBounds) return null;
+    return {
+      ...mapBounds,
+      category: categoryFilter.length === 1 ? categoryFilter[0] : null,
+      highlightOnly: mustVisitFilter,
+    };
+  }, [mapBounds, categoryFilter, mustVisitFilter]);
+  
+  const { data: mapMuseums = [] } = useMuseumsInBbox(bboxParams);
 
   // Count active filters
   const activeFilterCount = useMemo(() => {
@@ -73,17 +99,15 @@ export default function MapPage() {
 
   const visitedIds = new Set(visits.map(v => v.museum_id));
 
-  // Compute distances for all museums
+  // Filter museums for the sidebar list (client-side filtering of all museums)
   const museumsWithData = useMemo(() => {
     return museums.map(museum => {
       let distance: number | null = null;
       let distanceFormatted: string | null = null;
-      
       if (latitude !== null && longitude !== null) {
         distance = calculateDistance(latitude, longitude, museum.lat, museum.lng);
         distanceFormatted = formatDistance(distance);
       }
-      
       return { museum, distance, distanceFormatted };
     });
   }, [museums, latitude, longitude]);
@@ -97,11 +121,11 @@ export default function MapPage() {
     }));
   }, [museumsWithData]);
 
-  // Count museums by category (respecting other filters)
+  // Count museums by category
   const categoryCounts = useMemo(() => {
     const baseFiltered = museumsWithData.filter(({ museum, distance }) => {
-      const matchesSearch = museum.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        museum.city.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = museum.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        museum.city.toLowerCase().includes(debouncedSearch.toLowerCase());
       const matchesLocation = 
         (!locationCountry || museum.country === locationCountry) &&
         (!locationState || museum.state === locationState) &&
@@ -120,13 +144,13 @@ export default function MapPage() {
       nature: baseFiltered.filter(m => m.museum.tags === 'nature').length,
       temple: baseFiltered.filter(m => m.museum.tags === 'temple').length,
     };
-  }, [museumsWithData, searchQuery, locationCountry, locationState, locationCity, maxDistanceFilter, mustVisitFilter, openTodayFilter, wishListFilter, isSaved, selectedDate]);
+  }, [museumsWithData, debouncedSearch, locationCountry, locationState, locationCity, maxDistanceFilter, mustVisitFilter, openTodayFilter, wishListFilter, isSaved, selectedDate]);
 
-  // Count Must-Visit museums (based on current filtered set minus mustVisit filter itself)
+  // Count Must-Visit museums
   const mustVisitCount = useMemo(() => {
     return museumsWithData.filter(({ museum, distance }) => {
-      const matchesSearch = museum.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        museum.city.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = museum.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        museum.city.toLowerCase().includes(debouncedSearch.toLowerCase());
       const matchesCategory = categoryFilter.length === 0 || (museum.tags && categoryFilter.includes(museum.tags as MuseumCategory));
       const matchesLocation = 
         (!locationCountry || museum.country === locationCountry) &&
@@ -135,25 +159,27 @@ export default function MapPage() {
       const matchesDistance = maxDistanceFilter === null || (distance !== null && distance <= maxDistanceFilter);
       return matchesSearch && matchesCategory && matchesLocation && matchesDistance && museum.highlight;
     }).length;
-  }, [museumsWithData, searchQuery, categoryFilter, locationCountry, locationState, locationCity, maxDistanceFilter]);
+  }, [museumsWithData, debouncedSearch, categoryFilter, locationCountry, locationState, locationCity, maxDistanceFilter]);
 
-  // Filter museums
-  const filteredMuseums = museumsWithData.filter(({ museum, distance }) => {
-    const matchesSearch = museum.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      museum.city.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter.length === 0 || (museum.tags && categoryFilter.includes(museum.tags as MuseumCategory));
-    const matchesLocation = 
-      (!locationCountry || museum.country === locationCountry) &&
-      (!locationState || museum.state === locationState) &&
-      (!locationCity || museum.city === locationCity);
-    const matchesDistance = maxDistanceFilter === null || (distance !== null && distance <= maxDistanceFilter);
-    const matchesMustVisit = !mustVisitFilter || museum.highlight;
-    const matchesOpenToday = !openTodayFilter || isOpenOnDate(museum.opening_hours, selectedDate);
-    const matchesWishList = !wishListFilter || isSaved(museum.museum_id);
-    return matchesSearch && matchesCategory && matchesLocation && matchesDistance && matchesMustVisit && matchesOpenToday && matchesWishList;
-  });
+  // Filter museums for sidebar
+  const filteredMuseums = useMemo(() => {
+    return museumsWithData.filter(({ museum, distance }) => {
+      const matchesSearch = museum.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        museum.city.toLowerCase().includes(debouncedSearch.toLowerCase());
+      const matchesCategory = categoryFilter.length === 0 || (museum.tags && categoryFilter.includes(museum.tags as MuseumCategory));
+      const matchesLocation = 
+        (!locationCountry || museum.country === locationCountry) &&
+        (!locationState || museum.state === locationState) &&
+        (!locationCity || museum.city === locationCity);
+      const matchesDistance = maxDistanceFilter === null || (distance !== null && distance <= maxDistanceFilter);
+      const matchesMustVisit = !mustVisitFilter || museum.highlight;
+      const matchesOpenToday = !openTodayFilter || isOpenOnDate(museum.opening_hours, selectedDate);
+      const matchesWishList = !wishListFilter || isSaved(museum.museum_id);
+      return matchesSearch && matchesCategory && matchesLocation && matchesDistance && matchesMustVisit && matchesOpenToday && matchesWishList;
+    });
+  }, [museumsWithData, debouncedSearch, categoryFilter, locationCountry, locationState, locationCity, maxDistanceFilter, mustVisitFilter, openTodayFilter, wishListFilter, isSaved, selectedDate]);
 
-  // Sort by distance (nearest first), null distances go to end
+  // Sort by distance
   const sortedMuseums = useMemo(() => {
     return [...filteredMuseums].sort((a, b) => {
       if (a.distance === null && b.distance === null) return 0;
@@ -162,6 +188,25 @@ export default function MapPage() {
       return a.distance - b.distance;
     });
   }, [filteredMuseums]);
+
+  // Paginate sidebar list
+  const SIDEBAR_PAGE_SIZE = 40;
+  const [sidebarPage, setSidebarPage] = useState(1);
+  
+  // Reset page when filters change
+  const prevFilterKey = useRef('');
+  const filterKey = `${debouncedSearch}|${categoryFilter.join(',')}|${locationCountry}|${locationState}|${locationCity}|${maxDistanceFilter}|${mustVisitFilter}|${openTodayFilter}|${wishListFilter}`;
+  if (filterKey !== prevFilterKey.current) {
+    prevFilterKey.current = filterKey;
+    if (sidebarPage !== 1) setSidebarPage(1);
+  }
+  
+  const sidebarTotal = sortedMuseums.length;
+  const sidebarTotalPages = Math.max(1, Math.ceil(sidebarTotal / SIDEBAR_PAGE_SIZE));
+  const clampedSidebarPage = Math.max(1, Math.min(sidebarPage, sidebarTotalPages));
+  const sidebarFrom = (clampedSidebarPage - 1) * SIDEBAR_PAGE_SIZE;
+  const sidebarTo = Math.min(sidebarFrom + SIDEBAR_PAGE_SIZE, sidebarTotal);
+  const paginatedSidebarMuseums = sortedMuseums.slice(sidebarFrom, sidebarTo);
 
   // Get data for selected museum
   const selectedMuseumData = useMemo(() => {
@@ -188,6 +233,22 @@ export default function MapPage() {
     setLocationState(state);
     setLocationCity(city);
   };
+
+  // Use viewport museums for map, filtered museums for sidebar
+  const museumsForMap = useMemo(() => {
+    // Apply client-side filters on viewport-fetched museums
+    return mapMuseums.filter(museum => {
+      const matchesCategory = categoryFilter.length === 0 || (museum.tags && categoryFilter.includes(museum.tags as MuseumCategory));
+      const matchesLocation = 
+        (!locationCountry || museum.country === locationCountry) &&
+        (!locationState || museum.state === locationState) &&
+        (!locationCity || museum.city === locationCity);
+      const matchesMustVisit = !mustVisitFilter || museum.highlight;
+      const matchesOpenToday = !openTodayFilter || isOpenOnDate(museum.opening_hours, selectedDate);
+      const matchesWishList = !wishListFilter || isSaved(museum.museum_id);
+      return matchesCategory && matchesLocation && matchesMustVisit && matchesOpenToday && matchesWishList;
+    });
+  }, [mapMuseums, categoryFilter, locationCountry, locationState, locationCity, mustVisitFilter, openTodayFilter, wishListFilter, isSaved, selectedDate]);
 
   if (isLoading) {
     return (
@@ -241,7 +302,7 @@ export default function MapPage() {
         {/* Summary line */}
         <div className="px-4 pb-2">
           <p className="text-xs text-muted-foreground">
-            {sortedMuseums.length} {t('map.museums')} • {visitedIds.size} {t('map.visited')}
+            {sidebarTotal} {t('map.museums')} • {visitedIds.size} {t('map.visited')}
             {!isToday(selectedDate) && <span> • Date: {format(selectedDate, 'MMM d')}</span>}
             {latitude !== null && <span> • {t('map.sortedByDistance')}</span>}
           </p>
@@ -267,7 +328,7 @@ export default function MapPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {sortedMuseums.length === 0 ? (
+                {paginatedSidebarMuseums.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground mb-4">{t('map.noResults')}</p>
                     {activeFilterCount > 0 && (
@@ -277,11 +338,41 @@ export default function MapPage() {
                     )}
                   </div>
                 ) : (
-                  sortedMuseums.map(({ museum, distanceFormatted }) => (
-                    <div key={museum.museum_id} onClick={() => setSelectedMuseum(museum)}>
-                      <MuseumCard museum={museum} compact stateCode={museum.state} distance={distanceFormatted} selectedDate={selectedDate} />
-                    </div>
-                  ))
+                  <>
+                    {paginatedSidebarMuseums.map(({ museum, distanceFormatted }) => (
+                      <div key={museum.museum_id} onClick={() => setSelectedMuseum(museum)}>
+                        <MuseumCard museum={museum} compact stateCode={museum.state} distance={distanceFormatted} selectedDate={selectedDate} />
+                      </div>
+                    ))}
+                    {/* Sidebar pagination */}
+                    {sidebarTotalPages > 1 && (
+                      <div className="flex items-center justify-between pt-3 border-t border-border">
+                        <p className="text-xs text-muted-foreground">
+                          {sidebarFrom + 1}–{sidebarTo} of {sidebarTotal}
+                        </p>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            disabled={clampedSidebarPage === 1}
+                            onClick={() => setSidebarPage(p => Math.max(1, p - 1))}
+                          >
+                            Prev
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            disabled={clampedSidebarPage === sidebarTotalPages}
+                            onClick={() => setSidebarPage(p => Math.min(sidebarTotalPages, p + 1))}
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -303,7 +394,7 @@ export default function MapPage() {
       {/* Map */}
       <div className="flex-1 relative">
         <MuseumMap
-          museums={sortedMuseums.map(m => m.museum)}
+          museums={museumsForMap}
           allMuseums={museums}
           selectedMuseum={selectedMuseum}
           onSelectMuseum={setSelectedMuseum}
@@ -312,6 +403,7 @@ export default function MapPage() {
           className="w-full h-full"
           visitedIds={visitedIds}
           savedIds={savedIdsSet}
+          onBoundsChange={handleBoundsChange}
         />
 
         {/* Filter Overlay */}
@@ -341,7 +433,6 @@ export default function MapPage() {
           activeFilterCount={activeFilterCount}
           onClearAll={handleClearFilters}
         />
-
 
         {/* Mobile: Quick info overlay when museum selected */}
         {selectedMuseum && (

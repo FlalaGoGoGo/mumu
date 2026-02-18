@@ -1,11 +1,12 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2, ImageOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { addDays } from 'date-fns';
-import { useExhibitions } from '@/hooks/useExhibitions';
+import { addDays, format } from 'date-fns';
+import { useExhibitionsPage } from '@/hooks/useExhibitions';
 import { useMuseums } from '@/hooks/useMuseums';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { usePreferences } from '@/hooks/usePreferences';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useLanguage } from '@/lib/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ExhibitionCard } from '@/components/exhibition/ExhibitionCard';
@@ -24,7 +25,6 @@ import type { ExhibitionView } from '@/components/exhibition/ExhibitionViewToggl
 import type { Museum } from '@/types/museum';
 
 const USER_VISIBLE_STATUSES: ExhibitionStatus[] = ['Ongoing', 'Upcoming', 'Past'];
-const STATUS_PRIORITY: Record<ExhibitionStatus, number> = { Ongoing: 0, Upcoming: 1, Past: 2, TBD: 3 };
 const MAX_DISTANCE_VALUE = 500;
 const VIEW_STORAGE_KEY = 'mumu-exhibitions-view';
 const PAGE_SIZE = 20;
@@ -38,7 +38,6 @@ function getStoredView(): ExhibitionView {
 }
 
 export default function ExhibitionsPage() {
-  const { data: exhibitions, isLoading: exhibitionsLoading, error: exhibitionsError } = useExhibitions();
   const { data: museums, isLoading: museumsLoading } = useMuseums();
   const { latitude, longitude, loading: geoLoading } = useGeolocation();
   const { preferences } = usePreferences();
@@ -48,6 +47,7 @@ export default function ExhibitionsPage() {
   const gridRef = useRef<HTMLDivElement>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 250);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedStateProvince, setSelectedStateProvince] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
@@ -84,6 +84,29 @@ export default function ExhibitionsPage() {
   const effectiveLng = longitude ?? null;
   const hasLocation = effectiveLat !== null && effectiveLng !== null;
 
+  // Pagination
+  const urlPage = parseInt(searchParams.get('page') || '1', 10);
+  const currentPage = Math.max(1, isNaN(urlPage) ? 1 : urlPage);
+
+  // Server-side paginated query
+  const { data: pageResult, isLoading: exhibitionsLoading, error: exhibitionsError } = useExhibitionsPage({
+    page: currentPage,
+    pageSize: PAGE_SIZE,
+    search: debouncedSearch || null,
+    country: selectedRegion,
+    state: selectedStateProvince,
+    city: selectedCity,
+    statuses: selectedStatuses.length > 0 && selectedStatuses.length < USER_VISIBLE_STATUSES.length
+      ? selectedStatuses : null,
+    closingSoon,
+    dateFrom: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : null,
+    dateTo: dateTo ? format(dateTo, 'yyyy-MM-dd') : null,
+  });
+
+  const exhibitions = pageResult?.data ?? [];
+  const totalCount = pageResult?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
   // Museum lookup
   const museumMap = useMemo(() => {
     if (!museums) return new Map<string, Museum>();
@@ -92,22 +115,20 @@ export default function ExhibitionsPage() {
 
   // Available locations for cascading filter
   const availableLocations = useMemo((): ExhibitionLocation[] => {
-    if (!exhibitions) return [];
+    if (!museums) return [];
     const locationSet = new Map<string, ExhibitionLocation>();
-    exhibitions.forEach(exhibition => {
-      const museum = museumMap.get(exhibition.museum_id);
-      const country = museum?.country || 'Unknown';
-      const state = museum?.state || exhibition.state || null;
-      const city = exhibition.city || museum?.city || 'Unknown';
+    museums.forEach(museum => {
+      const country = museum.country || 'Unknown';
+      const state = museum.state || null;
+      const city = museum.city || 'Unknown';
       const key = `${country}|${state}|${city}`;
       if (!locationSet.has(key)) locationSet.set(key, { country, state, city });
     });
     return Array.from(locationSet.values());
-  }, [exhibitions, museumMap]);
+  }, [museums]);
 
-  // Exhibitions with distance
+  // Add distance info to exhibitions
   const exhibitionsWithDistance = useMemo(() => {
-    if (!exhibitions) return [];
     return exhibitions.map(exhibition => {
       const museum = museumMap.get(exhibition.museum_id);
       let distance: number | null = null;
@@ -120,117 +141,8 @@ export default function ExhibitionsPage() {
     });
   }, [exhibitions, museumMap, hasLocation, effectiveLat, effectiveLng]);
 
-  // Filter and sort
-  const filteredExhibitions = useMemo(() => {
-    if (!exhibitionsWithDistance.length) return [];
-    let filtered = exhibitionsWithDistance;
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(({ exhibition }) =>
-        exhibition.exhibition_name.toLowerCase().includes(query) ||
-        exhibition.museum_name.toLowerCase().includes(query)
-      );
-    }
-
-    if (selectedRegion) {
-      filtered = filtered.filter(({ museum, exhibition }) => {
-        const country = museum?.country || 'Unknown';
-        if (country !== selectedRegion) return false;
-        if (selectedStateProvince) {
-          const state = museum?.state || exhibition.state || null;
-          if (state !== selectedStateProvince) return false;
-          if (selectedCity) {
-            const city = exhibition.city || museum?.city || 'Unknown';
-            if (city !== selectedCity) return false;
-          }
-        }
-        return true;
-      });
-    }
-
-    if (selectedStatuses.length > 0 && selectedStatuses.length < USER_VISIBLE_STATUSES.length) {
-      filtered = filtered.filter(({ exhibition }) => selectedStatuses.includes(exhibition.status));
-    }
-
-    if (dateFrom || dateTo) {
-      filtered = filtered.filter(({ exhibition }) => {
-        const { start_date, end_date } = exhibition;
-        if (!start_date && !end_date) return false;
-        const rangeStart = dateFrom?.getTime() ?? 0;
-        const rangeEnd = dateTo?.getTime() ?? Number.MAX_SAFE_INTEGER;
-        const exhibitStart = start_date?.getTime() ?? 0;
-        const exhibitEnd = end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
-        return exhibitStart <= rangeEnd && exhibitEnd >= rangeStart;
-      });
-    }
-
-    if (closingSoon) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const closingSoonCutoff = addDays(today, 14);
-      filtered = filtered.filter(({ exhibition }) => {
-        if (!exhibition.end_date) return false;
-        return exhibition.end_date >= today && exhibition.end_date <= closingSoonCutoff;
-      });
-    }
-
-    if (hasLocation && maxDistance < MAX_DISTANCE_VALUE) {
-      filtered = filtered.filter(({ distance }) => distance !== null && distance <= maxDistance);
-    }
-
-    const sortedFiltered = [...filtered].sort((a, b) => {
-      if (distanceSortOrder !== 'none' && hasLocation) {
-        const distA = a.distance ?? Number.MAX_SAFE_INTEGER;
-        const distB = b.distance ?? Number.MAX_SAFE_INTEGER;
-        const distDiff = distanceSortOrder === 'asc' ? distA - distB : distB - distA;
-        if (distDiff !== 0) return distDiff;
-      }
-      if (dateSortOrder !== 'none') {
-        const dateA = a.exhibition.start_date?.getTime();
-        const dateB = b.exhibition.start_date?.getTime();
-        if (dateA === undefined && dateB === undefined) return 0;
-        if (dateA === undefined) return 1;
-        if (dateB === undefined) return -1;
-        const dateDiff = dateSortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-        if (dateDiff !== 0) return dateDiff;
-      }
-      // Group by status: Ongoing → Upcoming → Past → TBD
-      const statusDiff = STATUS_PRIORITY[a.exhibition.status] - STATUS_PRIORITY[b.exhibition.status];
-      if (statusDiff !== 0) return statusDiff;
-      // Within-group sorting
-      if (a.exhibition.status === 'Ongoing') {
-        const aEnd = a.exhibition.end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
-        const bEnd = b.exhibition.end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
-        return aEnd - bEnd; // ending sooner first
-      }
-      if (a.exhibition.status === 'Upcoming') {
-        const aStart = a.exhibition.start_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
-        const bStart = b.exhibition.start_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
-        return aStart - bStart; // soonest first
-      }
-      if (a.exhibition.status === 'Past') {
-        const aEnd = a.exhibition.end_date?.getTime() ?? 0;
-        const bEnd = b.exhibition.end_date?.getTime() ?? 0;
-        return bEnd - aEnd; // most recently ended first
-      }
-      return 0;
-    });
-
-    return sortedFiltered;
-  }, [exhibitionsWithDistance, searchQuery, selectedRegion, selectedStateProvince, selectedCity, selectedStatuses, dateFrom, dateTo, maxDistance, hasLocation, closingSoon, dateSortOrder, distanceSortOrder]);
-
-  // Pagination
-  const urlPage = parseInt(searchParams.get('page') || '1', 10);
-  const totalCount = filteredExhibitions.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const currentPage = Math.max(1, Math.min(isNaN(urlPage) ? 1 : urlPage, totalPages));
   const from = (currentPage - 1) * PAGE_SIZE;
   const to = Math.min(from + PAGE_SIZE, totalCount);
-
-  const paginatedExhibitions = useMemo(() => {
-    return filteredExhibitions.slice(from, to);
-  }, [filteredExhibitions, from, to]);
 
   const setPage = useCallback((newPage: number) => {
     const clamped = Math.max(1, Math.min(newPage, totalPages));
@@ -257,7 +169,7 @@ export default function ExhibitionsPage() {
       }, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, selectedRegion, selectedStateProvince, selectedCity, selectedStatuses, dateFrom, dateTo, maxDistance, closingSoon, dateSortOrder, distanceSortOrder]);
+  }, [debouncedSearch, selectedRegion, selectedStateProvince, selectedCity, selectedStatuses, dateFrom, dateTo, maxDistance, closingSoon, dateSortOrder, distanceSortOrder]);
 
   // Build page numbers
   const pageNumbers = useMemo(() => {
@@ -309,13 +221,11 @@ export default function ExhibitionsPage() {
     setIsDrawerOpen(true);
   }, []);
 
-  // Open exhibition panel (from card click or map drawer)
   const handleExhibitionClick = useCallback((exhibition: Exhibition) => {
     setSelectedExhibition(exhibition);
     setIsExhibitionOpen(true);
   }, []);
 
-  // Close exhibition panel → also close artwork
   const handleExhibitionClose = useCallback(() => {
     setIsExhibitionOpen(false);
     setSelectedExhibition(null);
@@ -323,13 +233,11 @@ export default function ExhibitionsPage() {
     setSelectedArtwork(null);
   }, []);
 
-  // Open artwork panel from Related Artworks
   const handleArtworkClick = useCallback((artwork: EnrichedArtwork) => {
     setSelectedArtwork(artwork);
     setIsArtworkOpen(true);
   }, []);
 
-  // Close artwork panel only
   const handleArtworkClose = useCallback((open: boolean) => {
     if (!open) {
       setIsArtworkOpen(false);
@@ -347,10 +255,8 @@ export default function ExhibitionsPage() {
           setIsArtworkOpen(false);
           setSelectedArtwork(null);
         }
-        // Exhibition panel handles its own ESC when artwork is not open
       }
     };
-    // Use capture to intercept before the Sheet's own ESC handler
     document.addEventListener('keydown', handleEsc, true);
     return () => document.removeEventListener('keydown', handleEsc, true);
   }, [isArtworkOpen]);
@@ -362,15 +268,15 @@ export default function ExhibitionsPage() {
 
   // Filtered exhibitions as plain array for map
   const filteredExhibitionsList = useMemo(
-    () => filteredExhibitions.map(e => e.exhibition),
-    [filteredExhibitions]
+    () => exhibitions,
+    [exhibitions]
   );
 
   const userLocation = hasGeoLocation ? { latitude: latitude!, longitude: longitude! } : null;
 
   const isLoading = exhibitionsLoading || museumsLoading;
 
-  if (isLoading) {
+  if (isLoading && !pageResult) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -436,7 +342,7 @@ export default function ExhibitionsPage() {
       {currentView === 'card' && (
         <>
           <div ref={gridRef} />
-          {filteredExhibitions.length === 0 ? (
+          {exhibitions.length === 0 && !exhibitionsLoading ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <ImageOff className="w-12 h-12 text-muted-foreground mb-4" />
               <h2 className="font-display text-xl font-semibold mb-2">{t('exhibitions.noResults')}</h2>
@@ -449,7 +355,7 @@ export default function ExhibitionsPage() {
             </div>
           ) : (
             <>
-              {isPageChanging ? (
+              {isPageChanging || exhibitionsLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {Array.from({ length: PAGE_SIZE }).map((_, i) => (
                     <div key={i} className="flex flex-col overflow-hidden rounded-sm border border-border">
@@ -464,7 +370,7 @@ export default function ExhibitionsPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {paginatedExhibitions.map(({ exhibition, distanceFormatted }) => (
+                  {exhibitionsWithDistance.map(({ exhibition, distanceFormatted }) => (
                     <ExhibitionCard
                       key={exhibition.exhibition_id}
                       exhibition={exhibition}
@@ -535,7 +441,7 @@ export default function ExhibitionsPage() {
         onExhibitionClick={handleExhibitionClick}
       />
 
-      {/* Exhibition Detail Panel (left side on desktop, fullscreen on mobile) */}
+      {/* Exhibition Detail Panel */}
       <ExhibitionDetailPanel
         exhibition={selectedExhibition}
         open={isExhibitionOpen}
@@ -548,9 +454,8 @@ export default function ExhibitionsPage() {
         }
       />
 
-      {/* Artwork Detail Panel (right side, above exhibition panel) */}
+      {/* Artwork Detail Panel */}
       {isMobile ? (
-        // Mobile: full-screen artwork panel when open
         isArtworkOpen && selectedArtwork && (
           <ArtworkDetailSheet
             artwork={selectedArtwork}
