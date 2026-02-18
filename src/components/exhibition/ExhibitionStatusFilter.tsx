@@ -79,7 +79,7 @@ export function ExhibitionStatusFilter({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "inline-flex items-center gap-1.5 h-10 px-3 rounded-md text-sm font-medium transition-all",
+          "inline-flex items-center gap-1.5 h-9 px-3 rounded-md text-sm font-medium transition-all whitespace-nowrap",
           "border focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
           fullWidth && "w-full",
           hasSelection
