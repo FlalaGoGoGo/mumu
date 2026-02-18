@@ -129,21 +129,13 @@ Deno.serve(async (req) => {
       const csvText = await resp.text();
       const rows = parseCSVMultiline(csvText);
 
-      // Get valid museum_ids
-      const { data: museumRows } = await supabase
-        .from("museums")
-        .select("museum_id");
-      const validIds = new Set(
-        (museumRows || []).map((m: { museum_id: string }) => m.museum_id)
-      );
-
       const batchSize = 200;
       let total = 0;
       let skipped = 0;
       for (let i = 0; i < rows.length; i += batchSize) {
         const chunk = rows.slice(i, i + batchSize);
         const batch = chunk
-          .filter((r) => validIds.has(r.museum_id))
+          .filter((r) => r.museum_id && r.exhibition_id)
           .map((r) => ({
             exhibition_id: r.exhibition_id,
             museum_id: r.museum_id,

@@ -90,15 +90,7 @@ export type Database = {
           short_description?: string | null
           start_date?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "exhibitions_museum_id_fkey"
-            columns: ["museum_id"]
-            isOneToOne: false
-            referencedRelation: "museums"
-            referencedColumns: ["museum_id"]
-          },
-        ]
+        Relationships: []
       }
       museums: {
         Row: {
