@@ -1,5 +1,6 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Loader2, ImageOff } from 'lucide-react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Loader2, ImageOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { addDays } from 'date-fns';
 import { useExhibitions } from '@/hooks/useExhibitions';
 import { useMuseums } from '@/hooks/useMuseums';
@@ -14,6 +15,7 @@ import { ExhibitionFilters, DateSortOrder, DistanceSortOrder } from '@/component
 import { ExhibitionMap } from '@/components/exhibition/ExhibitionMap';
 import { ExhibitionMuseumDrawer } from '@/components/exhibition/ExhibitionMuseumDrawer';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { calculateDistance, formatDistance } from '@/lib/distance';
 import type { Exhibition, ExhibitionStatus } from '@/types/exhibition';
 import type { EnrichedArtwork } from '@/types/art';
@@ -22,9 +24,10 @@ import type { ExhibitionView } from '@/components/exhibition/ExhibitionViewToggl
 import type { Museum } from '@/types/museum';
 
 const USER_VISIBLE_STATUSES: ExhibitionStatus[] = ['Ongoing', 'Upcoming', 'Past'];
-const STATUS_PRIORITY: Record<ExhibitionStatus, number> = { Ongoing: 0, Upcoming: 1, TBD: 2, Past: 3 };
+const STATUS_PRIORITY: Record<ExhibitionStatus, number> = { Ongoing: 0, Upcoming: 1, Past: 2, TBD: 3 };
 const MAX_DISTANCE_VALUE = 500;
 const VIEW_STORAGE_KEY = 'mumu-exhibitions-view';
+const PAGE_SIZE = 20;
 
 function getStoredView(): ExhibitionView {
   try {
@@ -41,12 +44,14 @@ export default function ExhibitionsPage() {
   const { preferences } = usePreferences();
   const { t } = useLanguage();
   const isMobile = useIsMobile();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedStateProvince, setSelectedStateProvince] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
-  const [selectedStatuses, setSelectedStatuses] = useState<ExhibitionStatus[]>(['Ongoing', 'Upcoming']);
+  const [selectedStatuses, setSelectedStatuses] = useState<ExhibitionStatus[]>(['Ongoing', 'Upcoming', 'Past']);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [maxDistance, setMaxDistance] = useState(MAX_DISTANCE_VALUE);
@@ -54,6 +59,7 @@ export default function ExhibitionsPage() {
   const [dateSortOrder, setDateSortOrder] = useState<DateSortOrder>('none');
   const [distanceSortOrder, setDistanceSortOrder] = useState<DistanceSortOrder>('none');
   const [currentView, setCurrentView] = useState<ExhibitionView>(getStoredView);
+  const [isPageChanging, setIsPageChanging] = useState(false);
 
   // Exhibition detail panel state
   const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
@@ -183,30 +189,88 @@ export default function ExhibitionsPage() {
       if (dateSortOrder !== 'none') {
         const dateA = a.exhibition.start_date?.getTime();
         const dateB = b.exhibition.start_date?.getTime();
-        if (dateA === undefined && dateB === undefined) {
-          const hasDatesA = a.exhibition.start_date || a.exhibition.end_date;
-          const hasDatesB = b.exhibition.start_date || b.exhibition.end_date;
-          if (!hasDatesA && hasDatesB) return 1;
-          if (hasDatesA && !hasDatesB) return -1;
-          return 0;
-        }
+        if (dateA === undefined && dateB === undefined) return 0;
         if (dateA === undefined) return 1;
         if (dateB === undefined) return -1;
         const dateDiff = dateSortOrder === 'asc' ? dateA - dateB : dateB - dateA;
         if (dateDiff !== 0) return dateDiff;
       }
+      // Group by status: Ongoing → Upcoming → Past → TBD
       const statusDiff = STATUS_PRIORITY[a.exhibition.status] - STATUS_PRIORITY[b.exhibition.status];
       if (statusDiff !== 0) return statusDiff;
+      // Within-group sorting
       if (a.exhibition.status === 'Ongoing') {
         const aEnd = a.exhibition.end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
         const bEnd = b.exhibition.end_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
-        return aEnd - bEnd;
+        return aEnd - bEnd; // ending sooner first
+      }
+      if (a.exhibition.status === 'Upcoming') {
+        const aStart = a.exhibition.start_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        const bStart = b.exhibition.start_date?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        return aStart - bStart; // soonest first
+      }
+      if (a.exhibition.status === 'Past') {
+        const aEnd = a.exhibition.end_date?.getTime() ?? 0;
+        const bEnd = b.exhibition.end_date?.getTime() ?? 0;
+        return bEnd - aEnd; // most recently ended first
       }
       return 0;
     });
 
     return sortedFiltered;
   }, [exhibitionsWithDistance, searchQuery, selectedRegion, selectedStateProvince, selectedCity, selectedStatuses, dateFrom, dateTo, maxDistance, hasLocation, closingSoon, dateSortOrder, distanceSortOrder]);
+
+  // Pagination
+  const urlPage = parseInt(searchParams.get('page') || '1', 10);
+  const totalCount = filteredExhibitions.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const currentPage = Math.max(1, Math.min(isNaN(urlPage) ? 1 : urlPage, totalPages));
+  const from = (currentPage - 1) * PAGE_SIZE;
+  const to = Math.min(from + PAGE_SIZE, totalCount);
+
+  const paginatedExhibitions = useMemo(() => {
+    return filteredExhibitions.slice(from, to);
+  }, [filteredExhibitions, from, to]);
+
+  const setPage = useCallback((newPage: number) => {
+    const clamped = Math.max(1, Math.min(newPage, totalPages));
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (clamped === 1) next.delete('page');
+      else next.set('page', String(clamped));
+      return next;
+    }, { replace: true });
+    setIsPageChanging(true);
+    setTimeout(() => {
+      setIsPageChanging(false);
+      gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }, [totalPages, setSearchParams]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (currentPage > 1) {
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete('page');
+        return next;
+      }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, selectedRegion, selectedStateProvince, selectedCity, selectedStatuses, dateFrom, dateTo, maxDistance, closingSoon, dateSortOrder, distanceSortOrder]);
+
+  // Build page numbers
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages: (number | 'ellipsis')[] = [1];
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+    if (start > 2) pages.push('ellipsis');
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (end < totalPages - 1) pages.push('ellipsis');
+    pages.push(totalPages);
+    return pages;
+  }, [totalPages, currentPage]);
 
   // Filter count
   const activeFilterCount = useMemo(() => {
@@ -227,7 +291,7 @@ export default function ExhibitionsPage() {
     setSelectedRegion(null);
     setSelectedStateProvince(null);
     setSelectedCity(null);
-    setSelectedStatuses(['Ongoing', 'Upcoming']);
+    setSelectedStatuses(['Ongoing', 'Upcoming', 'Past']);
     setDateFrom(undefined);
     setDateTo(undefined);
     setMaxDistance(MAX_DISTANCE_VALUE);
@@ -371,6 +435,7 @@ export default function ExhibitionsPage() {
       {/* Card View */}
       {currentView === 'card' && (
         <>
+          <div ref={gridRef} />
           {filteredExhibitions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <ImageOff className="w-12 h-12 text-muted-foreground mb-4" />
@@ -383,16 +448,71 @@ export default function ExhibitionsPage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {filteredExhibitions.map(({ exhibition, distanceFormatted }) => (
-                <ExhibitionCard
-                  key={exhibition.exhibition_id}
-                  exhibition={exhibition}
-                  distance={distanceFormatted}
-                  onClick={() => handleExhibitionClick(exhibition)}
-                />
-              ))}
-            </div>
+            <>
+              {isPageChanging ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                    <div key={i} className="flex flex-col overflow-hidden rounded-sm border border-border">
+                      <Skeleton className="w-full h-48" />
+                      <div className="p-3 space-y-2">
+                        <Skeleton className="h-5 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                        <Skeleton className="h-4 w-2/3" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {paginatedExhibitions.map(({ exhibition, distanceFormatted }) => (
+                    <ExhibitionCard
+                      key={exhibition.exhibition_id}
+                      exhibition={exhibition}
+                      distance={distanceFormatted}
+                      onClick={() => handleExhibitionClick(exhibition)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex flex-col items-center gap-3 mt-8 mb-4">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {from + 1}–{to} of {totalCount}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage === 1} onClick={() => setPage(1)}>
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    {pageNumbers.map((p, i) =>
+                      p === 'ellipsis' ? (
+                        <span key={`e${i}`} className="px-1 text-muted-foreground">…</span>
+                      ) : (
+                        <Button
+                          key={p}
+                          variant={p === currentPage ? 'default' : 'outline'}
+                          size="icon"
+                          className="h-8 w-8 text-xs"
+                          onClick={() => setPage(p as number)}
+                        >
+                          {p}
+                        </Button>
+                      )
+                    )}
+                    <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage === totalPages} onClick={() => setPage(totalPages)}>
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
