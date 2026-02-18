@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2, ImageOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { addDays, format } from 'date-fns';
+import { format } from 'date-fns';
 import { useExhibitionsPage } from '@/hooks/useExhibitions';
 import { useMuseums } from '@/hooks/useMuseums';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -12,7 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { ExhibitionCard } from '@/components/exhibition/ExhibitionCard';
 import { ExhibitionDetailPanel } from '@/components/exhibition/ExhibitionDetailPanel';
 import { ArtworkDetailSheet } from '@/components/art/ArtworkDetailSheet';
-import { ExhibitionFilters, DateSortOrder, DistanceSortOrder } from '@/components/exhibition/ExhibitionFilters';
+import { ExhibitionFilters } from '@/components/exhibition/ExhibitionFilters';
 import { ExhibitionMap } from '@/components/exhibition/ExhibitionMap';
 import { ExhibitionMuseumDrawer } from '@/components/exhibition/ExhibitionMuseumDrawer';
 import { Button } from '@/components/ui/button';
@@ -23,9 +23,9 @@ import type { EnrichedArtwork } from '@/types/art';
 import type { ExhibitionLocation } from '@/components/exhibition/ExhibitionLocationFilter';
 import type { ExhibitionView } from '@/components/exhibition/ExhibitionViewToggle';
 import type { Museum } from '@/types/museum';
+import type { MuseumOption } from '@/components/exhibition/ExhibitionMuseumFilter';
 
 const USER_VISIBLE_STATUSES: ExhibitionStatus[] = ['Ongoing', 'Upcoming', 'Past'];
-const MAX_DISTANCE_VALUE = 500;
 const VIEW_STORAGE_KEY = 'mumu-exhibitions-view';
 const PAGE_SIZE = 20;
 
@@ -37,9 +37,15 @@ function getStoredView(): ExhibitionView {
   return 'card';
 }
 
+function isImageMissing(url: string | null | undefined): boolean {
+  if (!url) return true;
+  const trimmed = url.trim().toLowerCase();
+  return !trimmed || trimmed === 'n/a' || trimmed === 'null' || trimmed === 'undefined';
+}
+
 export default function ExhibitionsPage() {
   const { data: museums, isLoading: museumsLoading } = useMuseums();
-  const { latitude, longitude, loading: geoLoading } = useGeolocation();
+  const { latitude, longitude } = useGeolocation();
   const { preferences } = usePreferences();
   const { t } = useLanguage();
   const isMobile = useIsMobile();
@@ -54,12 +60,22 @@ export default function ExhibitionsPage() {
   const [selectedStatuses, setSelectedStatuses] = useState<ExhibitionStatus[]>(['Ongoing', 'Upcoming', 'Past']);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
-  const [maxDistance, setMaxDistance] = useState(MAX_DISTANCE_VALUE);
-  const [closingSoon, setClosingSoon] = useState(false);
-  const [dateSortOrder, setDateSortOrder] = useState<DateSortOrder>('none');
-  const [distanceSortOrder, setDistanceSortOrder] = useState<DistanceSortOrder>('none');
+  const [selectedMuseumId, setSelectedMuseumId] = useState<string | null>(null);
+  const [hasImageFilter, setHasImageFilter] = useState(false);
   const [currentView, setCurrentView] = useState<ExhibitionView>(getStoredView);
   const [isPageChanging, setIsPageChanging] = useState(false);
+
+  // Broken image tracking
+  const [brokenImageIds, setBrokenImageIds] = useState<Set<string>>(new Set());
+
+  const handleImageError = useCallback((exhibitionId: string) => {
+    setBrokenImageIds(prev => {
+      if (prev.has(exhibitionId)) return prev;
+      const next = new Set(prev);
+      next.add(exhibitionId);
+      return next;
+    });
+  }, []);
 
   // Exhibition detail panel state
   const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
@@ -79,7 +95,6 @@ export default function ExhibitionsPage() {
   }, [currentView]);
 
   const hasGeoLocation = latitude !== null && longitude !== null;
-  const hasHomeBase = !!(preferences.location_country && preferences.location_city);
   const effectiveLat = latitude ?? null;
   const effectiveLng = longitude ?? null;
   const hasLocation = effectiveLat !== null && effectiveLng !== null;
@@ -98,7 +113,7 @@ export default function ExhibitionsPage() {
     city: selectedCity,
     statuses: selectedStatuses.length > 0 && selectedStatuses.length < USER_VISIBLE_STATUSES.length
       ? selectedStatuses : null,
-    closingSoon,
+    closingSoon: false,
     dateFrom: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : null,
     dateTo: dateTo ? format(dateTo, 'yyyy-MM-dd') : null,
   });
@@ -127,9 +142,48 @@ export default function ExhibitionsPage() {
     return Array.from(locationSet.values());
   }, [museums]);
 
-  // Add distance info to exhibitions
+  // Available museums for filter dropdown (scoped to current exhibitions)
+  const availableMuseums = useMemo((): MuseumOption[] => {
+    const museumIds = new Set(exhibitions.map(e => e.museum_id));
+    const result: MuseumOption[] = [];
+    museumIds.forEach(id => {
+      const m = museumMap.get(id);
+      if (m) {
+        result.push({ museum_id: m.museum_id, name: m.name, city: m.city, country: m.country });
+      } else {
+        // Fallback: use exhibition data
+        const ex = exhibitions.find(e => e.museum_id === id);
+        if (ex) {
+          result.push({ museum_id: id, name: ex.museum_name, city: ex.city });
+        }
+      }
+    });
+    result.sort((a, b) => a.name.localeCompare(b.name));
+    return result;
+  }, [exhibitions, museumMap]);
+
+  // Auto-reset museum filter if selected museum is no longer available
+  useEffect(() => {
+    if (selectedMuseumId && availableMuseums.length > 0 && !availableMuseums.some(m => m.museum_id === selectedMuseumId)) {
+      setSelectedMuseumId(null);
+    }
+  }, [availableMuseums, selectedMuseumId]);
+
+  // Apply client-side filters: museum + has image
+  const displayExhibitions = useMemo(() => {
+    let items = exhibitions;
+    if (selectedMuseumId) {
+      items = items.filter(e => e.museum_id === selectedMuseumId);
+    }
+    if (hasImageFilter) {
+      items = items.filter(e => !isImageMissing(e.cover_image_url) && !brokenImageIds.has(e.exhibition_id));
+    }
+    return items;
+  }, [exhibitions, selectedMuseumId, hasImageFilter, brokenImageIds]);
+
+  // Add distance info to displayed exhibitions
   const exhibitionsWithDistance = useMemo(() => {
-    return exhibitions.map(exhibition => {
+    return displayExhibitions.map(exhibition => {
       const museum = museumMap.get(exhibition.museum_id);
       let distance: number | null = null;
       let distanceFormatted: string | null = null;
@@ -139,7 +193,7 @@ export default function ExhibitionsPage() {
       }
       return { exhibition, distance, distanceFormatted, museum };
     });
-  }, [exhibitions, museumMap, hasLocation, effectiveLat, effectiveLng]);
+  }, [displayExhibitions, museumMap, hasLocation, effectiveLat, effectiveLng]);
 
   const from = (currentPage - 1) * PAGE_SIZE;
   const to = Math.min(from + PAGE_SIZE, totalCount);
@@ -169,7 +223,7 @@ export default function ExhibitionsPage() {
       }, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, selectedRegion, selectedStateProvince, selectedCity, selectedStatuses, dateFrom, dateTo, maxDistance, closingSoon, dateSortOrder, distanceSortOrder]);
+  }, [debouncedSearch, selectedRegion, selectedStateProvince, selectedCity, selectedStatuses, dateFrom, dateTo]);
 
   // Build page numbers
   const pageNumbers = useMemo(() => {
@@ -191,10 +245,10 @@ export default function ExhibitionsPage() {
     if (selectedStatuses.length > 0 && selectedStatuses.length < USER_VISIBLE_STATUSES.length) count++;
     if (dateFrom) count++;
     if (dateTo) count++;
-    if (hasLocation && maxDistance < MAX_DISTANCE_VALUE) count++;
-    if (closingSoon) count++;
+    if (selectedMuseumId) count++;
+    if (hasImageFilter) count++;
     return count;
-  }, [selectedRegion, selectedStatuses, dateFrom, dateTo, maxDistance, hasLocation, closingSoon]);
+  }, [selectedRegion, selectedStatuses, dateFrom, dateTo, selectedMuseumId, hasImageFilter]);
 
   const hasActiveFilters = searchQuery !== '' || activeFilterCount > 0;
 
@@ -206,8 +260,8 @@ export default function ExhibitionsPage() {
     setSelectedStatuses(['Ongoing', 'Upcoming', 'Past']);
     setDateFrom(undefined);
     setDateTo(undefined);
-    setMaxDistance(MAX_DISTANCE_VALUE);
-    setClosingSoon(false);
+    setSelectedMuseumId(null);
+    setHasImageFilter(false);
   };
 
   const handleLocationChange = (region: string | null, stateProvince: string | null, city: string | null) => {
@@ -268,8 +322,8 @@ export default function ExhibitionsPage() {
 
   // Filtered exhibitions as plain array for map
   const filteredExhibitionsList = useMemo(
-    () => exhibitions,
-    [exhibitions]
+    () => displayExhibitions,
+    [displayExhibitions]
   );
 
   const userLocation = hasGeoLocation ? { latitude: latitude!, longitude: longitude! } : null;
@@ -318,21 +372,18 @@ export default function ExhibitionsPage() {
           onLocationChange={handleLocationChange}
           selectedStatuses={selectedStatuses}
           onStatusesChange={setSelectedStatuses}
+          availableMuseums={availableMuseums}
+          selectedMuseumId={selectedMuseumId}
+          onMuseumChange={setSelectedMuseumId}
           dateFrom={dateFrom}
           dateTo={dateTo}
           onDateFromChange={setDateFrom}
           onDateToChange={setDateTo}
-          hasLocation={hasLocation}
-          hasHomeBase={hasHomeBase}
+          hasImageFilter={hasImageFilter}
+          onHasImageFilterChange={setHasImageFilter}
           onClearFilters={handleClearFilters}
           hasActiveFilters={hasActiveFilters}
           activeFilterCount={activeFilterCount}
-          closingSoon={closingSoon}
-          onClosingSoonChange={setClosingSoon}
-          dateSortOrder={dateSortOrder}
-          onDateSortOrderChange={setDateSortOrder}
-          distanceSortOrder={distanceSortOrder}
-          onDistanceSortOrderChange={setDistanceSortOrder}
           currentView={currentView}
           onViewChange={setCurrentView}
         />
@@ -342,7 +393,7 @@ export default function ExhibitionsPage() {
       {currentView === 'card' && (
         <>
           <div ref={gridRef} />
-          {exhibitions.length === 0 && !exhibitionsLoading ? (
+          {displayExhibitions.length === 0 && !exhibitionsLoading ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <ImageOff className="w-12 h-12 text-muted-foreground mb-4" />
               <h2 className="font-display text-xl font-semibold mb-2">{t('exhibitions.noResults')}</h2>
@@ -376,6 +427,7 @@ export default function ExhibitionsPage() {
                       exhibition={exhibition}
                       distance={distanceFormatted}
                       onClick={() => handleExhibitionClick(exhibition)}
+                      onImageError={() => handleImageError(exhibition.exhibition_id)}
                     />
                   ))}
                 </div>

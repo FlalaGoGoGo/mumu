@@ -9,6 +9,7 @@ interface ExhibitionCardProps {
   exhibition: Exhibition;
   distance?: string | null;
   onClick?: () => void;
+  onImageError?: () => void;
 }
 const statusColors: Record<ExhibitionStatus, string> = {
   Ongoing: 'bg-green-50 text-green-700 border-green-200',
@@ -17,7 +18,7 @@ const statusColors: Record<ExhibitionStatus, string> = {
   TBD: 'bg-amber-50 text-amber-700 border-amber-200',
 };
 
-export function ExhibitionCard({ exhibition, distance, onClick }: ExhibitionCardProps) {
+export function ExhibitionCard({ exhibition, distance, onClick, onImageError }: ExhibitionCardProps) {
   const [imageError, setImageError] = useState(false);
   const { t } = useLanguage();
 
@@ -56,7 +57,7 @@ export function ExhibitionCard({ exhibition, distance, onClick }: ExhibitionCard
             src={exhibition.cover_image_url}
             alt={exhibition.exhibition_name}
             className="absolute inset-0 w-full h-full object-cover"
-            onError={() => setImageError(true)}
+            onError={() => { setImageError(true); onImageError?.(); }}
           />
         ) : (
           <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-muted">
