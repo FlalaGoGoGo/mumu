@@ -1,0 +1,1 @@
+ALTER TABLE exhibitions DROP CONSTRAINT exhibitions_museum_id_fkey;
