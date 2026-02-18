@@ -403,6 +403,23 @@ export type Database = {
             }
             Returns: Json
           }
+        | {
+            Args: {
+              p_city?: string
+              p_closing_soon?: boolean
+              p_country?: string
+              p_date_from?: string
+              p_date_to?: string
+              p_has_image?: boolean
+              p_museum_id?: string
+              p_page?: number
+              p_page_size?: number
+              p_search?: string
+              p_state?: string
+              p_statuses?: string[]
+            }
+            Returns: Json
+          }
       get_museums_in_bbox: {
         Args: {
           p_category?: string
