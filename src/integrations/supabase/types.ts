@@ -53,6 +53,53 @@ export type Database = {
         }
         Relationships: []
       }
+      exhibitions: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string | null
+          end_date: string | null
+          exhibition_id: string
+          exhibition_name: string
+          museum_id: string
+          official_url: string | null
+          related_artworks: string | null
+          short_description: string | null
+          start_date: string | null
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          exhibition_id: string
+          exhibition_name: string
+          museum_id: string
+          official_url?: string | null
+          related_artworks?: string | null
+          short_description?: string | null
+          start_date?: string | null
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          exhibition_id?: string
+          exhibition_name?: string
+          museum_id?: string
+          official_url?: string | null
+          related_artworks?: string | null
+          short_description?: string | null
+          start_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exhibitions_museum_id_fkey"
+            columns: ["museum_id"]
+            isOneToOne: false
+            referencedRelation: "museums"
+            referencedColumns: ["museum_id"]
+          },
+        ]
+      }
       museums: {
         Row: {
           address: string | null
@@ -323,7 +370,48 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_exhibitions_page: {
+        Args: {
+          p_city?: string
+          p_closing_soon?: boolean
+          p_country?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_page?: number
+          p_page_size?: number
+          p_search?: string
+          p_state?: string
+          p_statuses?: string[]
+        }
+        Returns: Json
+      }
+      get_museums_in_bbox: {
+        Args: {
+          p_category?: string
+          p_east: number
+          p_highlight_only?: boolean
+          p_north: number
+          p_south: number
+          p_west: number
+        }
+        Returns: Json
+      }
+      get_museums_page: {
+        Args: {
+          p_category?: string
+          p_city?: string
+          p_country?: string
+          p_highlight_only?: boolean
+          p_lat?: number
+          p_lng?: number
+          p_max_distance_km?: number
+          p_page?: number
+          p_page_size?: number
+          p_search?: string
+          p_state?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

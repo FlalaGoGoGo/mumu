@@ -42,6 +42,7 @@ interface MuseumMapProps {
   className?: string;
   visitedIds?: Set<string>;
   savedIds?: Set<string>;
+  onBoundsChange?: (bounds: { west: number; south: number; east: number; north: number }) => void;
 }
 
 // Create user location marker icon
@@ -158,6 +159,7 @@ export function MuseumMap({
   className = '',
   visitedIds,
   savedIds,
+  onBoundsChange,
 }: MuseumMapProps) {
   const { t } = useLanguage();
   const mapRef = useRef<L.Map | null>(null);
@@ -225,6 +227,20 @@ export function MuseumMap({
     
     // Mark map as ready
     setMapReady(true);
+
+    // Emit initial bounds
+    if (onBoundsChange) {
+      const b = mapRef.current.getBounds();
+      onBoundsChange({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() });
+    }
+
+    // Listen for map move/zoom end to emit bounds
+    mapRef.current.on('moveend', () => {
+      if (mapRef.current && onBoundsChange) {
+        const b = mapRef.current.getBounds();
+        onBoundsChange({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() });
+      }
+    });
 
     return () => {
       if (mapRef.current) {
