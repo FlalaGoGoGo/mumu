@@ -104,7 +104,7 @@ export function ExhibitionStatusFilter({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-full min-w-[180px] bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+        <div className="absolute top-full left-0 mt-2 w-full min-w-[180px] bg-popover border border-border rounded-lg shadow-lg z-[150] overflow-hidden">
           <div className="py-1">
             {USER_VISIBLE_STATUSES.map(status => {
               const isSelected = selectedStatuses.includes(status);
