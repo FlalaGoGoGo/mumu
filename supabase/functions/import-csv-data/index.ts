@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    const { table, app_url } = await req.json();
+    const { table, app_url, replace_mode } = await req.json();
     if (!app_url) throw new Error("app_url is required");
 
     const results: string[] = [];
@@ -81,7 +81,16 @@ Deno.serve(async (req) => {
       const csvText = await resp.text();
       const rows = parseCSVMultiline(csvText);
 
-      const batchSize = 200;
+      // If replace mode, delete exhibitions first (FK), then museums
+      if (replace_mode) {
+        const { error: delExh } = await supabase.from("exhibitions").delete().neq("exhibition_id", "");
+        if (delExh) throw new Error(`Failed to clear exhibitions: ${delExh.message}`);
+        const { error: delMus } = await supabase.from("museums").delete().neq("museum_id", "");
+        if (delMus) throw new Error(`Failed to clear museums: ${delMus.message}`);
+        results.push("museums: cleared existing museums + exhibitions");
+      }
+
+      const batchSize = 500;
       let total = 0;
       for (let i = 0; i < rows.length; i += batchSize) {
         const batch = rows.slice(i, i + batchSize).map((r) => ({
