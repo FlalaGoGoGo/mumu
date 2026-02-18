@@ -30,7 +30,13 @@ async function fetchAllMuseums(): Promise<Museum[]> {
     }
   }
 
-  return museums;
+  // Deduplicate by museum_id (last occurrence wins)
+  const map = new Map<string, Museum>();
+  museums.forEach(m => map.set(m.museum_id, m));
+  if (map.size !== museums.length) {
+    console.warn(`[useMuseums] Deduped: ${museums.length} → ${map.size} (${museums.length - map.size} duplicates removed)`);
+  }
+  return Array.from(map.values());
 }
 
 export function useMuseums() {
