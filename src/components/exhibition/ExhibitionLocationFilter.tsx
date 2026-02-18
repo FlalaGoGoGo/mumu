@@ -374,7 +374,7 @@ export function ExhibitionLocationFilter({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-64 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+        <div className="absolute top-full left-0 mt-2 w-64 bg-popover border border-border rounded-lg shadow-lg z-[150] overflow-hidden">
           <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Location
