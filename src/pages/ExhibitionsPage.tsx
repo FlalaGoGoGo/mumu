@@ -103,7 +103,7 @@ export default function ExhibitionsPage() {
   const urlPage = parseInt(searchParams.get('page') || '1', 10);
   const currentPage = Math.max(1, isNaN(urlPage) ? 1 : urlPage);
 
-  // Server-side paginated query
+  // Server-side paginated query — museum + hasImage filters are now server-side
   const { data: pageResult, isLoading: exhibitionsLoading, error: exhibitionsError } = useExhibitionsPage({
     page: currentPage,
     pageSize: PAGE_SIZE,
@@ -116,6 +116,8 @@ export default function ExhibitionsPage() {
     closingSoon: false,
     dateFrom: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : null,
     dateTo: dateTo ? format(dateTo, 'yyyy-MM-dd') : null,
+    museumId: selectedMuseumId,
+    hasImage: hasImageFilter,
   });
 
   const exhibitions = pageResult?.data ?? [];
@@ -151,7 +153,6 @@ export default function ExhibitionsPage() {
       if (m) {
         result.push({ museum_id: m.museum_id, name: m.name, city: m.city, country: m.country });
       } else {
-        // Fallback: use exhibition data
         const ex = exhibitions.find(e => e.museum_id === id);
         if (ex) {
           result.push({ museum_id: id, name: ex.museum_name, city: ex.city });
@@ -169,17 +170,12 @@ export default function ExhibitionsPage() {
     }
   }, [availableMuseums, selectedMuseumId]);
 
-  // Apply client-side filters: museum + has image
+  // Display exhibitions = server results directly (filtering is server-side now)
+  // Only client-side: filter out runtime broken images when hasImage is on
   const displayExhibitions = useMemo(() => {
-    let items = exhibitions;
-    if (selectedMuseumId) {
-      items = items.filter(e => e.museum_id === selectedMuseumId);
-    }
-    if (hasImageFilter) {
-      items = items.filter(e => !isImageMissing(e.cover_image_url) && !brokenImageIds.has(e.exhibition_id));
-    }
-    return items;
-  }, [exhibitions, selectedMuseumId, hasImageFilter, brokenImageIds]);
+    if (!hasImageFilter || brokenImageIds.size === 0) return exhibitions;
+    return exhibitions.filter(e => !brokenImageIds.has(e.exhibition_id));
+  }, [exhibitions, hasImageFilter, brokenImageIds]);
 
   // Add distance info to displayed exhibitions
   const exhibitionsWithDistance = useMemo(() => {
@@ -223,7 +219,7 @@ export default function ExhibitionsPage() {
       }, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, selectedRegion, selectedStateProvince, selectedCity, selectedStatuses, dateFrom, dateTo]);
+  }, [debouncedSearch, selectedRegion, selectedStateProvince, selectedCity, selectedStatuses, dateFrom, dateTo, selectedMuseumId, hasImageFilter]);
 
   // Build page numbers
   const pageNumbers = useMemo(() => {
