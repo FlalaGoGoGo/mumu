@@ -17,6 +17,8 @@ export interface ExhibitionPageParams {
   closingSoon?: boolean;
   dateFrom?: string | null;
   dateTo?: string | null;
+  museumId?: string | null;
+  hasImage?: boolean;
 }
 
 interface RawExhibitionRow {
@@ -83,6 +85,8 @@ export function useExhibitionsPage(params: ExhibitionPageParams) {
         p_closing_soon: params.closingSoon ?? false,
         p_date_from: params.dateFrom || null,
         p_date_to: params.dateTo || null,
+        p_museum_id: params.museumId || null,
+        p_has_image: params.hasImage ?? false,
       });
       if (error) throw error;
       const result = data as unknown as { total: number; page: number; page_size: number; data: RawExhibitionRow[] };
