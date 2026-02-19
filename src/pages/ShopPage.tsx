@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ShoppingBag } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useMuseums } from '@/hooks/useMuseums';
@@ -8,6 +8,21 @@ import { ShopFilters, SortOption } from '@/components/shop/ShopFilters';
 import { FeaturedStrip } from '@/components/shop/FeaturedStrip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+
+const PAGE_SIZE = 30;
+
+/** Build page numbers: 1 … (current-2)..(current+2) … last */
+function paginationNumbers(current: number, total: number): (number | null)[] {
+  const pages: (number | null)[] = [];
+  const rangeStart = Math.max(2, current - 2);
+  const rangeEnd = Math.min(total - 1, current + 2);
+  pages.push(1);
+  if (rangeStart > 2) pages.push(null);
+  for (let i = rangeStart; i <= rangeEnd; i++) pages.push(i);
+  if (rangeEnd < total - 1) pages.push(null);
+  if (total > 1) pages.push(total);
+  return pages;
+}
 
 export default function ShopPage() {
   const { data: products = [], isLoading } = useProducts();
@@ -20,6 +35,7 @@ export default function ShopPage() {
   const [country, setCountry] = useState('');
   const [sort, setSort] = useState<SortOption>('recommended');
   const [priceRange, setPriceRange] = useState<[number, number] | null>(null);
+  const [page, setPage] = useState(1);
 
   // Museum lookup map (id → name)
   const museumMap = useMemo(() => {
@@ -111,6 +127,17 @@ export default function ShopPage() {
 
   const hasActiveFilters = !!search || !!category || !!museum || !!country || !!priceRange;
 
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, category, museum, country, sort, priceRange]);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const clampedPage = Math.min(page, totalPages);
+  if (clampedPage !== page) setPage(clampedPage);
+  const pageItems = filtered.slice((clampedPage - 1) * PAGE_SIZE, clampedPage * PAGE_SIZE);
+
   const clearFilters = () => {
     setSearch('');
     setCategory('');
@@ -118,6 +145,7 @@ export default function ShopPage() {
     setCountry('');
     setPriceRange(null);
     setSort('recommended');
+    setPage(1);
   };
 
   return (
@@ -181,9 +209,9 @@ export default function ShopPage() {
       )}
 
       {/* Product grid */}
-      {!isLoading && filtered.length > 0 && (
+      {!isLoading && pageItems.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-          {filtered.map((p) => (
+          {pageItems.map((p) => (
             <ProductCard
               key={p.product_id}
               product={p}
@@ -205,11 +233,46 @@ export default function ShopPage() {
         </div>
       )}
 
-      {/* Count */}
-      {!isLoading && filtered.length > 0 && (
-        <p className="text-xs text-muted-foreground text-center pb-4">
-          Showing {filtered.length} of {products.length} products
-        </p>
+      {/* Pagination */}
+      {!isLoading && totalPages > 1 && (
+        <div className="flex flex-col items-center gap-2 pb-6">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={clampedPage <= 1}
+              onClick={() => setPage(clampedPage - 1)}
+            >
+              Prev
+            </Button>
+            {paginationNumbers(clampedPage, totalPages).map((n, i) =>
+              n === null ? (
+                <span key={`e${i}`} className="px-1 text-muted-foreground">…</span>
+              ) : (
+                <Button
+                  key={n}
+                  variant={n === clampedPage ? 'default' : 'outline'}
+                  size="sm"
+                  className="min-w-[36px]"
+                  onClick={() => setPage(n)}
+                >
+                  {n}
+                </Button>
+              ),
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={clampedPage >= totalPages}
+              onClick={() => setPage(clampedPage + 1)}
+            >
+              Next
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Showing {(clampedPage - 1) * PAGE_SIZE + 1}–{Math.min(clampedPage * PAGE_SIZE, filtered.length)} of {filtered.length} products
+          </p>
+        </div>
       )}
     </div>
   );
