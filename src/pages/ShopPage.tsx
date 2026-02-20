@@ -8,6 +8,7 @@ import { ShopFilters, SortOption } from '@/components/shop/ShopFilters';
 import { FeaturedStrip } from '@/components/shop/FeaturedStrip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { getCountryFlag } from '@/lib/countryFlag';
 
 const PAGE_SIZE = 30;
 
@@ -51,6 +52,13 @@ export default function ShopPage() {
     return map;
   }, [museums]);
 
+  // Museum id → country flag emoji
+  const museumFlagMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    museums.forEach((m) => { map[m.museum_id] = getCountryFlag(m.country); });
+    return map;
+  }, [museums]);
+
   // Unique categories from products
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -58,15 +66,16 @@ export default function ShopPage() {
     return Array.from(set).sort();
   }, [products]);
 
-  // Unique museums from products
+  // Unique museums from products (with flag prefix for display, sorted by raw name)
   const museumOptions = useMemo(() => {
     const ids = new Set<string>();
     products.forEach((p) => { if (p.museum_id) ids.add(p.museum_id); });
-    return Array.from(ids).map((id) => ({
-      id,
-      name: museumMap[id] || id,
-    })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [products, museumMap]);
+    return Array.from(ids).map((id) => {
+      const rawName = museumMap[id] || id;
+      const flag = museumFlagMap[id] || '🌍';
+      return { id, name: `${flag} ${rawName}`, sortKey: rawName };
+    }).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  }, [products, museumMap, museumFlagMap]);
 
   // Unique countries from products (via museum)
   const countryOptions = useMemo(() => {

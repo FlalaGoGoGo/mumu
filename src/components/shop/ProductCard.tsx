@@ -30,8 +30,8 @@ export function ProductCard({ product, museumName, isWishlisted, onToggleWishlis
       {/* Image — square 1:1, hover swap isolated to this area */}
       <Link
         to={`/shop/${product.product_id}`}
-        className="block relative aspect-square bg-muted overflow-hidden flex-shrink-0"
-        onMouseEnter={() => hasSecondary && setIsImageHovered(true)}
+        className="group block relative aspect-square bg-muted overflow-hidden flex-shrink-0"
+        onMouseEnter={() => setIsImageHovered(true)}
         onMouseLeave={() => setIsImageHovered(false)}
       >
         {!imgError && primaryImage ? (
@@ -41,8 +41,10 @@ export function ProductCard({ product, museumName, isWishlisted, onToggleWishlis
               src={primaryImage}
               alt={product.title}
               className={cn(
-                'absolute inset-0 w-full h-full object-contain transition-opacity duration-200',
-                isImageHovered && hasSecondary ? 'opacity-0' : 'opacity-100',
+                'absolute inset-0 w-full h-full object-cover object-center transition-all duration-200',
+                hasSecondary
+                  ? (isImageHovered ? 'opacity-0' : 'opacity-100')
+                  : (isImageHovered ? 'scale-[1.05] brightness-105 contrast-[1.02]' : 'scale-100'),
               )}
               onError={() => setImgError(true)}
               loading="lazy"
@@ -53,7 +55,7 @@ export function ProductCard({ product, museumName, isWishlisted, onToggleWishlis
                 src={secondaryImage}
                 alt={`${product.title} – alternate view`}
                 className={cn(
-                  'absolute inset-0 w-full h-full object-contain transition-opacity duration-200',
+                  'absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-200',
                   isImageHovered ? 'opacity-100' : 'opacity-0',
                 )}
                 onError={() => setImg2Error(true)}
