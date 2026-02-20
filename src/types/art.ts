@@ -1,6 +1,7 @@
 export interface Artist {
   artist_id: string;
   artist_name: string;
+  aliases: string;
   bio: string;
   portrait_url: string | null;
   nationality: string;
