@@ -26,6 +26,7 @@ const PAGE_SIZE = 64;
 export default function ArtPage() {
   const { t } = useLanguage();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const { data: artworks, artists, museums, isLoading } = useEnrichedArtworks();
   const { loadedImageIds, hasVerifiedImage } = useImageLoad();
   const [searchParams, setSearchParams] = useSearchParams();
