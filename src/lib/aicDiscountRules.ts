@@ -215,6 +215,7 @@ export function computeDiscountRows(input: DiscountInput): DiscountRow[] {
       qualifies,
       applicableNow: qualifies && openNow,
       yourPrice: qualifies ? 0 : basePrice,
+      eligiblePrice: qualifies ? 0 : basePrice,
       basePrice,
       statusLabel,
       statusVariant,
