@@ -12,11 +12,12 @@ import { ArtistWorksMap } from '@/components/art/ArtistWorksMap';
 import { ArtMapView } from '@/components/art/ArtMapView';
 import { ArtMuseumDrawer, type ArtMuseumGroup } from '@/components/art/ArtMuseumDrawer';
 import type { ArtView } from '@/components/art/ArtViewToggle';
+import { MobilityExperience } from '@/components/mobility/MobilityExperience';
 
 import { EnrichedArtwork, Artist, getArtworkImageUrl } from '@/types/art';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Route } from 'lucide-react';
 import { useImageLoad } from '@/contexts/ImageLoadContext';
 
 const PAGE_SIZE = 64;
