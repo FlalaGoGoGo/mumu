@@ -9,11 +9,12 @@ import { ArrowLeft, SlidersHorizontal, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MobilityFilters } from './MobilityFilters';
 import { ArtistOverviewView } from './ArtistOverviewView';
-import { ArtworkJourneyView } from './ArtworkJourneyView';
-import { MuseumBalanceView } from './MuseumBalanceView';
+import { FlowOverTimeView } from './FlowOverTimeView';
+import { MuseumExplorerView } from './MuseumExplorerView';
+import { ArtworkDetailDrawer } from './ArtworkDetailDrawer';
 import type { MobilityResearchStatus } from '@/types/movement';
 
-type MobilityTab = 'overview' | 'journey' | 'balance';
+type MobilityTab = 'flow' | 'time' | 'museum';
 
 interface Props {
   onBack: () => void;
@@ -24,13 +25,15 @@ export function MobilityExperience({ onBack }: Props) {
   const { data: movements = [], isLoading: movLoading } = useArtworkMovements();
   const { data: artworks, artists, museums, isLoading: artLoading } = useEnrichedArtworks();
 
-  const [tab, setTab] = useState<MobilityTab>('overview');
+  const [tab, setTab] = useState<MobilityTab>('flow');
   const [artistId, setArtistId] = useState<string>('vincent-van-gogh');
-  const [artworkId, setArtworkId] = useState<string | null>(null);
   const [yearRange, setYearRange] = useState<[number, number]>([1800, 2030]);
   const [lenderMuseumId, setLenderMuseumId] = useState<string | null>(null);
   const [borrowerMuseumId, setBorrowerMuseumId] = useState<string | null>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  // Artwork detail drawer state
+  const [detailArtworkId, setDetailArtworkId] = useState<string | null>(null);
 
   const isLoading = movLoading || artLoading;
 
@@ -40,26 +43,10 @@ export function MobilityExperience({ onBack }: Props) {
     return artworks.filter(a => a.artist_id === artistId);
   }, [artworks, artistId]);
 
-  // Auto-select first artwork with movements when in journey tab
-  const selectedArtworkId = useMemo(() => {
-    if (tab !== 'journey') return null;
-    if (artworkId && artistArtworks.some(a => a.artwork_id === artworkId)) return artworkId;
-    const withMovements = artistArtworks.find(a => {
-      const status = (a as any).mobility_research_status as string;
-      return status === 'HAS_MOVEMENT_EVENTS';
-    });
-    return withMovements?.artwork_id || artistArtworks[0]?.artwork_id || null;
-  }, [artworkId, artistArtworks, tab]);
-
-  const selectedArtwork = useMemo(() => {
-    return artworks.find(a => a.artwork_id === selectedArtworkId) || null;
-  }, [artworks, selectedArtworkId]);
-
   // Filter movements
   const filteredMovements = useMemo(() => {
     let result = movements;
     if (artistId) result = result.filter(m => m.artist_id === artistId);
-    if (selectedArtworkId && tab === 'journey') result = result.filter(m => m.artwork_id === selectedArtworkId);
     if (lenderMuseumId) result = result.filter(m => m.lender_museum_id === lenderMuseumId);
     if (borrowerMuseumId) result = result.filter(m => m.borrower_museum_id === borrowerMuseumId);
     result = result.filter(m => {
@@ -68,7 +55,7 @@ export function MobilityExperience({ onBack }: Props) {
       return !isNaN(year) && year >= yearRange[0] && year <= yearRange[1];
     });
     return result.sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
-  }, [movements, artistId, selectedArtworkId, lenderMuseumId, borrowerMuseumId, yearRange, tab]);
+  }, [movements, artistId, lenderMuseumId, borrowerMuseumId, yearRange]);
 
   // Museum map for lookups
   const museumMap = useMemo(() => {
@@ -90,18 +77,28 @@ export function MobilityExperience({ onBack }: Props) {
     return museums.filter(m => ids.has(m.museum_id)).sort((a, b) => a.name.localeCompare(b.name));
   }, [movements, museums, artistId]);
 
-  const mobilityStatus: MobilityResearchStatus = selectedArtwork
-    ? ((selectedArtwork as any).mobility_research_status as MobilityResearchStatus) || 'NOT_RESEARCHED'
+  const handleOpenArtworkDetail = useCallback((artworkId: string) => {
+    setDetailArtworkId(artworkId);
+  }, []);
+
+  // Detail artwork data
+  const detailArtwork = useMemo(() => {
+    if (!detailArtworkId) return null;
+    return artworks.find(a => a.artwork_id === detailArtworkId) || null;
+  }, [artworks, detailArtworkId]);
+
+  const detailMovements = useMemo(() => {
+    if (!detailArtworkId) return [];
+    return filteredMovements.filter(m => m.artwork_id === detailArtworkId);
+  }, [filteredMovements, detailArtworkId]);
+
+  const detailMobilityStatus: MobilityResearchStatus = detailArtwork
+    ? ((detailArtwork as any).mobility_research_status as MobilityResearchStatus) || 'NOT_RESEARCHED'
     : 'NOT_RESEARCHED';
 
-  const mobilityNote: string = selectedArtwork
-    ? ((selectedArtwork as any).mobility_research_note as string) || ''
+  const detailMobilityNote: string = detailArtwork
+    ? ((detailArtwork as any).mobility_research_note as string) || ''
     : '';
-
-  const handleDrillDown = useCallback((artworkId: string) => {
-    setArtworkId(artworkId);
-    setTab('journey');
-  }, []);
 
   if (isLoading) {
     return (
@@ -112,16 +109,14 @@ export function MobilityExperience({ onBack }: Props) {
     );
   }
 
-  const showArtworkPicker = tab === 'journey';
-
   const filtersContent = (
     <MobilityFilters
       artists={artists}
       artistId={artistId}
-      onArtistChange={(id) => { setArtistId(id); setArtworkId(null); }}
+      onArtistChange={(id) => { setArtistId(id); setDetailArtworkId(null); }}
       artworks={artistArtworks}
-      artworkId={selectedArtworkId}
-      onArtworkChange={setArtworkId}
+      artworkId={null}
+      onArtworkChange={() => {}}
       yearRange={yearRange}
       onYearRangeChange={setYearRange}
       lenderMuseums={lenderMuseums}
@@ -130,7 +125,7 @@ export function MobilityExperience({ onBack }: Props) {
       borrowerMuseums={borrowerMuseums}
       borrowerMuseumId={borrowerMuseumId}
       onBorrowerMuseumChange={setBorrowerMuseumId}
-      showArtworkPicker={showArtworkPicker}
+      showArtworkPicker={false}
     />
   );
 
@@ -150,7 +145,6 @@ export function MobilityExperience({ onBack }: Props) {
               Artwork Mobility
             </h1>
           </div>
-          {/* Mobile filter toggle */}
           {isMobile && (
             <Button
               variant="outline"
@@ -167,14 +161,14 @@ export function MobilityExperience({ onBack }: Props) {
         {/* Row 2: View Tabs */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as MobilityTab)}>
           <TabsList className={cn("h-10", isMobile ? 'w-full' : '')}>
-            <TabsTrigger value="overview" className={cn("px-5", isMobile && 'flex-1')}>
-              Artist Overview
+            <TabsTrigger value="flow" className={cn("px-5", isMobile && 'flex-1')}>
+              All Works Flow
             </TabsTrigger>
-            <TabsTrigger value="journey" className={cn("px-5", isMobile && 'flex-1')}>
-              Artwork Journey
+            <TabsTrigger value="time" className={cn("px-5", isMobile && 'flex-1')}>
+              Flow Over Time
             </TabsTrigger>
-            <TabsTrigger value="balance" className={cn("px-5", isMobile && 'flex-1')}>
-              Museum Balance
+            <TabsTrigger value="museum" className={cn("px-5", isMobile && 'flex-1')}>
+              Museum Explorer
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -199,32 +193,43 @@ export function MobilityExperience({ onBack }: Props) {
       </div>
 
       {/* Views */}
-      {tab === 'overview' && (
+      {tab === 'flow' && (
         <ArtistOverviewView
           movements={filteredMovements}
           museumMap={museumMap}
           artworks={artworks}
-          onDrillDown={handleDrillDown}
+          onDrillDown={handleOpenArtworkDetail}
         />
       )}
 
-      {tab === 'journey' && (
-        <ArtworkJourneyView
-          artwork={selectedArtwork}
-          movements={filteredMovements}
-          museumMap={museumMap}
-          mobilityStatus={mobilityStatus}
-          mobilityNote={mobilityNote}
-        />
-      )}
-
-      {tab === 'balance' && (
-        <MuseumBalanceView
+      {tab === 'time' && (
+        <FlowOverTimeView
           movements={filteredMovements}
           museumMap={museumMap}
           artworks={artworks}
+          onArtworkSelect={handleOpenArtworkDetail}
         />
       )}
+
+      {tab === 'museum' && (
+        <MuseumExplorerView
+          movements={filteredMovements}
+          museumMap={museumMap}
+          artworks={artworks}
+          onArtworkSelect={handleOpenArtworkDetail}
+        />
+      )}
+
+      {/* Artwork Detail Drawer */}
+      <ArtworkDetailDrawer
+        open={detailArtworkId !== null}
+        onOpenChange={(open) => { if (!open) setDetailArtworkId(null); }}
+        artwork={detailArtwork}
+        movements={detailMovements}
+        museumMap={museumMap}
+        mobilityStatus={detailMobilityStatus}
+        mobilityNote={detailMobilityNote}
+      />
     </div>
   );
 }
