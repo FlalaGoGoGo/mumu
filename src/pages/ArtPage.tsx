@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/lib/i18n';
 import { useEnrichedArtworks } from '@/hooks/useArtworks';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -17,7 +17,8 @@ import { MobilityExperience } from '@/components/mobility/MobilityExperience';
 import { EnrichedArtwork, Artist, getArtworkImageUrl } from '@/types/art';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Route } from 'lucide-react';
+import { User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Route, Sparkles } from 'lucide-react';
+
 import { useImageLoad } from '@/contexts/ImageLoadContext';
 
 const PAGE_SIZE = 64;
@@ -25,6 +26,7 @@ const PAGE_SIZE = 64;
 export default function ArtPage() {
   const { t } = useLanguage();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const { data: artworks, artists, museums, isLoading } = useEnrichedArtworks();
   const { loadedImageIds, hasVerifiedImage } = useImageLoad();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -332,18 +334,30 @@ export default function ArtPage() {
           </div>
           {/* Desktop: View Journey CTA */}
           {!isMobile && (
-            <Button variant="outline" className="gap-2 shrink-0" onClick={enterJourneyMode}>
-              <Route className="h-4 w-4" />
-              View Journey
-            </Button>
+            <div className="flex gap-2 shrink-0">
+              <Button variant="outline" className="gap-2" onClick={() => navigate('/style-lab')}>
+                <Sparkles className="h-4 w-4" />
+                Style Lab
+              </Button>
+              <Button variant="outline" className="gap-2" onClick={enterJourneyMode}>
+                <Route className="h-4 w-4" />
+                View Journey
+              </Button>
+            </div>
           )}
         </div>
         {/* Mobile: View Journey CTA below title */}
         {isMobile && (
-          <Button variant="outline" className="gap-2 mt-3 w-full" onClick={enterJourneyMode}>
-            <Route className="h-4 w-4" />
-            View Journey
-          </Button>
+          <div className="flex gap-2 mt-3">
+            <Button variant="outline" className="gap-2 flex-1" onClick={() => navigate('/style-lab')}>
+              <Sparkles className="h-4 w-4" />
+              Style Lab
+            </Button>
+            <Button variant="outline" className="gap-2 flex-1" onClick={enterJourneyMode}>
+              <Route className="h-4 w-4" />
+              View Journey
+            </Button>
+          </div>
         )}
       </div>
 

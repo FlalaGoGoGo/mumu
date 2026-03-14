@@ -188,6 +188,36 @@ export type Database = {
         }
         Relationships: []
       }
+      style_lab_generations: {
+        Row: {
+          created_at: string
+          id: string
+          output_image_url: string | null
+          preset_key: string
+          session_id: string
+          source_image_url: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          output_image_url?: string | null
+          preset_key: string
+          session_id: string
+          source_image_url: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          output_image_url?: string | null
+          preset_key?: string
+          session_id?: string
+          source_image_url?: string
+          status?: string
+        }
+        Relationships: []
+      }
       user_events: {
         Row: {
           created_at: string
