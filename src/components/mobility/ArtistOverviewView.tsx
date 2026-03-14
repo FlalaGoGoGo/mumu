@@ -2,12 +2,14 @@ import { useMemo, useState, useCallback } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 import { ArrowRightLeft, MapPin, Landmark, CalendarRange, ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { AnimatedPolyline } from './AnimatedPolyline';
 import { TimePlaybackControl, useTimePlayback } from './TimePlaybackControl';
+import { AnnualFlowChart } from './AnnualFlowChart';
+import { YearlyMuseumRankings } from './YearlyMuseumRankings';
+import { YearlyArtworkList } from './YearlyArtworkList';
 import type { ArtworkMovement } from '@/types/movement';
 import type { EnrichedArtwork } from '@/types/art';
 import 'leaflet/dist/leaflet.css';
@@ -75,21 +77,30 @@ function FitBounds({ points }: { points: [number, number][] }) {
 export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown }: Props) {
   const isMobile = useIsMobile();
   const [highlightedCorridor, setHighlightedCorridor] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [hoveredYear, setHoveredYear] = useState<number | null>(null);
 
-  // Determine year range from all movements
-  const yearBounds = useMemo(() => {
-    const years = movements
-      .map(m => parseInt(m.start_date?.substring(0, 4) || ''))
-      .filter(y => !isNaN(y) && y > 0);
-    if (years.length === 0) return { min: 1880, max: 2025 };
-    return { min: Math.min(...years), max: Math.max(...years) };
+  // Active years from movements
+  const activeYears = useMemo(() => {
+    const years = new Set<number>();
+    for (const m of movements) {
+      if (!m.start_date) continue;
+      const y = parseInt(m.start_date.substring(0, 4));
+      if (!isNaN(y) && y > 0) years.add(y);
+    }
+    return Array.from(years).sort((a, b) => a - b);
   }, [movements]);
 
-  const playback = useTimePlayback(yearBounds.min, yearBounds.max);
+  const yearBounds = useMemo(() => {
+    if (activeYears.length === 0) return { min: 1880, max: 2025 };
+    return { min: activeYears[0], max: activeYears[activeYears.length - 1] };
+  }, [activeYears]);
+
+  const playback = useTimePlayback(yearBounds.min, yearBounds.max, activeYears);
 
   // Filter movements by playback year
   const timeFilteredMovements = useMemo(() => {
-    if (playback.isAtEnd && !playback.isPlaying) return movements; // full range
+    if (playback.isAtEnd && !playback.isPlaying) return movements;
     return movements.filter(m => {
       if (!m.start_date) return false;
       const y = parseInt(m.start_date.substring(0, 4));
@@ -97,7 +108,18 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
     });
   }, [movements, playback.currentYear, playback.isAtEnd, playback.isPlaying]);
 
+  // Further filter by selected year for analytics (but not the map)
+  const yearFocusedMovements = useMemo(() => {
+    if (!selectedYear) return timeFilteredMovements;
+    return timeFilteredMovements.filter(m => {
+      if (!m.start_date) return false;
+      const y = parseInt(m.start_date.substring(0, 4));
+      return y === selectedYear;
+    });
+  }, [timeFilteredMovements, selectedYear]);
+
   const { corridors, allPoints, involvedMuseums, maxEvents, museumEventCounts } = useMemo(() => {
+    const src = selectedYear ? yearFocusedMovements : timeFilteredMovements;
     const corridorMap = new Map<string, {
       lender_museum_id: string;
       borrower_museum_id: string;
@@ -109,7 +131,7 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
 
     const museumCounts = new Map<string, number>();
 
-    for (const m of timeFilteredMovements) {
+    for (const m of src) {
       const key = `${m.lender_museum_id}__${m.borrower_museum_id}`;
       if (!corridorMap.has(key)) {
         corridorMap.set(key, {
@@ -174,60 +196,25 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
       maxEvents,
       museumEventCounts: museumCounts,
     };
-  }, [timeFilteredMovements, museumMap]);
+  }, [selectedYear, yearFocusedMovements, timeFilteredMovements, museumMap]);
 
   // Summary stats
   const stats = useMemo(() => {
-    const artworkIds = new Set(timeFilteredMovements.map(m => m.artwork_id));
+    const src = selectedYear ? yearFocusedMovements : timeFilteredMovements;
+    const artworkIds = new Set(src.map(m => m.artwork_id));
     const museumIds = new Set<string>();
-    timeFilteredMovements.forEach(m => { museumIds.add(m.lender_museum_id); museumIds.add(m.borrower_museum_id); });
-    const years = timeFilteredMovements
+    src.forEach(m => { museumIds.add(m.lender_museum_id); museumIds.add(m.borrower_museum_id); });
+    const years = src
       .map(m => parseInt(m.start_date?.substring(0, 4) || ''))
       .filter(y => !isNaN(y));
     return {
-      totalEvents: timeFilteredMovements.length,
+      totalEvents: src.length,
       artworksWithMovements: artworkIds.size,
       museumsInvolved: museumIds.size,
       minYear: years.length > 0 ? Math.min(...years) : 0,
       maxYear: years.length > 0 ? Math.max(...years) : 0,
     };
-  }, [timeFilteredMovements]);
-
-  // Top outflow / inflow museums
-  const { outflowData, inflowData } = useMemo(() => {
-    const outMap = new Map<string, { name: string; count: number; artworkIds: Set<string> }>();
-    const inMap = new Map<string, { name: string; count: number; artworkIds: Set<string> }>();
-
-    for (const m of timeFilteredMovements) {
-      const lender = museumMap.get(m.lender_museum_id);
-      const borrower = museumMap.get(m.borrower_museum_id);
-
-      if (lender) {
-        if (!outMap.has(m.lender_museum_id)) outMap.set(m.lender_museum_id, { name: lender.name, count: 0, artworkIds: new Set() });
-        const o = outMap.get(m.lender_museum_id)!;
-        o.count++;
-        o.artworkIds.add(m.artwork_id);
-      }
-      if (borrower) {
-        if (!inMap.has(m.borrower_museum_id)) inMap.set(m.borrower_museum_id, { name: borrower.name, count: 0, artworkIds: new Set() });
-        const i = inMap.get(m.borrower_museum_id)!;
-        i.count++;
-        i.artworkIds.add(m.artwork_id);
-      }
-    }
-
-    const outflowData = Array.from(outMap.values())
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8)
-      .map(d => ({ name: d.name.length > 28 ? d.name.substring(0, 26) + '…' : d.name, fullName: d.name, events: d.count, artworks: d.artworkIds.size }));
-
-    const inflowData = Array.from(inMap.values())
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8)
-      .map(d => ({ name: d.name.length > 28 ? d.name.substring(0, 26) + '…' : d.name, fullName: d.name, events: d.count, artworks: d.artworkIds.size }));
-
-    return { outflowData, inflowData };
-  }, [timeFilteredMovements, museumMap]);
+  }, [selectedYear, yearFocusedMovements, timeFilteredMovements]);
 
   const center: [number, number] = allPoints.length > 0
     ? [allPoints.reduce((s, p) => s + p[0], 0) / allPoints.length, allPoints.reduce((s, p) => s + p[1], 0) / allPoints.length]
@@ -241,6 +228,14 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
   const handleCorridorHover = useCallback((key: string | null) => {
     setHighlightedCorridor(key);
   }, []);
+
+  // Year selection handler — syncs selected year with playback
+  const handleYearSelect = useCallback((year: number | null) => {
+    setSelectedYear(year);
+    if (year !== null) {
+      playback.setCurrentYear(year);
+    }
+  }, [playback]);
 
   if (movements.length === 0) {
     return (
@@ -313,10 +308,17 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
           isPlaying={playback.isPlaying}
           onPlayPause={playback.toggle}
           onReset={playback.reset}
+          activeYears={activeYears}
+          onPrev={playback.prev}
+          onNext={playback.next}
+          speed={playback.speed}
+          onSpeedChange={playback.setSpeed}
+          timeMode={playback.timeMode}
+          onTimeModeChange={playback.setTimeMode}
         />
       )}
 
-      {/* Map + Top Corridors side-by-side on desktop */}
+      {/* Map + Top Corridors */}
       <div className={cn(
         isMobile ? 'space-y-4' : 'grid grid-cols-5 gap-5'
       )}>
@@ -384,6 +386,11 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
               <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ background: 'hsl(348,55%,38%)' }} />
               <span className="text-muted-foreground">Museum</span>
             </div>
+            {selectedYear && (
+              <div className="pt-1 border-t border-border/40 text-muted-foreground">
+                Focused: <span className="font-semibold text-foreground">{selectedYear}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -397,10 +404,11 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
               <h3 className="text-sm font-semibold">Top Corridors</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {corridors.length} corridors · {involvedMuseums.length} museums
+                {selectedYear ? ` · ${selectedYear}` : ''}
               </p>
             </div>
             <div className="overflow-y-auto" style={{ maxHeight: isMobile ? 300 : 430 }}>
-              {sortedCorridors.map((c, i) => {
+              {sortedCorridors.map((c) => {
                 const isActive = highlightedCorridor === c.key;
                 return (
                   <div
@@ -433,7 +441,6 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
                         </span>
                       )}
                     </div>
-                    {/* Intensity bar */}
                     <div className="mt-2 h-1 rounded-full bg-muted overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-300"
@@ -447,77 +454,39 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
                   </div>
                 );
               })}
+              {sortedCorridors.length === 0 && (
+                <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  No corridors for this period
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Bar Charts */}
-      <div className={isMobile ? 'space-y-5' : 'grid grid-cols-2 gap-5'}>
-        <Card className="border-border/60">
-          <CardContent className="p-5">
-            <h3 className="text-sm font-semibold mb-4">Top Outflow Museums</h3>
-            {outflowData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={outflowData} layout="vertical" margin={{ left: 0, right: 16 }}>
-                  <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis type="category" dataKey="name" width={160} tick={{ fontSize: 10 }} />
-                  <RechartsTooltip
-                    content={({ payload }) => {
-                      if (!payload?.[0]) return null;
-                      const d = payload[0].payload;
-                      return (
-                        <div className="bg-background border rounded-lg px-3 py-2 text-xs shadow-md">
-                          <p className="font-semibold">{d.fullName}</p>
-                          <p>Events: {d.events}</p>
-                          <p>Artworks: {d.artworks}</p>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Bar dataKey="events" radius={[0, 4, 4, 0]}>
-                    {outflowData.map((_, i) => (
-                      <Cell key={i} fill="hsl(348, 45%, 42%)" fillOpacity={0.8} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : <p className="text-sm text-muted-foreground">No data</p>}
-          </CardContent>
-        </Card>
+      {/* Annual Flow Chart */}
+      <AnnualFlowChart
+        movements={timeFilteredMovements}
+        selectedYear={selectedYear}
+        onYearSelect={handleYearSelect}
+        hoveredYear={hoveredYear}
+        onYearHover={setHoveredYear}
+      />
 
-        <Card className="border-border/60">
-          <CardContent className="p-5">
-            <h3 className="text-sm font-semibold mb-4">Top Inflow Museums</h3>
-            {inflowData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={inflowData} layout="vertical" margin={{ left: 0, right: 16 }}>
-                  <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis type="category" dataKey="name" width={160} tick={{ fontSize: 10 }} />
-                  <RechartsTooltip
-                    content={({ payload }) => {
-                      if (!payload?.[0]) return null;
-                      const d = payload[0].payload;
-                      return (
-                        <div className="bg-background border rounded-lg px-3 py-2 text-xs shadow-md">
-                          <p className="font-semibold">{d.fullName}</p>
-                          <p>Events: {d.events}</p>
-                          <p>Artworks: {d.artworks}</p>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Bar dataKey="events" radius={[0, 4, 4, 0]}>
-                    {inflowData.map((_, i) => (
-                      <Cell key={i} fill="hsl(160, 50%, 40%)" fillOpacity={0.8} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : <p className="text-sm text-muted-foreground">No data</p>}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Yearly Museum Rankings */}
+      <YearlyMuseumRankings
+        movements={timeFilteredMovements}
+        museumMap={museumMap}
+        selectedYear={selectedYear}
+      />
+
+      {/* Yearly Artwork List */}
+      <YearlyArtworkList
+        movements={timeFilteredMovements}
+        museumMap={museumMap}
+        selectedYear={selectedYear}
+        onArtworkSelect={onDrillDown}
+      />
     </div>
   );
 }
