@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/lib/i18n';
 import { useEnrichedArtworks } from '@/hooks/useArtworks';
 import { useIsMobile } from '@/hooks/use-mobile';
