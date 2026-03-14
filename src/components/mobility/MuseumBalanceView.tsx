@@ -79,7 +79,7 @@ export function MuseumBalanceView({ movements, museumMap, artworks }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border overflow-hidden" style={{ height: 500 }}>
+      <div className="rounded-lg border overflow-hidden relative" style={{ height: 500 }}>
         <MapContainer center={[48, 2]} zoom={4} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
@@ -130,26 +130,24 @@ export function MuseumBalanceView({ movements, museumMap, artworks }: Props) {
               </CircleMarker>
             );
           })}
-
-          {/* Legend */}
-          <div className="leaflet-bottom leaflet-left">
-            <div className="leaflet-control bg-background/90 backdrop-blur rounded-md p-2 m-2 text-xs space-y-1 border shadow-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(160,50%,40%)' }} />
-                <span>Net importer</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(348,45%,42%)' }} />
-                <span>Net exporter</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(43,60%,45%)' }} />
-                <span>Balanced</span>
-              </div>
-              <p className="text-[10px] text-muted-foreground">Size = magnitude</p>
-            </div>
-          </div>
         </MapContainer>
+
+        {/* Legend overlay */}
+        <div className="absolute bottom-2 left-2 z-[1000] bg-background/90 backdrop-blur rounded-md p-2 text-xs space-y-1 border shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(160,50%,40%)' }} />
+            <span>Net importer</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(348,45%,42%)' }} />
+            <span>Net exporter</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(43,60%,45%)' }} />
+            <span>Balanced</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground">Size = magnitude</p>
+        </div>
       </div>
 
       {/* Summary table */}

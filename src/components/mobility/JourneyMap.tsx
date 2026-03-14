@@ -104,72 +104,70 @@ export function JourneyMap({ movements, museumMap, homeMuseum }: Props) {
     : [48, 2];
 
   return (
-    <MapContainer center={center} zoom={4} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-      />
-      {allPoints.length > 1 && <FitBounds points={allPoints} />}
+    <div className="relative" style={{ height: '100%', width: '100%' }}>
+      <MapContainer center={center} zoom={4} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        />
+        {allPoints.length > 1 && <FitBounds points={allPoints} />}
 
-      {/* Arcs */}
-      {arcs.map((arc, i) => (
-        <Polyline
-          key={i}
-          positions={arc.positions}
-          pathOptions={{
-            color: arc.color,
-            weight: 2.5,
-            opacity: 0.75,
-            dashArray: '6 4',
-          }}
-        >
-          <Popup>
-            <div className="text-xs space-y-1">
-              <p className="font-semibold">{arc.movement.artwork_title}</p>
-              <p>{museumMap.get(arc.movement.lender_museum_id)?.name} → {museumMap.get(arc.movement.borrower_museum_id)?.name}</p>
-              <p>{arc.movement.start_date} – {arc.movement.end_date}</p>
-              {arc.movement.related_exhibition_name && <p className="italic">{arc.movement.related_exhibition_name}</p>}
-              {arc.movement.source_url && (
-                <a href={arc.movement.source_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">Source</a>
-              )}
-            </div>
-          </Popup>
-        </Polyline>
-      ))}
+        {arcs.map((arc, i) => (
+          <Polyline
+            key={i}
+            positions={arc.positions}
+            pathOptions={{
+              color: arc.color,
+              weight: 2.5,
+              opacity: 0.75,
+              dashArray: '6 4',
+            }}
+          >
+            <Popup>
+              <div className="text-xs space-y-1">
+                <p className="font-semibold">{arc.movement.artwork_title}</p>
+                <p>{museumMap.get(arc.movement.lender_museum_id)?.name} → {museumMap.get(arc.movement.borrower_museum_id)?.name}</p>
+                <p>{arc.movement.start_date} – {arc.movement.end_date}</p>
+                {arc.movement.related_exhibition_name && <p className="italic">{arc.movement.related_exhibition_name}</p>}
+                {arc.movement.source_url && (
+                  <a href={arc.movement.source_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">Source</a>
+                )}
+              </div>
+            </Popup>
+          </Polyline>
+        ))}
 
-      {/* Museum markers */}
-      {involvedMuseums.map(m => (
-        <Marker
-          key={m.museum_id}
-          position={[m.lat, m.lng]}
-          icon={homeMuseum?.museum_id === m.museum_id ? homeIcon : borrowerIcon}
-        >
-          <Popup>
-            <div className="text-xs">
-              <p className="font-semibold">{m.name}</p>
-              {homeMuseum?.museum_id === m.museum_id && <p className="text-muted-foreground">Home Museum</p>}
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+        {involvedMuseums.map(m => (
+          <Marker
+            key={m.museum_id}
+            position={[m.lat, m.lng]}
+            icon={homeMuseum?.museum_id === m.museum_id ? homeIcon : borrowerIcon}
+          >
+            <Popup>
+              <div className="text-xs">
+                <p className="font-semibold">{m.name}</p>
+                {homeMuseum?.museum_id === m.museum_id && <p className="text-muted-foreground">Home Museum</p>}
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
 
-      {/* Legend */}
-      <div className="leaflet-bottom leaflet-left">
-        <div className="leaflet-control bg-background/90 backdrop-blur rounded-md p-2 m-2 text-xs space-y-1 border shadow-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(348,45%,32%)' }} />
-            <span>Home museum</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(43,60%,45%)' }} />
-            <span>Borrower</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 border-t-2 border-dashed" style={{ borderColor: 'hsl(348,45%,42%)' }} />
-            <span>Movement arc</span>
-          </div>
+      {/* Legend overlay */}
+      <div className="absolute bottom-2 left-2 z-[1000] bg-background/90 backdrop-blur rounded-md p-2 text-xs space-y-1 border shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(348,45%,32%)' }} />
+          <span>Home museum</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(43,60%,45%)' }} />
+          <span>Borrower</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-6 border-t-2 border-dashed" style={{ borderColor: 'hsl(348,45%,42%)' }} />
+          <span>Movement arc</span>
         </div>
       </div>
-    </MapContainer>
+    </div>
   );
 }
