@@ -1,0 +1,1 @@
+UPDATE public.museums SET has_full_content = true WHERE museum_id = 'the-art-institute-of-chicago-us';
