@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, SlidersHorizontal, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { MobilityFilters } from './MobilityFilters';
 import { ArtistOverviewView } from './ArtistOverviewView';
 import { ArtworkJourneyView } from './ArtworkJourneyView';
@@ -134,17 +135,18 @@ export function MobilityExperience({ onBack }: Props) {
   );
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      {/* Row 1: Back + Title + Tabs + Artist selector (desktop) */}
-      <div className="flex flex-col gap-4 mb-6">
-        {/* Back + Title */}
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5 shrink-0">
-            <ArrowLeft className="h-4 w-4" />
-            {isMobile ? 'Back' : 'Back to Art Collection'}
-          </Button>
-          <div className="flex-1 min-w-0">
-            <h1 className="font-display text-xl font-bold text-foreground md:text-2xl truncate">
+    <div className="container mx-auto px-4 py-6 md:py-8 space-y-6">
+      {/* Header area */}
+      <div className="space-y-5">
+        {/* Row 1: Back + Title */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <Button variant="ghost" size="sm" onClick={onBack} className="gap-2 shrink-0 -ml-2">
+              <ArrowLeft className="h-4 w-4" />
+              {isMobile ? 'Back' : 'Back to Art Collection'}
+            </Button>
+            <div className="h-6 w-px bg-border hidden sm:block" />
+            <h1 className="font-display text-xl font-bold text-foreground md:text-2xl truncate hidden sm:block">
               Artwork Mobility
             </h1>
           </div>
@@ -154,7 +156,7 @@ export function MobilityExperience({ onBack }: Props) {
               variant="outline"
               size="sm"
               onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-              className="shrink-0 gap-1.5"
+              className="shrink-0 gap-2"
             >
               <SlidersHorizontal className="h-4 w-4" />
               Filters
@@ -162,16 +164,16 @@ export function MobilityExperience({ onBack }: Props) {
           )}
         </div>
 
-        {/* View Tabs */}
+        {/* Row 2: View Tabs */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as MobilityTab)}>
-          <TabsList className={isMobile ? 'w-full' : ''}>
-            <TabsTrigger value="overview" className={isMobile ? 'flex-1' : ''}>
+          <TabsList className={cn("h-10", isMobile ? 'w-full' : '')}>
+            <TabsTrigger value="overview" className={cn("px-5", isMobile && 'flex-1')}>
               Artist Overview
             </TabsTrigger>
-            <TabsTrigger value="journey" className={isMobile ? 'flex-1' : ''}>
+            <TabsTrigger value="journey" className={cn("px-5", isMobile && 'flex-1')}>
               Artwork Journey
             </TabsTrigger>
-            <TabsTrigger value="balance" className={isMobile ? 'flex-1' : ''}>
+            <TabsTrigger value="balance" className={cn("px-5", isMobile && 'flex-1')}>
               Museum Balance
             </TabsTrigger>
           </TabsList>
@@ -180,13 +182,13 @@ export function MobilityExperience({ onBack }: Props) {
         {/* Desktop filters */}
         {!isMobile && filtersContent}
 
-        {/* Mobile filters drawer */}
+        {/* Mobile filters panel */}
         {isMobile && mobileFiltersOpen && (
-          <div className="rounded-lg border bg-card p-4 relative">
+          <div className="rounded-xl border border-border/60 bg-card p-4 relative">
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-2 right-2 h-7 w-7"
+              className="absolute top-3 right-3 h-7 w-7"
               onClick={() => setMobileFiltersOpen(false)}
             >
               <X className="h-4 w-4" />
