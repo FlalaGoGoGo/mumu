@@ -46,6 +46,26 @@ export function ExhibitionDetailPanel({
 }: ExhibitionDetailPanelProps) {
   const { t } = useLanguage();
   const isMobile = useIsMobile();
+  const { data: artworks } = useArtworksRaw();
+  const { data: museums } = useMuseumsForArt();
+
+  const { museumCount, countryCount } = useMemo(() => {
+    if (!exhibition || !artworks || !museums || exhibition.related_artwork_ids.length === 0) {
+      return { museumCount: 0, countryCount: 0 };
+    }
+    const museumById = new Map(museums.map(m => [m.museum_id, m]));
+    const museumIds = new Set<string>();
+    const countries = new Set<string>();
+    for (const id of exhibition.related_artwork_ids) {
+      const artwork = artworks.find(a => a.artwork_id === id);
+      if (!artwork) continue;
+      const museum = museumById.get(artwork.museum_id);
+      if (!museum) continue;
+      if (artwork.museum_id !== exhibition.museum_id) museumIds.add(artwork.museum_id);
+      countries.add(museum.country);
+    }
+    return { museumCount: museumIds.size, countryCount: countries.size };
+  }, [exhibition, artworks, museums]);
 
   // ESC handler — only fires when no artwork panel is open (parent manages this)
   const handleKeyDown = useCallback(
