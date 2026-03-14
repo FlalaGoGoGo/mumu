@@ -348,10 +348,16 @@ export default function ArtPage() {
         </div>
         {/* Mobile: View Journey CTA below title */}
         {isMobile && (
-          <Button variant="outline" className="gap-2 mt-3 w-full" onClick={enterJourneyMode}>
-            <Route className="h-4 w-4" />
-            View Journey
-          </Button>
+          <div className="flex gap-2 mt-3">
+            <Button variant="outline" className="gap-2 flex-1" onClick={() => navigate('/style-lab')}>
+              <Sparkles className="h-4 w-4" />
+              Style Lab
+            </Button>
+            <Button variant="outline" className="gap-2 flex-1" onClick={enterJourneyMode}>
+              <Route className="h-4 w-4" />
+              View Journey
+            </Button>
+          </div>
         )}
       </div>
 
