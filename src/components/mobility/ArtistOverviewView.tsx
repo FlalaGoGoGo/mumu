@@ -1,10 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { MapContainer, TileLayer, Polyline, CircleMarker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
-import { ArrowRightLeft, MapPin, Landmark, CalendarRange } from 'lucide-react';
+import { ArrowRightLeft, MapPin, Landmark, CalendarRange, ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { AnimatedPolyline } from './AnimatedPolyline';
+import { TimePlaybackControl, useTimePlayback } from './TimePlaybackControl';
 import type { ArtworkMovement } from '@/types/movement';
 import type { EnrichedArtwork } from '@/types/art';
 import 'leaflet/dist/leaflet.css';
@@ -71,8 +74,30 @@ function FitBounds({ points }: { points: [number, number][] }) {
 
 export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown }: Props) {
   const isMobile = useIsMobile();
+  const [highlightedCorridor, setHighlightedCorridor] = useState<string | null>(null);
 
-  const { corridors, allPoints, involvedMuseums, maxEvents } = useMemo(() => {
+  // Determine year range from all movements
+  const yearBounds = useMemo(() => {
+    const years = movements
+      .map(m => parseInt(m.start_date?.substring(0, 4) || ''))
+      .filter(y => !isNaN(y) && y > 0);
+    if (years.length === 0) return { min: 1880, max: 2025 };
+    return { min: Math.min(...years), max: Math.max(...years) };
+  }, [movements]);
+
+  const playback = useTimePlayback(yearBounds.min, yearBounds.max);
+
+  // Filter movements by playback year
+  const timeFilteredMovements = useMemo(() => {
+    if (playback.isAtEnd && !playback.isPlaying) return movements; // full range
+    return movements.filter(m => {
+      if (!m.start_date) return false;
+      const y = parseInt(m.start_date.substring(0, 4));
+      return !isNaN(y) && y <= playback.currentYear;
+    });
+  }, [movements, playback.currentYear, playback.isAtEnd, playback.isPlaying]);
+
+  const { corridors, allPoints, involvedMuseums, maxEvents, museumEventCounts } = useMemo(() => {
     const corridorMap = new Map<string, {
       lender_museum_id: string;
       borrower_museum_id: string;
@@ -82,7 +107,9 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
       count: number;
     }>();
 
-    for (const m of movements) {
+    const museumCounts = new Map<string, number>();
+
+    for (const m of timeFilteredMovements) {
       const key = `${m.lender_museum_id}__${m.borrower_museum_id}`;
       if (!corridorMap.has(key)) {
         corridorMap.set(key, {
@@ -102,6 +129,9 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
         const y = parseInt(m.start_date.substring(0, 4));
         if (!isNaN(y)) c.years.push(y);
       }
+
+      museumCounts.set(m.lender_museum_id, (museumCounts.get(m.lender_museum_id) || 0) + 1);
+      museumCounts.set(m.borrower_museum_id, (museumCounts.get(m.borrower_museum_id) || 0) + 1);
     }
 
     const corridors: CorridorData[] = [];
@@ -142,33 +172,33 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
       allPoints: allPts,
       involvedMuseums: Array.from(involved.values()),
       maxEvents,
+      museumEventCounts: museumCounts,
     };
-  }, [movements, museumMap]);
+  }, [timeFilteredMovements, museumMap]);
 
   // Summary stats
   const stats = useMemo(() => {
-    const artworkIds = new Set(movements.map(m => m.artwork_id));
+    const artworkIds = new Set(timeFilteredMovements.map(m => m.artwork_id));
     const museumIds = new Set<string>();
-    movements.forEach(m => { museumIds.add(m.lender_museum_id); museumIds.add(m.borrower_museum_id); });
-    const years = movements
+    timeFilteredMovements.forEach(m => { museumIds.add(m.lender_museum_id); museumIds.add(m.borrower_museum_id); });
+    const years = timeFilteredMovements
       .map(m => parseInt(m.start_date?.substring(0, 4) || ''))
       .filter(y => !isNaN(y));
-
     return {
-      totalEvents: movements.length,
+      totalEvents: timeFilteredMovements.length,
       artworksWithMovements: artworkIds.size,
       museumsInvolved: museumIds.size,
       minYear: years.length > 0 ? Math.min(...years) : 0,
       maxYear: years.length > 0 ? Math.max(...years) : 0,
     };
-  }, [movements]);
+  }, [timeFilteredMovements]);
 
   // Top outflow / inflow museums
   const { outflowData, inflowData } = useMemo(() => {
     const outMap = new Map<string, { name: string; count: number; artworkIds: Set<string> }>();
     const inMap = new Map<string, { name: string; count: number; artworkIds: Set<string> }>();
 
-    for (const m of movements) {
+    for (const m of timeFilteredMovements) {
       const lender = museumMap.get(m.lender_museum_id);
       const borrower = museumMap.get(m.borrower_museum_id);
 
@@ -189,19 +219,28 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
     const outflowData = Array.from(outMap.values())
       .sort((a, b) => b.count - a.count)
       .slice(0, 8)
-      .map(d => ({ name: d.name.length > 25 ? d.name.substring(0, 23) + '…' : d.name, fullName: d.name, events: d.count, artworks: d.artworkIds.size }));
+      .map(d => ({ name: d.name.length > 28 ? d.name.substring(0, 26) + '…' : d.name, fullName: d.name, events: d.count, artworks: d.artworkIds.size }));
 
     const inflowData = Array.from(inMap.values())
       .sort((a, b) => b.count - a.count)
       .slice(0, 8)
-      .map(d => ({ name: d.name.length > 25 ? d.name.substring(0, 23) + '…' : d.name, fullName: d.name, events: d.count, artworks: d.artworkIds.size }));
+      .map(d => ({ name: d.name.length > 28 ? d.name.substring(0, 26) + '…' : d.name, fullName: d.name, events: d.count, artworks: d.artworkIds.size }));
 
     return { outflowData, inflowData };
-  }, [movements, museumMap]);
+  }, [timeFilteredMovements, museumMap]);
 
   const center: [number, number] = allPoints.length > 0
     ? [allPoints.reduce((s, p) => s + p[0], 0) / allPoints.length, allPoints.reduce((s, p) => s + p[1], 0) / allPoints.length]
     : [48, 2];
+
+  const sortedCorridors = useMemo(
+    () => [...corridors].sort((a, b) => b.event_count - a.event_count),
+    [corridors]
+  );
+
+  const handleCorridorHover = useCallback((key: string | null) => {
+    setHighlightedCorridor(key);
+  }, []);
 
   if (movements.length === 0) {
     return (
@@ -216,140 +255,219 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card>
+        <Card className="border-border/60">
           <CardContent className="p-4 flex items-center gap-3">
-            <ArrowRightLeft className="h-5 w-5 text-primary shrink-0" />
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <ArrowRightLeft className="h-5 w-5 text-primary" />
+            </div>
             <div>
-              <p className="text-2xl font-bold">{stats.totalEvents}</p>
+              <p className="text-2xl font-bold tabular-nums">{stats.totalEvents}</p>
               <p className="text-xs text-muted-foreground">Movement Events</p>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-border/60">
           <CardContent className="p-4 flex items-center gap-3">
-            <MapPin className="h-5 w-5 text-primary shrink-0" />
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <MapPin className="h-5 w-5 text-primary" />
+            </div>
             <div>
-              <p className="text-2xl font-bold">{stats.artworksWithMovements}</p>
+              <p className="text-2xl font-bold tabular-nums">{stats.artworksWithMovements}</p>
               <p className="text-xs text-muted-foreground">Artworks Moved</p>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-border/60">
           <CardContent className="p-4 flex items-center gap-3">
-            <Landmark className="h-5 w-5 text-primary shrink-0" />
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Landmark className="h-5 w-5 text-primary" />
+            </div>
             <div>
-              <p className="text-2xl font-bold">{stats.museumsInvolved}</p>
+              <p className="text-2xl font-bold tabular-nums">{stats.museumsInvolved}</p>
               <p className="text-xs text-muted-foreground">Museums Involved</p>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-border/60">
           <CardContent className="p-4 flex items-center gap-3">
-            <CalendarRange className="h-5 w-5 text-primary shrink-0" />
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <CalendarRange className="h-5 w-5 text-primary" />
+            </div>
             <div>
-              <p className="text-2xl font-bold">{stats.minYear}–{stats.maxYear}</p>
+              <p className="text-2xl font-bold tabular-nums">
+                {stats.minYear > 0 ? `${stats.minYear}–${stats.maxYear}` : '—'}
+              </p>
               <p className="text-xs text-muted-foreground">Active Years</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Corridor Map */}
-      <div className="rounded-lg border overflow-hidden relative" style={{ height: isMobile ? 350 : 480 }}>
-        <MapContainer center={center} zoom={4} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          />
-          {allPoints.length > 1 && <FitBounds points={allPoints} />}
+      {/* Time Playback Control */}
+      {yearBounds.min < yearBounds.max && (
+        <TimePlaybackControl
+          minYear={yearBounds.min}
+          maxYear={yearBounds.max}
+          currentYear={playback.currentYear}
+          onYearChange={playback.setCurrentYear}
+          isPlaying={playback.isPlaying}
+          onPlayPause={playback.toggle}
+          onReset={playback.reset}
+        />
+      )}
 
-          {corridors.map(c => {
-            const weight = 1.5 + (c.event_count / maxEvents) * 5;
-            return (
-              <Polyline
-                key={c.key}
-                positions={createArc(c.from, c.to)}
-                pathOptions={{
-                  color: 'hsl(348, 45%, 42%)',
-                  weight,
-                  opacity: 0.6,
-                }}
-              >
-                <Popup>
-                  <div className="text-xs space-y-1.5 min-w-[200px]">
-                    <p className="font-semibold">{c.lender_name} → {c.borrower_name}</p>
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
-                      <span className="text-muted-foreground">Events:</span>
-                      <span className="font-medium">{c.event_count}</span>
-                      <span className="text-muted-foreground">Artworks:</span>
-                      <span className="font-medium">{c.unique_artworks.length}</span>
-                      {c.min_year > 0 && (
-                        <>
-                          <span className="text-muted-foreground">Years:</span>
-                          <span className="font-medium">{c.min_year}–{c.max_year}</span>
-                        </>
-                      )}
-                    </div>
-                    {c.sample_titles.length > 0 && (
-                      <div className="pt-1 border-t">
-                        <p className="font-medium mb-0.5">Artworks:</p>
-                        {c.sample_titles.map((t, i) => (
-                          <p key={i} className="truncate cursor-pointer hover:text-primary"
-                            onClick={() => {
-                              if (c.unique_artworks[i]) onDrillDown(c.unique_artworks[i]);
-                            }}
-                          >{t}</p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </Popup>
-              </Polyline>
-            );
-          })}
+      {/* Map + Top Corridors side-by-side on desktop */}
+      <div className={cn(
+        isMobile ? 'space-y-4' : 'grid grid-cols-5 gap-5'
+      )}>
+        {/* Corridor Map */}
+        <div className={cn(
+          "rounded-xl border border-border/60 overflow-hidden relative",
+          isMobile ? '' : 'col-span-3'
+        )} style={{ height: isMobile ? 350 : 500 }}>
+          <MapContainer center={center} zoom={4} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            />
+            {allPoints.length > 1 && <FitBounds points={allPoints} />}
 
-          {involvedMuseums.map(m => (
-            <CircleMarker
-              key={m.museum_id}
-              center={[m.lat, m.lng]}
-              radius={5}
-              pathOptions={{ color: 'white', weight: 2, fillColor: 'hsl(348, 45%, 32%)', fillOpacity: 0.8 }}
-            >
-              <Popup><span className="text-xs font-semibold">{m.name}</span></Popup>
-            </CircleMarker>
-          ))}
-        </MapContainer>
+            {corridors.map(c => {
+              const intensity = c.event_count / maxEvents;
+              const weight = 1.5 + intensity * 4.5;
+              const baseOpacity = 0.15 + intensity * 0.55;
+              const isHighlighted = highlightedCorridor === c.key;
+              const isDimmed = highlightedCorridor !== null && !isHighlighted;
 
-        {/* Legend */}
-        <div className="absolute bottom-2 left-2 z-[1000] bg-background/90 backdrop-blur rounded-md p-2 text-xs space-y-1 border shadow-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-6 border-t-2" style={{ borderColor: 'hsl(348,45%,42%)' }} />
-            <span>Corridor (thickness = frequency)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(348,45%,32%)' }} />
-            <span>Museum</span>
+              return (
+                <AnimatedPolyline
+                  key={c.key}
+                  id={c.key}
+                  positions={createArc(c.from, c.to)}
+                  color={isHighlighted ? 'hsl(348, 55%, 48%)' : 'hsl(348, 45%, 42%)'}
+                  weight={weight}
+                  opacity={isDimmed ? 0.08 : isHighlighted ? 0.95 : baseOpacity}
+                  highlighted={isHighlighted}
+                  animated={isHighlighted || (playback.isPlaying && c.max_year === playback.currentYear)}
+                />
+              );
+            })}
+
+            {involvedMuseums.map(m => {
+              const count = museumEventCounts.get(m.museum_id) || 0;
+              const isTopMuseum = count > (maxEvents * 0.5);
+              return (
+                <CircleMarker
+                  key={m.museum_id}
+                  center={[m.lat, m.lng]}
+                  radius={isTopMuseum ? 7 : 5}
+                  pathOptions={{
+                    color: 'white',
+                    weight: isTopMuseum ? 3 : 2,
+                    fillColor: isTopMuseum ? 'hsl(348, 55%, 38%)' : 'hsl(348, 45%, 48%)',
+                    fillOpacity: isTopMuseum ? 0.9 : 0.7,
+                  }}
+                >
+                  <Popup><span className="text-xs font-semibold">{m.name}</span></Popup>
+                </CircleMarker>
+              );
+            })}
+          </MapContainer>
+
+          {/* Legend */}
+          <div className="absolute bottom-3 left-3 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg p-3 text-xs space-y-1.5 border border-border/60 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-[3px] rounded-full" style={{ background: 'hsl(348,45%,42%)' }} />
+              <span className="text-muted-foreground">Corridor (thickness = frequency)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ background: 'hsl(348,55%,38%)' }} />
+              <span className="text-muted-foreground">Museum</span>
+            </div>
           </div>
         </div>
+
+        {/* Top Corridors Panel */}
+        <Card className={cn(
+          "border-border/60 overflow-hidden",
+          isMobile ? '' : 'col-span-2'
+        )}>
+          <CardContent className="p-0">
+            <div className="px-4 py-3 border-b border-border/60">
+              <h3 className="text-sm font-semibold">Top Corridors</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {corridors.length} corridors · {involvedMuseums.length} museums
+              </p>
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: isMobile ? 300 : 430 }}>
+              {sortedCorridors.map((c, i) => {
+                const isActive = highlightedCorridor === c.key;
+                return (
+                  <div
+                    key={c.key}
+                    className={cn(
+                      "px-4 py-3 border-b border-border/30 cursor-pointer transition-colors",
+                      isActive ? 'bg-primary/5' : 'hover:bg-muted/40'
+                    )}
+                    onMouseEnter={() => handleCorridorHover(c.key)}
+                    onMouseLeave={() => handleCorridorHover(null)}
+                    onClick={() => { if (c.unique_artworks[0]) onDrillDown(c.unique_artworks[0]); }}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{c.lender_name}</p>
+                        <p className="text-xs text-muted-foreground truncate">→ {c.borrower_name}</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                    </div>
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <span className="text-xs text-muted-foreground">
+                        <span className="font-semibold text-foreground">{c.event_count}</span> events
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        <span className="font-semibold text-foreground">{c.unique_artworks.length}</span> artworks
+                      </span>
+                      {c.min_year > 0 && (
+                        <span className="text-xs text-muted-foreground ml-auto tabular-nums">
+                          {c.min_year}–{c.max_year}
+                        </span>
+                      )}
+                    </div>
+                    {/* Intensity bar */}
+                    <div className="mt-2 h-1 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.max(8, (c.event_count / maxEvents) * 100)}%`,
+                          background: 'hsl(348, 45%, 42%)',
+                          opacity: isActive ? 1 : 0.6,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Bar Charts */}
-      <div className={isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-4'}>
-        {/* Top Outflow */}
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="text-sm font-semibold mb-3">Top Outflow Museums</h3>
+      <div className={isMobile ? 'space-y-5' : 'grid grid-cols-2 gap-5'}>
+        <Card className="border-border/60">
+          <CardContent className="p-5">
+            <h3 className="text-sm font-semibold mb-4">Top Outflow Museums</h3>
             {outflowData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={outflowData} layout="vertical" margin={{ left: 0, right: 16 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 10 }} />
+                  <YAxis type="category" dataKey="name" width={160} tick={{ fontSize: 10 }} />
                   <RechartsTooltip
                     content={({ payload }) => {
                       if (!payload?.[0]) return null;
                       const d = payload[0].payload;
                       return (
-                        <div className="bg-background border rounded-md px-3 py-2 text-xs shadow-md">
+                        <div className="bg-background border rounded-lg px-3 py-2 text-xs shadow-md">
                           <p className="font-semibold">{d.fullName}</p>
                           <p>Events: {d.events}</p>
                           <p>Artworks: {d.artworks}</p>
@@ -359,7 +477,7 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
                   />
                   <Bar dataKey="events" radius={[0, 4, 4, 0]}>
                     {outflowData.map((_, i) => (
-                      <Cell key={i} fill="hsl(348, 45%, 42%)" />
+                      <Cell key={i} fill="hsl(348, 45%, 42%)" fillOpacity={0.8} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -368,21 +486,20 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
           </CardContent>
         </Card>
 
-        {/* Top Inflow */}
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="text-sm font-semibold mb-3">Top Inflow Museums</h3>
+        <Card className="border-border/60">
+          <CardContent className="p-5">
+            <h3 className="text-sm font-semibold mb-4">Top Inflow Museums</h3>
             {inflowData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={inflowData} layout="vertical" margin={{ left: 0, right: 16 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 10 }} />
+                  <YAxis type="category" dataKey="name" width={160} tick={{ fontSize: 10 }} />
                   <RechartsTooltip
                     content={({ payload }) => {
                       if (!payload?.[0]) return null;
                       const d = payload[0].payload;
                       return (
-                        <div className="bg-background border rounded-md px-3 py-2 text-xs shadow-md">
+                        <div className="bg-background border rounded-lg px-3 py-2 text-xs shadow-md">
                           <p className="font-semibold">{d.fullName}</p>
                           <p>Events: {d.events}</p>
                           <p>Artworks: {d.artworks}</p>
@@ -392,7 +509,7 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
                   />
                   <Bar dataKey="events" radius={[0, 4, 4, 0]}>
                     {inflowData.map((_, i) => (
-                      <Cell key={i} fill="hsl(160, 50%, 40%)" />
+                      <Cell key={i} fill="hsl(160, 50%, 40%)" fillOpacity={0.8} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -401,48 +518,6 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
           </CardContent>
         </Card>
       </div>
-
-      {/* Corridor Summary Table */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="p-4 border-b">
-            <h3 className="text-sm font-semibold">Movement Corridors</h3>
-            <p className="text-xs text-muted-foreground">{corridors.length} corridors across {involvedMuseums.length} museums</p>
-          </div>
-          <div className="max-h-[300px] overflow-y-auto">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-card border-b">
-                <tr>
-                  <th className="text-left p-2 text-xs font-medium text-muted-foreground">Lender</th>
-                  <th className="text-left p-2 text-xs font-medium text-muted-foreground">Borrower</th>
-                  <th className="text-right p-2 text-xs font-medium text-muted-foreground">Events</th>
-                  <th className="text-right p-2 text-xs font-medium text-muted-foreground">Artworks</th>
-                  <th className="text-right p-2 text-xs font-medium text-muted-foreground hidden sm:table-cell">Years</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {corridors
-                  .sort((a, b) => b.event_count - a.event_count)
-                  .map(c => (
-                    <tr
-                      key={c.key}
-                      className="hover:bg-muted/50 cursor-pointer"
-                      onClick={() => { if (c.unique_artworks[0]) onDrillDown(c.unique_artworks[0]); }}
-                    >
-                      <td className="p-2 truncate max-w-[160px]">{c.lender_name}</td>
-                      <td className="p-2 truncate max-w-[160px]">{c.borrower_name}</td>
-                      <td className="p-2 text-right font-medium">{c.event_count}</td>
-                      <td className="p-2 text-right">{c.unique_artworks.length}</td>
-                      <td className="p-2 text-right text-muted-foreground hidden sm:table-cell">
-                        {c.min_year > 0 ? `${c.min_year}–${c.max_year}` : '—'}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
