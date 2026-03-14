@@ -20,6 +20,7 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import TripPlanPage from "./pages/TripPlanPage";
 import VisitEditPage from "./pages/VisitEditPage";
 import VisitResultsPage from "./pages/VisitResultsPage";
+import StyleLabPage from "./pages/StyleLabPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
