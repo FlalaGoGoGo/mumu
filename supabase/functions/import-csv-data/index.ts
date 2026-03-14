@@ -105,7 +105,8 @@ Deno.serve(async (req) => {
           website_url: r.website_url || null,
           opening_hours: r.opening_hours || null,
           has_full_content:
-            r.has_full_content === "TRUE" || r.has_full_content === "true",
+            r.has_full_content === "TRUE" || r.has_full_content === "true" ||
+            r.museum_id === "the-art-institute-of-chicago-us",
           hero_image_url: r.hero_image_url || null,
           tags: r.tags || null,
           highlight:
