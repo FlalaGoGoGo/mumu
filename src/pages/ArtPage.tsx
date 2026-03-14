@@ -28,7 +28,15 @@ export default function ArtPage() {
   const { data: artworks, artists, museums, isLoading } = useEnrichedArtworks();
   const { loadedImageIds, hasVerifiedImage } = useImageLoad();
   const [searchParams, setSearchParams] = useSearchParams();
+  const isJourneyMode = searchParams.get('mode') === 'journey';
 
+  const enterJourneyMode = useCallback(() => {
+    setSearchParams(prev => { const next = new URLSearchParams(prev); next.set('mode', 'journey'); return next; }, { replace: true });
+  }, [setSearchParams]);
+
+  const exitJourneyMode = useCallback(() => {
+    setSearchParams(prev => { const next = new URLSearchParams(prev); next.delete('mode'); return next; }, { replace: true });
+  }, [setSearchParams]);
   const [filters, setFilters] = useState<ArtFiltersState>({
     artType: null,
     artistId: null,
