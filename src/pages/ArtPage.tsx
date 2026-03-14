@@ -12,11 +12,12 @@ import { ArtistWorksMap } from '@/components/art/ArtistWorksMap';
 import { ArtMapView } from '@/components/art/ArtMapView';
 import { ArtMuseumDrawer, type ArtMuseumGroup } from '@/components/art/ArtMuseumDrawer';
 import type { ArtView } from '@/components/art/ArtViewToggle';
+import { MobilityExperience } from '@/components/mobility/MobilityExperience';
 
 import { EnrichedArtwork, Artist, getArtworkImageUrl } from '@/types/art';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Route } from 'lucide-react';
 import { useImageLoad } from '@/contexts/ImageLoadContext';
 
 const PAGE_SIZE = 64;
@@ -27,7 +28,15 @@ export default function ArtPage() {
   const { data: artworks, artists, museums, isLoading } = useEnrichedArtworks();
   const { loadedImageIds, hasVerifiedImage } = useImageLoad();
   const [searchParams, setSearchParams] = useSearchParams();
+  const isJourneyMode = searchParams.get('mode') === 'journey';
 
+  const enterJourneyMode = useCallback(() => {
+    setSearchParams(prev => { const next = new URLSearchParams(prev); next.set('mode', 'journey'); return next; }, { replace: true });
+  }, [setSearchParams]);
+
+  const exitJourneyMode = useCallback(() => {
+    setSearchParams(prev => { const next = new URLSearchParams(prev); next.delete('mode'); return next; }, { replace: true });
+  }, [setSearchParams]);
   const [filters, setFilters] = useState<ArtFiltersState>({
     artType: null,
     artistId: null,
@@ -303,16 +312,39 @@ export default function ArtPage() {
     );
   }
 
+  // Journey mode
+  if (isJourneyMode) {
+    return <MobilityExperience onBack={exitJourneyMode} />;
+  }
+
   return (
     <div className="container mx-auto px-4 py-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">
-          {t('art.title')}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('art.subtitle')}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">
+              {t('art.title')}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t('art.subtitle')}
+            </p>
+          </div>
+          {/* Desktop: View Journey CTA */}
+          {!isMobile && (
+            <Button variant="outline" className="gap-2 shrink-0" onClick={enterJourneyMode}>
+              <Route className="h-4 w-4" />
+              View Journey
+            </Button>
+          )}
+        </div>
+        {/* Mobile: View Journey CTA below title */}
+        {isMobile && (
+          <Button variant="outline" className="gap-2 mt-3 w-full" onClick={enterJourneyMode}>
+            <Route className="h-4 w-4" />
+            View Journey
+          </Button>
+        )}
       </div>
 
       {/* Toolbar + Filters */}
