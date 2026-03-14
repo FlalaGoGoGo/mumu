@@ -87,22 +87,21 @@ export function MobilityFilters({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 rounded-xl border border-border/60 bg-card/50 p-5">
       {/* Row 1: Artist + Artwork picker */}
-      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-        {/* Artist */}
-        <div className="space-y-1.5 min-w-0">
-          <Label className="text-xs font-medium text-muted-foreground">Artist</Label>
+      <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+        <div className="space-y-2 min-w-0 flex-1">
+          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Artist</Label>
           <Popover open={artistOpen} onOpenChange={setArtistOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full sm:w-[240px] justify-between h-10">
+              <Button variant="outline" className="w-full justify-between h-11 text-sm font-medium">
                 <span className="truncate">
-                  {selectedArtist?.artist_name || 'Select artist'}
+                  {selectedArtist ? `${getCountryFlag(selectedArtist.nationality)} ${selectedArtist.artist_name}` : 'Select artist'}
                 </span>
                 <ChevronDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[300px] p-0 z-[9999]" align="start">
+            <PopoverContent className="w-[320px] p-0 z-[9999]" align="start">
               <Command>
                 <CommandInput placeholder="Search artist..." />
                 <CommandList>
@@ -125,20 +124,19 @@ export function MobilityFilters({
           </Popover>
         </div>
 
-        {/* Artwork Picker - only in Journey tab */}
         {showArtworkPicker && (
-          <div className="space-y-1.5 min-w-0">
-            <Label className="text-xs font-medium text-muted-foreground">Artwork</Label>
+          <div className="space-y-2 min-w-0 flex-1">
+            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Artwork</Label>
             <Popover open={artworkOpen} onOpenChange={setArtworkOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full sm:w-[280px] justify-between h-10">
+                <Button variant="outline" className="w-full justify-between h-11 text-sm font-medium">
                   <span className="truncate">
                     {selectedArtwork?.title || 'Select artwork'}
                   </span>
                   <ChevronDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[340px] p-0 z-[9999]" align="start">
+              <PopoverContent className="w-[360px] p-0 z-[9999]" align="start">
                 <Command>
                   <CommandInput placeholder="Search artwork..." />
                   <CommandList>
@@ -167,14 +165,14 @@ export function MobilityFilters({
       </div>
 
       {/* Row 2: Lender, Borrower, Year range */}
-      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-        <div className="space-y-1.5 min-w-0">
-          <Label className="text-xs font-medium text-muted-foreground">Lender Museum</Label>
+      <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+        <div className="space-y-2 min-w-0 flex-1">
+          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lender Museum</Label>
           <Select
             value={lenderMuseumId || 'all'}
             onValueChange={v => onLenderMuseumChange(v === 'all' ? null : v)}
           >
-            <SelectTrigger className="w-full sm:w-[220px] h-10">
+            <SelectTrigger className="w-full h-11">
               <SelectValue placeholder="All lenders" />
             </SelectTrigger>
             <SelectContent className="z-[9999]">
@@ -188,13 +186,13 @@ export function MobilityFilters({
           </Select>
         </div>
 
-        <div className="space-y-1.5 min-w-0">
-          <Label className="text-xs font-medium text-muted-foreground">Borrower Museum</Label>
+        <div className="space-y-2 min-w-0 flex-1">
+          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Borrower Museum</Label>
           <Select
             value={borrowerMuseumId || 'all'}
             onValueChange={v => onBorrowerMuseumChange(v === 'all' ? null : v)}
           >
-            <SelectTrigger className="w-full sm:w-[220px] h-10">
+            <SelectTrigger className="w-full h-11">
               <SelectValue placeholder="All borrowers" />
             </SelectTrigger>
             <SelectContent className="z-[9999]">
@@ -208,18 +206,20 @@ export function MobilityFilters({
           </Select>
         </div>
 
-        <div className="space-y-1.5 flex-1 min-w-[180px] max-w-sm">
-          <Label className="text-xs font-medium text-muted-foreground">
+        <div className="space-y-2 flex-1 min-w-[200px]">
+          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Year range: {yearRange[0]} – {yearRange[1]}
           </Label>
-          <Slider
-            min={1800}
-            max={2030}
-            step={1}
-            value={yearRange}
-            onValueChange={(v) => onYearRangeChange(v as [number, number])}
-            className="py-2"
-          />
+          <div className="pt-1 pb-1">
+            <Slider
+              min={1800}
+              max={2030}
+              step={1}
+              value={yearRange}
+              onValueChange={(v) => onYearRangeChange(v as [number, number])}
+              className="py-2"
+            />
+          </div>
         </div>
       </div>
     </div>

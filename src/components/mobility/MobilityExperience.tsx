@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, SlidersHorizontal, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { MobilityFilters } from './MobilityFilters';
 import { ArtistOverviewView } from './ArtistOverviewView';
 import { ArtworkJourneyView } from './ArtworkJourneyView';
