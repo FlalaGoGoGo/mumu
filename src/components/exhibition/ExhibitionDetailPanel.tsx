@@ -181,6 +181,9 @@ function ExhibitionPanelContent({
   getStatusLabel,
   onArtworkClick,
   t,
+  artworkCount,
+  museumCount,
+  countryCount,
 }: {
   exhibition: Exhibition;
   location: string;
@@ -189,7 +192,12 @@ function ExhibitionPanelContent({
   getStatusLabel: (s: ExhibitionStatus) => string;
   onArtworkClick: (artwork: EnrichedArtwork) => void;
   t: (key: string) => string;
+  artworkCount: number;
+  museumCount: number;
+  countryCount: number;
 }) {
+  const hasRelated = exhibition.related_artwork_ids.length > 0;
+
   return (
     <div className="flex flex-col">
       {/* Hero image */}
@@ -233,6 +241,18 @@ function ExhibitionPanelContent({
           </p>
         </div>
 
+        {/* Research Demo Badge */}
+        <ExhibitionResearchBadge exhibitionId={exhibition.exhibition_id} />
+
+        {/* Provenance Stats */}
+        {hasRelated && museumCount > 0 && (
+          <ExhibitionProvenanceStats
+            artworkCount={artworkCount}
+            museumCount={museumCount}
+            countryCount={countryCount}
+          />
+        )}
+
         {/* Description */}
         {exhibition.short_description && (
           <div className="space-y-1.5">
@@ -246,7 +266,7 @@ function ExhibitionPanelContent({
         )}
 
         {/* Related Artworks */}
-        {exhibition.related_artwork_ids.length > 0 && (
+        {hasRelated && (
           <RelatedArtworksGallery
             artworkIds={exhibition.related_artwork_ids}
             onArtworkClick={onArtworkClick}
@@ -254,7 +274,7 @@ function ExhibitionPanelContent({
         )}
 
         {/* Artworks on Map */}
-        {exhibition.related_artwork_ids.length > 0 && (
+        {hasRelated && (
           <ExhibitionArtworksMap
             artworkIds={exhibition.related_artwork_ids}
             venueMuseumId={exhibition.museum_id}
