@@ -1,8 +1,11 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { X, ExternalLink, ImageOff, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { RelatedArtworksGallery } from '@/components/exhibition/RelatedArtworksGallery';
 import { ExhibitionArtworksMap } from '@/components/exhibition/ExhibitionArtworksMap';
+import { ExhibitionProvenanceStats } from '@/components/exhibition/ExhibitionProvenanceStats';
+import { ExhibitionResearchBadge } from '@/components/exhibition/ExhibitionResearchBadge';
+import { useArtworksRaw, useMuseumsForArt } from '@/hooks/useArtworks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -43,6 +46,26 @@ export function ExhibitionDetailPanel({
 }: ExhibitionDetailPanelProps) {
   const { t } = useLanguage();
   const isMobile = useIsMobile();
+  const { data: artworks } = useArtworksRaw();
+  const { data: museums } = useMuseumsForArt();
+
+  const { museumCount, countryCount } = useMemo(() => {
+    if (!exhibition || !artworks || !museums || exhibition.related_artwork_ids.length === 0) {
+      return { museumCount: 0, countryCount: 0 };
+    }
+    const museumById = new Map(museums.map(m => [m.museum_id, m]));
+    const museumIds = new Set<string>();
+    const countries = new Set<string>();
+    for (const id of exhibition.related_artwork_ids) {
+      const artwork = artworks.find(a => a.artwork_id === id);
+      if (!artwork) continue;
+      const museum = museumById.get(artwork.museum_id);
+      if (!museum) continue;
+      if (artwork.museum_id !== exhibition.museum_id) museumIds.add(artwork.museum_id);
+      countries.add(museum.country);
+    }
+    return { museumCount: museumIds.size, countryCount: countries.size };
+  }, [exhibition, artworks, museums]);
 
   // ESC handler — only fires when no artwork panel is open (parent manages this)
   const handleKeyDown = useCallback(
@@ -103,6 +126,9 @@ export function ExhibitionDetailPanel({
             getStatusLabel={getStatusLabel}
             onArtworkClick={onArtworkClick}
             t={t}
+            artworkCount={exhibition.related_artwork_ids.length}
+            museumCount={museumCount}
+            countryCount={countryCount}
           />
         </ScrollArea>
       </div>
@@ -137,6 +163,9 @@ export function ExhibitionDetailPanel({
           getStatusLabel={getStatusLabel}
           onArtworkClick={onArtworkClick}
           t={t}
+          artworkCount={exhibition.related_artwork_ids.length}
+          museumCount={museumCount}
+          countryCount={countryCount}
         />
       </ScrollArea>
     </div>
@@ -152,6 +181,9 @@ function ExhibitionPanelContent({
   getStatusLabel,
   onArtworkClick,
   t,
+  artworkCount,
+  museumCount,
+  countryCount,
 }: {
   exhibition: Exhibition;
   location: string;
@@ -160,7 +192,12 @@ function ExhibitionPanelContent({
   getStatusLabel: (s: ExhibitionStatus) => string;
   onArtworkClick: (artwork: EnrichedArtwork) => void;
   t: (key: string) => string;
+  artworkCount: number;
+  museumCount: number;
+  countryCount: number;
 }) {
+  const hasRelated = exhibition.related_artwork_ids.length > 0;
+
   return (
     <div className="flex flex-col">
       {/* Hero image */}
@@ -204,6 +241,18 @@ function ExhibitionPanelContent({
           </p>
         </div>
 
+        {/* Research Demo Badge */}
+        <ExhibitionResearchBadge exhibitionId={exhibition.exhibition_id} />
+
+        {/* Provenance Stats */}
+        {hasRelated && museumCount > 0 && (
+          <ExhibitionProvenanceStats
+            artworkCount={artworkCount}
+            museumCount={museumCount}
+            countryCount={countryCount}
+          />
+        )}
+
         {/* Description */}
         {exhibition.short_description && (
           <div className="space-y-1.5">
@@ -217,7 +266,7 @@ function ExhibitionPanelContent({
         )}
 
         {/* Related Artworks */}
-        {exhibition.related_artwork_ids.length > 0 && (
+        {hasRelated && (
           <RelatedArtworksGallery
             artworkIds={exhibition.related_artwork_ids}
             onArtworkClick={onArtworkClick}
@@ -225,7 +274,7 @@ function ExhibitionPanelContent({
         )}
 
         {/* Artworks on Map */}
-        {exhibition.related_artwork_ids.length > 0 && (
+        {hasRelated && (
           <ExhibitionArtworksMap
             artworkIds={exhibition.related_artwork_ids}
             venueMuseumId={exhibition.museum_id}
