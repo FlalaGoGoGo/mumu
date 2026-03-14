@@ -14,7 +14,10 @@ export interface DiscountRow {
   description?: string;
   qualifies: boolean;
   applicableNow: boolean;
+  /** Price if applied right now (basePrice when not applicable now) */
   yourPrice: number;
+  /** Price when the benefit is active (the actual discount value) */
+  eligiblePrice: number;
   basePrice: number;
   statusLabel: string;
   statusVariant: 'valid' | 'inactive' | 'seasonal' | 'info';
