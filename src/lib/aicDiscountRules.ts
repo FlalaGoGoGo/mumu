@@ -14,40 +14,32 @@ export interface DiscountRow {
   description?: string;
   qualifies: boolean;
   applicableNow: boolean;
-  yourPrice: number;           // computed price ($0 for free, base otherwise)
+  yourPrice: number;
   basePrice: number;
-  statusLabel: string;         // "Valid now" | "Not today" | "Seasonal" etc.
+  statusLabel: string;
   statusVariant: 'valid' | 'inactive' | 'seasonal' | 'info';
-  nextEligible?: string;       // formatted date string
-  note?: string;               // helper text
+  nextEligible?: string;
+  note?: string;
 }
 
 export interface DiscountInput {
-  /** Eligibility items from user preferences */
   eligibilities: EligibilityItem[];
-  /** Selected ticket category base price */
   basePrice: number;
-  /** Selected ticket category id */
   ticketCategory: string;
-  /** Current date/time in Chicago */
   now: Date;
-  /** Museum hours for weekday lookup */
   hours: { day: string; hours: string }[];
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const TZ = 'America/Chicago';
-
 const DAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
-// Free winter weekdays date window
-const WINTER_FREE_START = new Date(2026, 0, 5); // Jan 5 2026
-const WINTER_FREE_END = new Date(2026, 1, 28);  // Feb 28 2026
+const WINTER_FREE_START = new Date(2026, 0, 5);
+const WINTER_FREE_END = new Date(2026, 1, 28);
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-/** Get a Date in Chicago TZ components */
 function chicagoDate(d: Date) {
   const str = d.toLocaleString('en-US', { timeZone: TZ });
   return new Date(str);
@@ -71,7 +63,6 @@ function isMuseumOpen(hours: { day: string; hours: string }[], d: Date): boolean
 function isMuseumOpenNow(hours: { day: string; hours: string }[], d: Date): boolean {
   if (!isMuseumOpen(hours, d)) return false;
   const h = chicagoHour(d);
-  // Museum opens at 11
   return h >= 11;
 }
 
@@ -80,30 +71,19 @@ function getClosingHour(hours: { day: string; hours: string }[], d: Date): numbe
   const abbr = DAY_ABBR[weekday];
   const match = hours.find(h => h.day === abbr);
   if (!match) return 17;
-  // Parse "11–5" or "11–8"
   const parts = match.hours.replace(/[^0-9–-]/g, '').split(/[–-]/);
   const close = parseInt(parts[1] || '17', 10);
-  return close <= 12 ? close + 12 : close; // handle PM times
+  return close <= 12 ? close + 12 : close;
 }
 
-/** Format a date nicely: "Thu, Feb 12 • 11:00 AM" */
 function formatNextEligible(d: Date): string {
   const chicago = chicagoDate(d);
-  const opts: Intl.DateTimeFormatOptions = {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  };
+  const opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' };
   const dateStr = chicago.toLocaleDateString('en-US', opts);
-  const timeStr = chicago.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
+  const timeStr = chicago.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   return `${dateStr} • ${timeStr}`;
 }
 
-/** Get next open day starting from tomorrow */
 function nextOpenDay(hours: { day: string; hours: string }[], from: Date): Date {
   const d = new Date(from);
   for (let i = 0; i < 14; i++) {
@@ -117,18 +97,13 @@ function nextOpenDay(hours: { day: string; hours: string }[], from: Date): Date 
   return d;
 }
 
-/** Get first full weekend (Sat+Sun) of a month */
 function getFirstFullWeekend(year: number, month: number): { sat: Date; sun: Date } {
-  // Find first Saturday
   let d = new Date(year, month, 1);
   while (d.getDay() !== 6) d.setDate(d.getDate() + 1);
   const sat = new Date(d);
   const sun = new Date(d);
   sun.setDate(sun.getDate() + 1);
-  // Verify sun is still in same month
   if (sun.getMonth() !== month) {
-    // First Saturday is last day of month, first FULL weekend is next month
-    // Actually the "first full weekend" means both Sat and Sun fall in the month
     sat.setDate(sat.getDate() + 7);
     sun.setDate(sat.getDate() + 1);
   }
@@ -136,11 +111,7 @@ function getFirstFullWeekend(year: number, month: number): { sat: Date; sun: Dat
 }
 
 function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
 function hasEligibility(eligibilities: EligibilityItem[], type: string): boolean {
@@ -163,7 +134,7 @@ function isChicagoResident(eligibilities: EligibilityItem[]): boolean {
   return false;
 }
 
-function getAgeFromDOB(eligibilities: EligibilityItem[]): number | null {
+export function getAgeFromDOB(eligibilities: EligibilityItem[]): number | null {
   const ageItem = eligibilities.find(e => e.type === 'age_based');
   if (!ageItem?.date_of_birth) return null;
   const dob = new Date(ageItem.date_of_birth);
@@ -172,6 +143,24 @@ function getAgeFromDOB(eligibilities: EligibilityItem[]): number | null {
   const m = now.getMonth() - dob.getMonth();
   if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age--;
   return age;
+}
+
+// ── Auto-infer ticket category from eligibility ────────────────────────────────
+
+export function inferTicketCategory(eligibilities: EligibilityItem[]): string {
+  const age = getAgeFromDOB(eligibilities);
+  if (age !== null) {
+    if (age < 14) return 'child';
+    if (age >= 14 && age < 18) return 'teen';
+    if (age >= 65) return 'senior';
+  }
+  if (hasEligibility(eligibilities, 'student')) return 'student';
+  return 'adult';
+}
+
+export function getInferredCategoryLabel(category: string): string {
+  const cat = TICKET_CATEGORIES.find(c => c.id === category);
+  return cat?.label || 'Adult';
 }
 
 // ── Main computation ───────────────────────────────────────────────────────────
@@ -183,7 +172,6 @@ export function computeDiscountRows(input: DiscountInput): DiscountRow[] {
   const openToday = isMuseumOpen(hours, now);
   const openNow = isMuseumOpenNow(hours, now);
 
-  // Helper for "always free" groups
   const alwaysFreeRow = (
     id: string,
     icon: string,
@@ -234,36 +222,35 @@ export function computeDiscountRows(input: DiscountInput): DiscountRow[] {
     };
   };
 
-  // 4.1A — Children < 14
+  // Children < 14
   const age = getAgeFromDOB(eligibilities);
   const isChild = ticketCategory === 'child' || (age !== null && age < 14);
   rows.push(alwaysFreeRow('child_free', '👶', 'Children under 14', isChild));
 
-  // 4.1B — Chicago Teen
+  // Chicago Teen
   const isTeen = ticketCategory === 'teen' || (age !== null && age >= 14 && age < 18);
   const chicagoTeen = isTeen && isChicagoResident(eligibilities);
   rows.push(alwaysFreeRow('chicago_teen', '🏙️', 'Chicago Resident Teen (14–17)', chicagoTeen));
 
-  // 4.1C — LINK/WIC (SNAP/EBT)
+  // LINK/WIC (SNAP/EBT)
   const hasLinkWic = hasEligibility(eligibilities, 'snap_ebt');
   rows.push(alwaysFreeRow('link_wic', '🏛️', 'LINK / WIC (Museums for All)', hasLinkWic));
 
-  // 4.1D — Active-duty Military
+  // Active-duty Military
   const hasMilitary = hasEligibility(eligibilities, 'military') || hasEligibility(eligibilities, 'blue_star');
   rows.push(alwaysFreeRow('military', '🎖️', 'Active-duty Military', hasMilitary));
 
-  // 4.1E — Illinois Educator
+  // Illinois Educator
   const hasTeacher = hasEligibility(eligibilities, 'teacher');
   const isILEducator = hasTeacher && isIllinoisResident(eligibilities);
   rows.push(alwaysFreeRow('il_educator', '📝', 'Illinois Educator', isILEducator));
 
-  // 4.2 — Free Winter Weekdays (Illinois Residents)
+  // Free Winter Weekdays
   const ilResident = isIllinoisResident(eligibilities);
   {
-    const inDateRange =
-      chicago >= WINTER_FREE_START && chicago <= WINTER_FREE_END;
+    const inDateRange = chicago >= WINTER_FREE_START && chicago <= WINTER_FREE_END;
     const weekday = chicagoWeekday(now);
-    const isOpenWeekday = [1, 3, 4, 5].includes(weekday); // Mon, Wed, Thu, Fri
+    const isOpenWeekday = [1, 3, 4, 5].includes(weekday);
     let statusLabel = 'Not eligible';
     let statusVariant: DiscountRow['statusVariant'] = 'inactive';
     let nextEligible: string | undefined;
@@ -287,7 +274,6 @@ export function computeDiscountRows(input: DiscountInput): DiscountRow[] {
         } else {
           statusLabel = 'Closed for today';
           statusVariant = 'inactive';
-          // Find next valid weekday in range
           const next = findNextWinterWeekday(hours, now);
           if (next) nextEligible = formatNextEligible(next);
         }
@@ -314,7 +300,7 @@ export function computeDiscountRows(input: DiscountInput): DiscountRow[] {
     });
   }
 
-  // 4.3 — Bank of America Museums on Us
+  // Bank of America Museums on Us
   const hasBoa = hasEligibility(eligibilities, 'bofa_museums_on_us');
   {
     const { sat, sun } = getFirstFullWeekend(chicago.getFullYear(), chicago.getMonth());
@@ -362,7 +348,7 @@ export function computeDiscountRows(input: DiscountInput): DiscountRow[] {
     });
   }
 
-  // 4.5 — CPL Kids Museum Passport
+  // CPL Kids Museum Passport
   const hasCpl = eligibilities.some(
     e => e.type === 'library_pass' && e.libraries?.some(l => l.toLowerCase().includes('chicago'))
   );
@@ -386,7 +372,7 @@ export function computeDiscountRows(input: DiscountInput): DiscountRow[] {
       name: 'CPL Kids Museum Passport',
       note: 'Family admission through Chicago Public Library',
       qualifies: hasCpl,
-      applicableNow: false, // never guaranteed
+      applicableNow: false,
       yourPrice: hasCpl ? 0 : basePrice,
       basePrice,
       statusLabel,
@@ -434,7 +420,6 @@ function findNextWinterWeekday(hours: { day: string; hours: string }[], from: Da
 function getNextBoaWeekend(from: Date): string {
   let year = from.getFullYear();
   let month = from.getMonth();
-  // Check current month first, then next
   for (let i = 0; i < 3; i++) {
     const m = (month + i) % 12;
     const y = month + i >= 12 ? year + 1 : year;
