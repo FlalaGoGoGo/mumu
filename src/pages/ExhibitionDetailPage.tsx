@@ -1,9 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, MapPin, ImageOff, Loader2 } from 'lucide-react';
 import { useExhibition } from '@/hooks/useExhibitions';
+import { useArtworksRaw, useMuseumsForArt } from '@/hooks/useArtworks';
 import { RelatedArtworksGallery } from '@/components/exhibition/RelatedArtworksGallery';
 import { ExhibitionArtworksMap } from '@/components/exhibition/ExhibitionArtworksMap';
+import { ExhibitionProvenanceStats } from '@/components/exhibition/ExhibitionProvenanceStats';
+import { ExhibitionSourceMuseums, type SourceMuseumGroup } from '@/components/exhibition/ExhibitionSourceMuseums';
+import { ExhibitionResearchBadge } from '@/components/exhibition/ExhibitionResearchBadge';
 import { ArtworkDetailSheet } from '@/components/art/ArtworkDetailSheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,9 +25,54 @@ export default function ExhibitionDetailPage() {
   const { exhibition_id } = useParams<{ exhibition_id: string }>();
   const navigate = useNavigate();
   const { data: exhibition, isLoading, error } = useExhibition(exhibition_id || null);
+  const { data: artworks } = useArtworksRaw();
+  const { data: museums } = useMuseumsForArt();
   const [imageError, setImageError] = useState(false);
   const [selectedArtwork, setSelectedArtwork] = useState<EnrichedArtwork | null>(null);
   const [isArtworkOpen, setIsArtworkOpen] = useState(false);
+  const [highlightedMuseumId, setHighlightedMuseumId] = useState<string | null>(null);
+
+  // Compute provenance data
+  const { sourceMuseumGroups, countryCount } = useMemo(() => {
+    if (!exhibition || !artworks || !museums || exhibition.related_artwork_ids.length === 0) {
+      return { sourceMuseumGroups: [] as SourceMuseumGroup[], countryCount: 0 };
+    }
+
+    const museumById = new Map(museums.map(m => [m.museum_id, m]));
+    const groups = new Map<string, SourceMuseumGroup>();
+    const countries = new Set<string>();
+
+    for (const id of exhibition.related_artwork_ids) {
+      const artwork = artworks.find(a => a.artwork_id === id);
+      if (!artwork) continue;
+
+      const museum = museumById.get(artwork.museum_id);
+      if (!museum) continue;
+
+      countries.add(museum.country);
+
+      const existing = groups.get(artwork.museum_id);
+      if (existing) {
+        existing.artworkCount++;
+        existing.artworkTitles.push(artwork.title);
+      } else {
+        groups.set(artwork.museum_id, {
+          museum_id: artwork.museum_id,
+          museum_name: museum.name,
+          city: museum.city,
+          country: museum.country,
+          artworkCount: 1,
+          artworkTitles: [artwork.title],
+          isVenue: artwork.museum_id === exhibition.museum_id,
+        });
+      }
+    }
+
+    return {
+      sourceMuseumGroups: Array.from(groups.values()),
+      countryCount: countries.size,
+    };
+  }, [exhibition, artworks, museums]);
 
   const handleViewMuseum = () => {
     if (exhibition) {
@@ -54,7 +103,6 @@ export default function ExhibitionDetailPage() {
           <ArrowLeft className="w-4 h-4" />
           Back to Exhibitions
         </Link>
-
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <ImageOff className="w-12 h-12 text-muted-foreground mb-4" />
           <h2 className="font-display text-xl font-semibold mb-2">Exhibition not found</h2>
@@ -67,6 +115,7 @@ export default function ExhibitionDetailPage() {
   }
 
   const location = [exhibition.city, exhibition.state].filter(Boolean).join(', ');
+  const hasRelatedArtworks = exhibition.related_artwork_ids.length > 0;
 
   return (
     <div className="container max-w-4xl mx-auto px-4 py-6">
@@ -96,43 +145,63 @@ export default function ExhibitionDetailPage() {
       </div>
 
       {/* Exhibition Details */}
-      <div className="gallery-card p-6">
+      <div className="gallery-card p-6 space-y-6">
         {/* Header */}
-        <div className="flex flex-wrap items-start gap-3 mb-4">
-          <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground flex-1">
-            {exhibition.exhibition_name}
-          </h1>
-          <Badge
-            variant="outline"
-            className={`text-xs px-2 py-1 ${statusColors[exhibition.status]}`}
-          >
-            {exhibition.status}
-          </Badge>
+        <div>
+          <div className="flex flex-wrap items-start gap-3 mb-3">
+            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground flex-1">
+              {exhibition.exhibition_name}
+            </h1>
+            <Badge
+              variant="outline"
+              className={`text-xs px-2 py-1 ${statusColors[exhibition.status]}`}
+            >
+              {exhibition.status}
+            </Badge>
+          </div>
+          <p className="text-lg font-medium text-foreground mb-2">{exhibition.date_label}</p>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <MapPin className="w-4 h-4 flex-shrink-0" />
+            <span>{exhibition.museum_name} · {location}</span>
+          </div>
         </div>
 
-        {/* Date Label */}
-        <p className="text-lg font-medium text-foreground mb-4">{exhibition.date_label}</p>
+        {/* Research Demo Badge */}
+        <ExhibitionResearchBadge exhibitionId={exhibition.exhibition_id} />
 
-        {/* Museum & Location */}
-        <div className="flex items-center gap-2 text-muted-foreground mb-6">
-          <MapPin className="w-4 h-4 flex-shrink-0" />
-          <span>
-            {exhibition.museum_name} · {location}
-          </span>
-        </div>
+        {/* Provenance Stats */}
+        {hasRelatedArtworks && sourceMuseumGroups.length > 0 && (
+          <ExhibitionProvenanceStats
+            artworkCount={exhibition.related_artwork_ids.length}
+            museumCount={sourceMuseumGroups.filter(g => !g.isVenue).length}
+            countryCount={countryCount}
+          />
+        )}
 
         {/* Description */}
         {exhibition.short_description && (
-          <div className="prose prose-stone max-w-none mb-6">
-            <p className="text-foreground leading-relaxed whitespace-pre-line">
+          <div className="space-y-1.5">
+            <h3 className="font-display text-sm font-semibold text-foreground tracking-wide uppercase">
+              About
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
               {exhibition.short_description}
             </p>
           </div>
         )}
 
-        {/* Related Artworks */}
-        {exhibition.related_artwork_ids.length > 0 && (
-          <div className="gallery-card p-6 mt-6">
+        {/* Source Museums */}
+        {hasRelatedArtworks && sourceMuseumGroups.length > 0 && (
+          <ExhibitionSourceMuseums
+            groups={sourceMuseumGroups}
+            onMuseumClick={setHighlightedMuseumId}
+            highlightedMuseumId={highlightedMuseumId}
+          />
+        )}
+
+        {/* Related Artworks Gallery */}
+        {hasRelatedArtworks && (
+          <div className="gallery-card p-5">
             <RelatedArtworksGallery
               artworkIds={exhibition.related_artwork_ids}
               onArtworkClick={handleArtworkClick}
@@ -140,9 +209,20 @@ export default function ExhibitionDetailPage() {
           </div>
         )}
 
-        {/* Artworks on Map */}
-        {exhibition.related_artwork_ids.length > 0 && (
-          <div className="gallery-card p-6 mt-6">
+        {/* Empty state for related artworks */}
+        {!hasRelatedArtworks && (
+          <div className="flex flex-col items-center justify-center py-8 text-center rounded-sm border border-border bg-card/40">
+            <ImageOff className="w-10 h-10 text-muted-foreground/40 mb-3" />
+            <p className="text-sm font-medium text-foreground mb-1">No artworks listed yet</p>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              Related artworks will appear here once they are linked to this exhibition.
+            </p>
+          </div>
+        )}
+
+        {/* Lending Museums Map */}
+        {hasRelatedArtworks && (
+          <div className="gallery-card p-5">
             <ExhibitionArtworksMap
               artworkIds={exhibition.related_artwork_ids}
               venueMuseumId={exhibition.museum_id}
@@ -152,7 +232,7 @@ export default function ExhibitionDetailPage() {
         )}
 
         {/* Actions */}
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3 pt-2">
           <Button asChild>
             <a
               href={exhibition.official_url}
