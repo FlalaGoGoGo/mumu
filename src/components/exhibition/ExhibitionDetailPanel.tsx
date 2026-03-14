@@ -163,6 +163,9 @@ export function ExhibitionDetailPanel({
           getStatusLabel={getStatusLabel}
           onArtworkClick={onArtworkClick}
           t={t}
+          artworkCount={exhibition.related_artwork_ids.length}
+          museumCount={museumCount}
+          countryCount={countryCount}
         />
       </ScrollArea>
     </div>
