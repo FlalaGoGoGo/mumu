@@ -380,6 +380,7 @@ export function computeDiscountRows(input: DiscountInput): DiscountRow[] {
       qualifies: hasCpl,
       applicableNow: false,
       yourPrice: hasCpl ? 0 : basePrice,
+      eligiblePrice: hasCpl ? 0 : basePrice,
       basePrice,
       statusLabel,
       statusVariant,
