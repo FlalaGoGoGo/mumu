@@ -334,10 +334,16 @@ export default function ArtPage() {
           </div>
           {/* Desktop: View Journey CTA */}
           {!isMobile && (
-            <Button variant="outline" className="gap-2 shrink-0" onClick={enterJourneyMode}>
-              <Route className="h-4 w-4" />
-              View Journey
-            </Button>
+            <div className="flex gap-2 shrink-0">
+              <Button variant="outline" className="gap-2" onClick={() => navigate('/style-lab')}>
+                <Sparkles className="h-4 w-4" />
+                Style Lab
+              </Button>
+              <Button variant="outline" className="gap-2" onClick={enterJourneyMode}>
+                <Route className="h-4 w-4" />
+                View Journey
+              </Button>
+            </div>
           )}
         </div>
         {/* Mobile: View Journey CTA below title */}
