@@ -14,7 +14,10 @@ export interface DiscountRow {
   description?: string;
   qualifies: boolean;
   applicableNow: boolean;
+  /** Price if applied right now (basePrice when not applicable now) */
   yourPrice: number;
+  /** Price when the benefit is active (the actual discount value) */
+  eligiblePrice: number;
   basePrice: number;
   statusLabel: string;
   statusVariant: 'valid' | 'inactive' | 'seasonal' | 'info';
@@ -215,6 +218,7 @@ export function computeDiscountRows(input: DiscountInput): DiscountRow[] {
       qualifies,
       applicableNow: qualifies && openNow,
       yourPrice: qualifies ? 0 : basePrice,
+      eligiblePrice: qualifies ? 0 : basePrice,
       basePrice,
       statusLabel,
       statusVariant,
@@ -293,6 +297,7 @@ export function computeDiscountRows(input: DiscountInput): DiscountRow[] {
       qualifies,
       applicableNow: qualifies && statusVariant === 'valid',
       yourPrice: qualifies && statusVariant === 'valid' ? 0 : basePrice,
+      eligiblePrice: qualifies ? 0 : basePrice,
       basePrice,
       statusLabel,
       statusVariant,
@@ -341,6 +346,7 @@ export function computeDiscountRows(input: DiscountInput): DiscountRow[] {
       qualifies: hasBoa,
       applicableNow: hasBoa && statusVariant === 'valid',
       yourPrice: hasBoa && statusVariant === 'valid' ? 0 : basePrice,
+      eligiblePrice: hasBoa ? 0 : basePrice,
       basePrice,
       statusLabel,
       statusVariant,
@@ -374,6 +380,7 @@ export function computeDiscountRows(input: DiscountInput): DiscountRow[] {
       qualifies: hasCpl,
       applicableNow: false,
       yourPrice: hasCpl ? 0 : basePrice,
+      eligiblePrice: hasCpl ? 0 : basePrice,
       basePrice,
       statusLabel,
       statusVariant,
