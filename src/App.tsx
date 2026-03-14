@@ -49,6 +49,7 @@ function AppWithLanguage() {
             <Route path="/exhibitions/:exhibition_id" element={<ExhibitionDetailPage />} />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/shop/:product_id" element={<ProductDetailPage />} />
+            <Route path="/style-lab" element={<StyleLabPage />} />
             <Route path="/admin/cache-images" element={<AdminCacheImagesPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

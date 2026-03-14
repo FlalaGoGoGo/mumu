@@ -16,7 +16,7 @@ export interface Generation {
 }
 
 export function useStyleLab() {
-  const { sessionId } = useSession();
+  const sessionId = useSession();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
