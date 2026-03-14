@@ -42,9 +42,9 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const { sourceImageUrl, presetKey, generationId, sessionId } = await req.json();
+    const { sourceImageUrl, presetKey, sessionId } = await req.json();
 
-    if (!sourceImageUrl || !presetKey || !generationId || !sessionId) {
+    if (!sourceImageUrl || !presetKey || !sessionId) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -59,7 +59,30 @@ serve(async (req) => {
       });
     }
 
+    // Service role client — bypasses RLS
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Create generation record server-side
+    const { data: genRow, error: insertErr } = await supabase
+      .from("style_lab_generations")
+      .insert({
+        session_id: sessionId,
+        preset_key: presetKey,
+        source_image_url: sourceImageUrl,
+        status: "generating",
+      })
+      .select("id")
+      .single();
+
+    if (insertErr) {
+      console.error("Insert error:", insertErr);
+      return new Response(JSON.stringify({ error: "Failed to create generation record" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const generationId = genRow.id;
 
     // Call Lovable AI with image editing
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -86,23 +109,21 @@ serve(async (req) => {
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
       console.error("AI gateway error:", aiResponse.status, errText);
+      await supabase.from("style_lab_generations").update({ status: "failed" }).eq("id", generationId);
 
       if (aiResponse.status === 429) {
-        await supabase.from("style_lab_generations").update({ status: "failed" }).eq("id", generationId);
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (aiResponse.status === 402) {
-        await supabase.from("style_lab_generations").update({ status: "failed" }).eq("id", generationId);
         return new Response(JSON.stringify({ error: "AI usage limit reached." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      await supabase.from("style_lab_generations").update({ status: "failed" }).eq("id", generationId);
       return new Response(JSON.stringify({ error: "Image generation failed" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -145,14 +166,14 @@ serve(async (req) => {
 
     const { data: publicUrl } = supabase.storage.from("style-lab").getPublicUrl(outputPath);
 
-    // Update generation record
+    // Update generation record to completed
     await supabase
       .from("style_lab_generations")
       .update({ output_image_url: publicUrl.publicUrl, status: "completed" })
       .eq("id", generationId);
 
     return new Response(
-      JSON.stringify({ outputImageUrl: publicUrl.publicUrl }),
+      JSON.stringify({ outputImageUrl: publicUrl.publicUrl, generationId }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {

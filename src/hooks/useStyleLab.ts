@@ -77,25 +77,9 @@ export function useStyleLab() {
     setOutputImageUrl(null);
 
     try {
-      // Create generation record
-      const { data: genRow, error: insertErr } = await supabase
-        .from('style_lab_generations' as any)
-        .insert({
-          session_id: sessionId,
-          preset_key: presetKey,
-          source_image_url: sourceImageUrl,
-          status: 'pending',
-        } as any)
-        .select('id')
-        .single();
-
-      if (insertErr) throw insertErr;
-      const generationId = (genRow as any).id;
-      setCurrentGenerationId(generationId);
-
-      // Call edge function
+      // Everything happens server-side now — no browser DB insert
       const { data, error: fnError } = await supabase.functions.invoke('style-lab-generate', {
-        body: { sourceImageUrl, presetKey, generationId, sessionId },
+        body: { sourceImageUrl, presetKey, sessionId },
       });
 
       if (fnError) {
@@ -108,6 +92,7 @@ export function useStyleLab() {
 
       if (data?.outputImageUrl) {
         setOutputImageUrl(data.outputImageUrl);
+        if (data.generationId) setCurrentGenerationId(data.generationId);
       } else {
         throw new Error('No result received');
       }
