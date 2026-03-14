@@ -361,14 +361,19 @@ function DiscountRowItem({ row }: { row: DiscountRow }) {
           )}
         </div>
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          <span
-            className={cn(
-              'text-sm font-semibold tabular-nums',
-              row.qualifies && row.yourPrice === 0 ? 'text-accent-foreground' : 'text-foreground',
-            )}
-          >
-            {row.qualifies ? (row.yourPrice === 0 ? 'Free' : `$${row.yourPrice}`) : '—'}
-          </span>
+          {(() => {
+            if (!row.qualifies) return <span className="text-sm font-semibold text-foreground">—</span>;
+            // Show eligiblePrice (benefit price) for all qualified rows
+            const displayPrice = row.eligiblePrice;
+            return (
+              <span className={cn(
+                'text-sm font-semibold tabular-nums',
+                displayPrice === 0 ? 'text-accent-foreground' : 'text-foreground',
+              )}>
+                {displayPrice === 0 ? 'Free' : `$${displayPrice}`}
+              </span>
+            );
+          })()}
           <Badge
             variant="secondary"
             className={cn('text-[0.65rem] px-1.5 py-0 h-5', statusColors[row.statusVariant])}
