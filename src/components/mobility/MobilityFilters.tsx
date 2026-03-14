@@ -87,21 +87,22 @@ export function MobilityFilters({
   );
 
   return (
-    <div className="mb-4 p-3 bg-muted/50 rounded-lg border space-y-3">
-      <div className="flex flex-wrap items-end gap-3">
+    <div className="space-y-4">
+      {/* Row 1: Artist + Artwork picker */}
+      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
         {/* Artist */}
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Artist</Label>
+        <div className="space-y-1.5 min-w-0">
+          <Label className="text-xs font-medium text-muted-foreground">Artist</Label>
           <Popover open={artistOpen} onOpenChange={setArtistOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[200px] justify-between">
+              <Button variant="outline" className="w-full sm:w-[240px] justify-between h-10">
                 <span className="truncate">
                   {selectedArtist?.artist_name || 'Select artist'}
                 </span>
-                <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                <ChevronDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[280px] p-0 z-[9999]">
+            <PopoverContent className="w-[300px] p-0 z-[9999]" align="start">
               <Command>
                 <CommandInput placeholder="Search artist..." />
                 <CommandList>
@@ -113,7 +114,7 @@ export function MobilityFilters({
                         value={a.artist_name}
                         onSelect={() => { onArtistChange(a.artist_id); setArtistOpen(false); }}
                       >
-                        <Check className={cn("mr-2 h-4 w-4", artistId === a.artist_id ? "opacity-100" : "opacity-0")} />
+                        <Check className={cn("mr-2 h-4 w-4 shrink-0", artistId === a.artist_id ? "opacity-100" : "opacity-0")} />
                         {getCountryFlag(a.nationality)} {a.artist_name}
                       </CommandItem>
                     ))}
@@ -124,20 +125,20 @@ export function MobilityFilters({
           </Popover>
         </div>
 
-        {/* Artwork Picker */}
+        {/* Artwork Picker - only in Journey tab */}
         {showArtworkPicker && (
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Artwork</Label>
+          <div className="space-y-1.5 min-w-0">
+            <Label className="text-xs font-medium text-muted-foreground">Artwork</Label>
             <Popover open={artworkOpen} onOpenChange={setArtworkOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-[240px] justify-between">
+                <Button variant="outline" className="w-full sm:w-[280px] justify-between h-10">
                   <span className="truncate">
                     {selectedArtwork?.title || 'Select artwork'}
                   </span>
-                  <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                  <ChevronDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[320px] p-0 z-[9999]">
+              <PopoverContent className="w-[340px] p-0 z-[9999]" align="start">
                 <Command>
                   <CommandInput placeholder="Search artwork..." />
                   <CommandList>
@@ -149,9 +150,9 @@ export function MobilityFilters({
                           value={a.title}
                           onSelect={() => { onArtworkChange(a.artwork_id); setArtworkOpen(false); }}
                         >
-                          <Check className={cn("mr-2 h-4 w-4", artworkId === a.artwork_id ? "opacity-100" : "opacity-0")} />
+                          <Check className={cn("mr-2 h-4 w-4 shrink-0", artworkId === a.artwork_id ? "opacity-100" : "opacity-0")} />
                           <span className="truncate">{a.title}</span>
-                          <span className="ml-auto text-xs text-muted-foreground">
+                          <span className="ml-auto text-xs text-muted-foreground shrink-0">
                             {(a as any).mobility_research_status === 'HAS_MOVEMENT_EVENTS' ? '📍' : ''}
                           </span>
                         </CommandItem>
@@ -163,15 +164,17 @@ export function MobilityFilters({
             </Popover>
           </div>
         )}
+      </div>
 
-        {/* Lender Museum */}
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Lender</Label>
+      {/* Row 2: Lender, Borrower, Year range */}
+      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+        <div className="space-y-1.5 min-w-0">
+          <Label className="text-xs font-medium text-muted-foreground">Lender Museum</Label>
           <Select
             value={lenderMuseumId || 'all'}
             onValueChange={v => onLenderMuseumChange(v === 'all' ? null : v)}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[220px] h-10">
               <SelectValue placeholder="All lenders" />
             </SelectTrigger>
             <SelectContent className="z-[9999]">
@@ -185,14 +188,13 @@ export function MobilityFilters({
           </Select>
         </div>
 
-        {/* Borrower Museum */}
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Borrower</Label>
+        <div className="space-y-1.5 min-w-0">
+          <Label className="text-xs font-medium text-muted-foreground">Borrower Museum</Label>
           <Select
             value={borrowerMuseumId || 'all'}
             onValueChange={v => onBorrowerMuseumChange(v === 'all' ? null : v)}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[220px] h-10">
               <SelectValue placeholder="All borrowers" />
             </SelectTrigger>
             <SelectContent className="z-[9999]">
@@ -205,19 +207,20 @@ export function MobilityFilters({
             </SelectContent>
           </Select>
         </div>
-      </div>
 
-      {/* Year Range */}
-      <div className="space-y-1 max-w-sm">
-        <Label className="text-xs text-muted-foreground">Year range: {yearRange[0]} – {yearRange[1]}</Label>
-        <Slider
-          min={1800}
-          max={2030}
-          step={1}
-          value={yearRange}
-          onValueChange={(v) => onYearRangeChange(v as [number, number])}
-          className="py-2"
-        />
+        <div className="space-y-1.5 flex-1 min-w-[180px] max-w-sm">
+          <Label className="text-xs font-medium text-muted-foreground">
+            Year range: {yearRange[0]} – {yearRange[1]}
+          </Label>
+          <Slider
+            min={1800}
+            max={2030}
+            step={1}
+            value={yearRange}
+            onValueChange={(v) => onYearRangeChange(v as [number, number])}
+            className="py-2"
+          />
+        </div>
       </div>
     </div>
   );
