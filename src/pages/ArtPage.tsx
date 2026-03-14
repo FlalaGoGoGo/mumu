@@ -18,7 +18,7 @@ import { EnrichedArtwork, Artist, getArtworkImageUrl } from '@/types/art';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Route, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+
 import { useImageLoad } from '@/contexts/ImageLoadContext';
 
 const PAGE_SIZE = 64;
