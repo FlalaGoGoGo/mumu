@@ -1,0 +1,1 @@
+UPDATE exhibitions SET related_artworks = 'artwork_0000060|artwork_0004508|artwork_0004509|artwork_0004510|artwork_0004512|artwork_0004513|artwork_0004514|artwork_0004515|artwork_0004517|artwork_0000058|artwork_0000059|artwork_0000061|artwork_0000062|artwork_0002151' WHERE exhibition_id = 'exhibition_07323';
