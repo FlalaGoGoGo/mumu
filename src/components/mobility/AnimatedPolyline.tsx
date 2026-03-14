@@ -54,8 +54,10 @@ export function AnimatedPolyline({
       const animate = () => {
         offset -= 0.5;
         const el = polyline.getElement();
-        if (el) {
+        if (el && el instanceof HTMLElement) {
           el.style.strokeDashoffset = `${offset}`;
+        } else if (el instanceof SVGElement) {
+          (el as any).style.strokeDashoffset = `${offset}`;
         }
         frameRef.current = requestAnimationFrame(animate);
       };
