@@ -181,6 +181,19 @@ export interface RouteStep {
   durationMinutes: number;
   walkMinutesFromPrevious: number;
   whyThisStop: string;
+  /** The anchor work — the main reason to visit this gallery */
+  anchorWork?: ArtworkRef | null;
+  /** Nearby works worth noticing while you're already here */
+  nearbyWorks?: ArtworkRef[];
+  /** Optional bonus works for visitors with extra time */
+  bonusWorks?: ArtworkRef[];
+  /** Transition hint — how to get here from the previous stop */
+  transitionHint?: string | null;
+  /** Whether this stop is optional (can be skipped if short on time) */
+  isOptional?: boolean;
+  /** Short explanation of why this cluster of works matters */
+  clusterRationale?: string | null;
+  /** Legacy field — kept for non-gallery steps */
   primaryObjects: ArtworkRef[];
   nearbyFacilities: FacilityTag[];
   replanHints: string[];
