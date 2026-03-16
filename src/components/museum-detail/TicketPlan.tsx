@@ -26,10 +26,10 @@ export function TicketPlan({ ticket, exhibitions }: TicketPlanProps) {
   const isWeekend = selectedDay === 'Saturday' || selectedDay === 'Sunday';
 
   // Build personalized recommendation
-  const hasStudentDiscount = eligibilities.some(e => e.type?.includes('student'));
-  const hasSenior = eligibilities.some(e => e.type?.includes('senior') || e.type?.includes('age'));
-  const hasMember = eligibilities.some(e => e.type?.includes('membership'));
-  const hasBoa = eligibilities.some(e => e.type?.includes('bank_of_america') || e.label?.toLowerCase().includes('bank of america'));
+  const hasStudentDiscount = eligibilities.some(e => e.type === 'student');
+  const hasSenior = eligibilities.some(e => e.type === 'age_based');
+  const hasMember = eligibilities.some(e => e.type === 'museum_membership');
+  const hasBoa = eligibilities.some(e => e.type === 'bofa_museums_on_us');
 
   let recommendation = ticket.recommendationLabel;
   let summary = ticket.recommendationSummary;
