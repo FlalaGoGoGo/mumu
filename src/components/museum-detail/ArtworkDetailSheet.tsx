@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ExternalLink, MapPin, MessageCircle, Plus, Star, X, Frame } from 'lucide-react';
+import { ExternalLink, MapPin, MessageCircle, Eye, Bookmark, Star, X, Frame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useVisitProgress } from './VisitProgressContext';
 import type { ArtworkRef } from '@/types/museumDetail';
 import mumuLogo from '@/assets/mumu-logo.png';
 
@@ -35,8 +36,8 @@ export function ArtworkDetailSheet({ artwork, open, onClose, onAskMuMu }: Artwor
               onError={() => setImgError(true)}
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-              <img src={mumuLogo} alt="MuMu" className="w-10 h-10 opacity-30" />
+            <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-secondary/30">
+              <img src={mumuLogo} alt="MuMu" className="w-12 h-12 opacity-20" />
               <span className="text-xs text-muted-foreground">Image unavailable</span>
             </div>
           )}
@@ -80,7 +81,7 @@ export function ArtworkDetailSheet({ artwork, open, onClose, onAskMuMu }: Artwor
 
           {/* Description */}
           {artwork.shortDescription && (
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm text-foreground/80 leading-relaxed">
               {artwork.shortDescription}
             </p>
           )}
@@ -102,10 +103,10 @@ export function ArtworkDetailSheet({ artwork, open, onClose, onAskMuMu }: Artwor
             )}
 
             {artwork.isOnView && artwork.galleryNumber && (
-              <Button variant="outline" className="w-full justify-start gap-2" disabled>
-                <Plus className="w-4 h-4" />
-                Add to my route
-                <span className="text-xs text-muted-foreground ml-auto">Coming soon</span>
+              <Button variant="outline" className="w-full justify-start gap-2">
+                <Eye className="w-4 h-4" />
+                See gallery location
+                <span className="text-xs text-muted-foreground ml-auto">Gallery {artwork.galleryNumber}</span>
               </Button>
             )}
 

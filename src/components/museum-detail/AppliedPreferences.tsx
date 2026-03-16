@@ -25,11 +25,11 @@ export function AppliedPreferences({ intake, className }: AppliedPreferencesProp
 
   return (
     <div className={cn('flex flex-wrap gap-1.5', className)}>
-      <span className="text-xs text-muted-foreground font-medium mr-1">Based on:</span>
+      <span className="text-xs text-foreground/50 font-medium mr-1">Based on:</span>
       {tags.map(tag => (
         <span
           key={tag}
-          className="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary/60 text-xs text-muted-foreground border border-border"
+          className="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary/60 text-xs text-foreground/70 border border-border"
         >
           {tag}
         </span>
