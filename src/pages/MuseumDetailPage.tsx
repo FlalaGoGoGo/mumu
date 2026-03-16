@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,9 @@ import { TicketPlan } from '@/components/museum-detail/TicketPlan';
 import { IndoorRoute } from '@/components/museum-detail/IndoorRoute';
 import { AskMuMuChat } from '@/components/museum-detail/AskMuMuChat';
 import { MuseumKnowledge } from '@/components/museum-detail/MuseumKnowledge';
-import type { VisitIntake } from '@/types/museumDetail';
+import { ArtworkDetailSheet } from '@/components/museum-detail/ArtworkDetailSheet';
+import { generateRoute } from '@/lib/routeEngine';
+import type { VisitIntake, ArtworkRef, RoutePlan } from '@/types/museumDetail';
 
 export default function MuseumDetailPage() {
   const { museum_id } = useParams<{ museum_id: string }>();
@@ -28,23 +30,14 @@ export default function MuseumDetailPage() {
   const [copied, setCopied] = useState(false);
   const [showTicketPlan, setShowTicketPlan] = useState(false);
   const [showRoute, setShowRoute] = useState(false);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [currentIntake, setCurrentIntake] = useState<Partial<VisitIntake> | null>(null);
+  const [generatedRoute, setGeneratedRoute] = useState<RoutePlan | null>(null);
+  const [selectedArtwork, setSelectedArtwork] = useState<ArtworkRef | null>(null);
 
-  // Section refs for scroll-to
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const intakeRef = useRef<HTMLDivElement>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
-
-  // Seed sample responses for Ask MuMu (loaded from seed)
-  const [sampleResponses, setSampleResponses] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (museum_id === 'art-institute-of-chicago-us') {
-      fetch('/data/aic_seed.json')
-        .then(r => r.json())
-        .then(seed => setSampleResponses(seed.sampleAskMuMu || []))
-        .catch(() => {});
-    }
-  }, [museum_id]);
+  const askMuMuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -66,10 +59,34 @@ export default function MuseumDetailPage() {
     setTimeout(() => ticketRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
-  const handleIntakeSubmit = (_intake: Partial<VisitIntake>) => {
+  const handleIntakeSubmit = useCallback((intake: Partial<VisitIntake>) => {
+    if (!data) return;
+    setCurrentIntake(intake);
+    const route = generateRoute(intake, data.artworks);
+    setGeneratedRoute(route);
     setShowTicketPlan(true);
     setShowRoute(true);
     setTimeout(() => ticketRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+  }, [data]);
+
+  const handleReplan = () => {
+    intakeRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleArtworkClick = (artwork: ArtworkRef) => {
+    setSelectedArtwork(artwork);
+  };
+
+  const handleAskMuMuFromArtwork = (question: string) => {
+    // Scroll to Ask MuMu and send the question
+    askMuMuRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+      (window as any).__askMuMuSend?.(question);
+    }, 300);
+  };
+
+  const handleScrollToAskMuMu = () => {
+    askMuMuRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   if (isLoading) {
@@ -95,7 +112,7 @@ export default function MuseumDetailPage() {
     );
   }
 
-  const { overview, artworks, exhibitions, ticketRecommendation, routePlan, knowledge } = data;
+  const { overview, artworks, exhibitions, ticketRecommendation, knowledge } = data;
   const address = overview.state
     ? `${overview.city}, ${overview.state}, ${overview.country}`
     : `${overview.city}, ${overview.country}`;
@@ -116,31 +133,29 @@ export default function MuseumDetailPage() {
       >
         <div className="container max-w-4xl">
           <div className={cn(
-            'flex items-center gap-4 transition-all duration-200',
-            isSticky ? 'py-2.5' : 'py-5'
+            'flex items-center gap-3 sm:gap-4 transition-all duration-200',
+            isSticky ? 'py-2.5' : 'py-4 sm:py-5'
           )}>
-            {/* Hero image / logo */}
             <div className={cn(
               'flex-shrink-0 rounded-xl overflow-hidden bg-muted border border-border flex items-center justify-center transition-all duration-200',
-              isSticky ? 'h-10 w-10' : 'h-14 w-14'
+              isSticky ? 'h-10 w-10' : 'h-12 w-12 sm:h-14 sm:w-14'
             )}>
               {overview.heroImageUrl ? (
                 <img src={overview.heroImageUrl} alt={overview.name} className="h-full w-full object-cover" />
               ) : (
-                <Landmark className={cn('text-muted-foreground', isSticky ? 'h-5 w-5' : 'h-7 w-7')} />
+                <Landmark className={cn('text-muted-foreground', isSticky ? 'h-5 w-5' : 'h-6 w-6 sm:h-7 sm:w-7')} />
               )}
             </div>
 
-            {/* Name + address */}
             <div className="flex-1 min-w-0">
               <h1 className={cn(
                 'font-display font-bold text-foreground truncate transition-all duration-200',
-                isSticky ? 'text-lg' : 'text-2xl md:text-3xl'
+                isSticky ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl md:text-3xl'
               )}>
                 {overview.name}
               </h1>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <p className="text-sm text-muted-foreground truncate">{address}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">{address}</p>
                 <TooltipProvider delayDuration={200}>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -161,7 +176,6 @@ export default function MuseumDetailPage() {
               </div>
             </div>
 
-            {/* Quick links */}
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <TooltipProvider delayDuration={200}>
                 {overview.officialSiteUrl && (
@@ -197,7 +211,7 @@ export default function MuseumDetailPage() {
       </div>
 
       {/* Main content */}
-      <div className="container max-w-4xl py-6 space-y-8">
+      <div className="container max-w-4xl py-5 sm:py-6 space-y-6 sm:space-y-8 pb-24 sm:pb-8">
         {/* 1. Visit Snapshot */}
         <VisitSnapshot
           overview={overview}
@@ -214,23 +228,29 @@ export default function MuseumDetailPage() {
           />
         </div>
 
-        {/* 3. Best Ticket Plan (shown after intake or Buy Smart) */}
+        {/* 3. Best Ticket Plan */}
         <div ref={ticketRef}>
           {showTicketPlan && ticketRecommendation && (
-            <TicketPlan ticket={ticketRecommendation} />
+            <TicketPlan ticket={ticketRecommendation} exhibitions={exhibitions} />
           )}
         </div>
 
-        {/* 4. Indoor Route (shown after intake submission) */}
-        {showRoute && routePlan && (
-          <IndoorRoute route={routePlan} />
+        {/* 4. Indoor Route */}
+        {showRoute && generatedRoute && (
+          <IndoorRoute
+            route={generatedRoute}
+            intake={currentIntake || undefined}
+            onReplan={handleReplan}
+          />
         )}
 
         {/* 5. Ask MuMu */}
-        <AskMuMuChat
-          museumId={overview.museumId}
-          sampleResponses={sampleResponses}
-        />
+        <div ref={askMuMuRef}>
+          <AskMuMuChat
+            museumId={overview.museumId}
+            onScrollTo={handleScrollToAskMuMu}
+          />
+        </div>
 
         {/* 6. Museum Knowledge */}
         <MuseumKnowledge
@@ -238,6 +258,7 @@ export default function MuseumDetailPage() {
           knowledge={knowledge}
           artworks={artworks}
           exhibitions={exhibitions}
+          onArtworkClick={handleArtworkClick}
         />
 
         {/* Freshness footer */}
@@ -252,6 +273,14 @@ export default function MuseumDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Artwork Detail Sheet */}
+      <ArtworkDetailSheet
+        artwork={selectedArtwork}
+        open={!!selectedArtwork}
+        onClose={() => setSelectedArtwork(null)}
+        onAskMuMu={handleAskMuMuFromArtwork}
+      />
     </div>
   );
 }

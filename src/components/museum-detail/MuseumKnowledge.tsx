@@ -6,6 +6,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { CitationChip } from './CitationChip';
+import mumuLogo from '@/assets/mumu-logo.png';
 import type {
   KnowledgeTabKey,
   KnowledgeContent,
@@ -31,9 +32,10 @@ interface MuseumKnowledgeProps {
   knowledge: KnowledgeContent;
   artworks: ArtworkRef[];
   exhibitions: ExhibitionRef[];
+  onArtworkClick?: (artwork: ArtworkRef) => void;
 }
 
-export function MuseumKnowledge({ overview, knowledge, artworks, exhibitions }: MuseumKnowledgeProps) {
+export function MuseumKnowledge({ overview, knowledge, artworks, exhibitions, onArtworkClick }: MuseumKnowledgeProps) {
   const [activeTab, setActiveTab] = useState<KnowledgeTabKey>(
     overview.knowledgeTabs[0]?.key || 'on_view_now'
   );
@@ -53,7 +55,7 @@ export function MuseumKnowledge({ overview, knowledge, artworks, exhibitions }: 
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border whitespace-nowrap transition-colors flex-shrink-0',
+              'flex items-center gap-1.5 px-3 py-2 rounded-full text-sm border whitespace-nowrap transition-colors flex-shrink-0',
               activeTab === tab.key
                 ? 'bg-primary text-primary-foreground border-primary'
                 : 'border-border bg-card hover:bg-secondary text-foreground'
@@ -66,12 +68,13 @@ export function MuseumKnowledge({ overview, knowledge, artworks, exhibitions }: 
       </div>
 
       {/* Tab content */}
-      <div className="bg-card border border-border rounded-xl p-5">
+      <div className="bg-card border border-border rounded-xl p-4 sm:p-5">
         {activeTab === 'on_view_now' && (
           <ArtworkGrid
             artworks={onView}
             emptyMessage="On-view artwork data is not available yet."
             note={`${onView.length} works currently on view from MuMu's catalog. Availability may change — check the official site for same-day confirmation.`}
+            onArtworkClick={onArtworkClick}
           />
         )}
 
@@ -80,6 +83,7 @@ export function MuseumKnowledge({ overview, knowledge, artworks, exhibitions }: 
             artworks={mustSees}
             emptyMessage="No must-see artworks flagged yet."
             note="These are high-priority works recommended for first-time visitors."
+            onArtworkClick={onArtworkClick}
           />
         )}
 
@@ -141,10 +145,11 @@ export function MuseumKnowledge({ overview, knowledge, artworks, exhibitions }: 
   );
 }
 
-function ArtworkGrid({ artworks, emptyMessage, note }: {
+function ArtworkGrid({ artworks, emptyMessage, note, onArtworkClick }: {
   artworks: ArtworkRef[];
   emptyMessage: string;
   note?: string;
+  onArtworkClick?: (artwork: ArtworkRef) => void;
 }) {
   if (artworks.length === 0) {
     return <p className="text-sm text-muted-foreground text-center py-6">{emptyMessage}</p>;
@@ -157,37 +162,50 @@ function ArtworkGrid({ artworks, emptyMessage, note }: {
       )}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {artworks.map(art => (
-          <div key={art.id} className="group cursor-pointer">
-            <div className="aspect-square rounded-lg overflow-hidden bg-muted border border-border">
-              {art.imageUrl ? (
-                <img
-                  src={art.imageUrl}
-                  alt={art.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Frame className="w-8 h-8 text-muted-foreground/30" />
-                </div>
-              )}
-            </div>
-            <p className="text-xs font-medium mt-1.5 truncate">{art.title}</p>
-            <p className="text-[0.65rem] text-muted-foreground truncate">
-              {art.artistTitle}
-            </p>
-            <div className="flex gap-1 mt-0.5">
-              {art.mustSee && (
-                <Badge variant="outline" className="text-[0.55rem] px-1 py-0 h-3.5 bg-amber-50 text-amber-700 border-amber-200">Must-see</Badge>
-              )}
-              {art.galleryNumber && (
-                <span className="text-[0.55rem] text-muted-foreground">Gallery {art.galleryNumber}</span>
-              )}
-            </div>
-          </div>
+          <ArtworkTile key={art.id} artwork={art} onClick={onArtworkClick} />
         ))}
       </div>
     </div>
+  );
+}
+
+function ArtworkTile({ artwork, onClick }: { artwork: ArtworkRef; onClick?: (a: ArtworkRef) => void }) {
+  const [imgError, setImgError] = useState(false);
+
+  return (
+    <button
+      onClick={() => onClick?.(artwork)}
+      className="group text-left cursor-pointer"
+    >
+      <div className="aspect-square rounded-lg overflow-hidden bg-muted border border-border relative">
+        {artwork.imageUrl && !imgError ? (
+          <img
+            src={artwork.imageUrl}
+            alt={artwork.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1.5">
+            <img src={mumuLogo} alt="" className="w-8 h-8 opacity-20" />
+            <span className="text-[0.6rem] text-muted-foreground/60">Image unavailable</span>
+          </div>
+        )}
+      </div>
+      <p className="text-xs font-medium mt-1.5 truncate">{artwork.title}</p>
+      <p className="text-[0.65rem] text-muted-foreground truncate">
+        {artwork.artistTitle}
+      </p>
+      <div className="flex gap-1 mt-0.5 flex-wrap">
+        {artwork.mustSee && (
+          <Badge variant="outline" className="text-[0.55rem] px-1 py-0 h-3.5">Must-see</Badge>
+        )}
+        {artwork.galleryNumber && (
+          <span className="text-[0.55rem] text-muted-foreground">Gallery {artwork.galleryNumber}</span>
+        )}
+      </div>
+    </button>
   );
 }
 
@@ -200,10 +218,10 @@ function ExhibitionList({ exhibitions }: { exhibitions: ExhibitionRef[] }) {
     <div className="space-y-3">
       {exhibitions.map(ex => (
         <div key={ex.id} className="p-3 bg-background border border-border rounded-lg">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-medium">{ex.title}</p>
             {ex.requiresAddOnTicket && (
-              <Badge variant="secondary" className="text-[0.65rem]">Extra ticket</Badge>
+              <Badge variant="secondary" className="text-[0.65rem] flex-shrink-0">Extra ticket</Badge>
             )}
           </div>
           {ex.shortDescription && (

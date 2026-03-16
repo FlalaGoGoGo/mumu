@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import {
   MapPin, Clock, Footprints, ChevronDown, ChevronUp,
-  DoorOpen, Frame, Coffee, ShoppingBag, Info,
+  DoorOpen, Frame, Coffee, ShoppingBag, Info, LogOut,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { CitationChip } from './CitationChip';
-import type { RoutePlan, RouteStep, RouteStepType, FacilityKey } from '@/types/museumDetail';
+import { AppliedPreferences } from './AppliedPreferences';
+import type { RoutePlan, RouteStep, RouteStepType, FacilityKey, VisitIntake } from '@/types/museumDetail';
 
 const STEP_ICONS: Record<RouteStepType, React.ReactNode> = {
   entrance: <DoorOpen className="w-4 h-4" />,
@@ -17,44 +18,48 @@ const STEP_ICONS: Record<RouteStepType, React.ReactNode> = {
   meal: <Coffee className="w-4 h-4" />,
   rest: <MapPin className="w-4 h-4" />,
   shop: <ShoppingBag className="w-4 h-4" />,
-  exit: <DoorOpen className="w-4 h-4" />,
+  exit: <LogOut className="w-4 h-4" />,
 };
 
 const FACILITY_ICONS: Record<FacilityKey, string> = {
-  checkroom: '🧥',
-  restroom: '🚻',
-  family_restroom: '👪',
-  infant_care: '🍼',
-  elevator: '🛗',
-  wheelchair: '♿',
-  quiet_space: '🤫',
-  cafe: '☕',
-  shop: '🛍️',
+  checkroom: '🧥', restroom: '🚻', family_restroom: '👪', infant_care: '🍼',
+  elevator: '🛗', wheelchair: '♿', quiet_space: '🤫', cafe: '☕', shop: '🛍️',
 };
 
 interface IndoorRouteProps {
   route: RoutePlan;
+  intake?: Partial<VisitIntake>;
+  onReplan?: () => void;
 }
 
-export function IndoorRoute({ route }: IndoorRouteProps) {
+export function IndoorRoute({ route, intake, onReplan }: IndoorRouteProps) {
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
+  const gallerySteps = route.steps.filter(s => s.type === 'gallery');
+  const essentialSteps = gallerySteps.filter(s => !s.subtitle?.includes('Optional'));
+  const optionalSteps = gallerySteps.filter(s => s.subtitle?.includes('Optional'));
+
   return (
-    <section className="bg-card border border-border rounded-xl p-5 space-y-4">
-      <div className="flex items-center justify-between">
+    <section className="bg-card border border-border rounded-xl p-4 sm:p-5 space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4 text-accent" />
-          <h2 className="font-display text-lg font-semibold">Today's Indoor Route</h2>
+          <h2 className="font-display text-lg font-semibold">Your Visit Route</h2>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">
-            {route.confidence === 'prototype' ? 'Prototype' : 'Live'}
-          </Badge>
           <Badge variant="secondary" className="text-xs">
-            ~{route.totalDurationMinutes} min
+            ~{route.totalDurationMinutes} min · {gallerySteps.length} stops
           </Badge>
+          {onReplan && (
+            <button onClick={onReplan} className="text-xs text-primary hover:underline">
+              Change preferences
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Applied preferences */}
+      {intake && <AppliedPreferences intake={intake} />}
 
       <p className="text-sm text-muted-foreground">{route.summary}</p>
 
@@ -72,11 +77,19 @@ export function IndoorRoute({ route }: IndoorRouteProps) {
         </div>
       )}
 
+      {/* Route legend */}
+      {optionalSteps.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {essentialSteps.length} essential stop{essentialSteps.length !== 1 ? 's' : ''} + {optionalSteps.length} optional
+        </p>
+      )}
+
       {/* Steps timeline */}
       <div className="relative">
         {route.steps.map((step, idx) => {
           const isExpanded = expandedStep === step.stepId;
           const isLast = idx === route.steps.length - 1;
+          const isOptional = step.subtitle?.includes('Optional');
 
           return (
             <div key={step.stepId} className="relative flex gap-3">
@@ -85,13 +98,15 @@ export function IndoorRoute({ route }: IndoorRouteProps) {
                 <div className={cn(
                   'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border',
                   step.type === 'entrance' ? 'bg-primary text-primary-foreground border-primary' :
+                  step.type === 'exit' ? 'bg-muted text-muted-foreground border-border' :
                   step.type === 'meal' ? 'bg-accent/20 text-accent border-accent/30' :
-                  'bg-card text-muted-foreground border-border'
+                  isOptional ? 'bg-card text-muted-foreground border-dashed border-border' :
+                  'bg-card text-foreground border-border'
                 )}>
                   {STEP_ICONS[step.type]}
                 </div>
                 {!isLast && (
-                  <div className="w-px flex-1 bg-border min-h-[24px]" />
+                  <div className={cn('w-px flex-1 min-h-[24px]', isOptional ? 'border-l border-dashed border-border' : 'bg-border')} />
                 )}
               </div>
 
@@ -101,31 +116,34 @@ export function IndoorRoute({ route }: IndoorRouteProps) {
                   onClick={() => setExpandedStep(isExpanded ? null : step.stepId)}
                   className="w-full text-left group"
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium group-hover:text-primary transition-colors">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className={cn(
+                        'text-sm font-medium group-hover:text-primary transition-colors truncate',
+                        isOptional && 'text-muted-foreground'
+                      )}>
+                        {isOptional && <span className="text-xs mr-1">○</span>}
                         {step.title}
                       </p>
                       {step.subtitle && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{step.subtitle}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{step.subtitle}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {step.durationMinutes}m
                       </span>
                       {step.walkMinutesFromPrevious > 0 && (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1 hidden sm:flex">
                           <Footprints className="w-3 h-3" />
-                          {step.walkMinutesFromPrevious}m walk
+                          {step.walkMinutesFromPrevious}m
                         </span>
                       )}
                       {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
                     </div>
                   </div>
 
-                  {/* Location label */}
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="text-xs text-muted-foreground">
                       {step.location.label}
@@ -134,25 +152,27 @@ export function IndoorRoute({ route }: IndoorRouteProps) {
                   </div>
                 </button>
 
-                {/* Expanded content */}
                 {isExpanded && (
                   <div className="mt-3 space-y-3 animate-in slide-in-from-top-2 duration-200">
-                    {/* Why this stop */}
                     <p className="text-xs text-muted-foreground italic">
                       "{step.whyThisStop}"
                     </p>
 
-                    {/* Primary artworks */}
                     {step.primaryObjects.length > 0 && (
                       <div className="grid gap-2">
                         {step.primaryObjects.map(art => (
                           <div key={art.id} className="flex items-center gap-3 p-2 rounded-lg bg-background border border-border">
-                            {art.imageUrl && (
+                            {art.imageUrl ? (
                               <img
                                 src={art.imageUrl}
                                 alt={art.title}
-                                className="w-12 h-12 rounded object-cover flex-shrink-0"
+                                className="w-12 h-12 rounded object-cover flex-shrink-0 bg-muted"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                               />
+                            ) : (
+                              <div className="w-12 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                                <Frame className="w-5 h-5 text-muted-foreground/30" />
+                              </div>
                             )}
                             <div className="min-w-0">
                               <p className="text-sm font-medium truncate">{art.title}</p>
@@ -160,15 +180,8 @@ export function IndoorRoute({ route }: IndoorRouteProps) {
                                 {art.artistTitle}{art.year ? `, ${art.year}` : ''}
                               </p>
                               <div className="flex items-center gap-1.5 mt-0.5">
-                                {art.isOnView && (
-                                  <Badge variant="outline" className="text-[0.6rem] px-1 py-0 h-4 bg-emerald-50 text-emerald-700 border-emerald-200">
-                                    On view
-                                  </Badge>
-                                )}
                                 {art.mustSee && (
-                                  <Badge variant="outline" className="text-[0.6rem] px-1 py-0 h-4 bg-amber-50 text-amber-700 border-amber-200">
-                                    Must-see
-                                  </Badge>
+                                  <Badge variant="outline" className="text-[0.6rem] px-1 py-0 h-4">Must-see</Badge>
                                 )}
                               </div>
                             </div>
@@ -177,7 +190,6 @@ export function IndoorRoute({ route }: IndoorRouteProps) {
                       </div>
                     )}
 
-                    {/* Nearby facilities */}
                     {step.nearbyFacilities.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {step.nearbyFacilities.map((f, i) => (
@@ -188,17 +200,15 @@ export function IndoorRoute({ route }: IndoorRouteProps) {
                       </div>
                     )}
 
-                    {/* Replan hints */}
                     {step.replanHints.length > 0 && (
-                      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2.5">
-                        <p className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-1">If plans change:</p>
+                      <div className="bg-accent/10 border border-accent/20 rounded-lg p-2.5">
+                        <p className="text-xs font-medium text-accent-foreground/70 mb-1">If plans change:</p>
                         {step.replanHints.map((h, i) => (
-                          <p key={i} className="text-xs text-amber-700 dark:text-amber-400">• {h}</p>
+                          <p key={i} className="text-xs text-muted-foreground">• {h}</p>
                         ))}
                       </div>
                     )}
 
-                    {/* Citations */}
                     {step.citations.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {step.citations.map(c => (
