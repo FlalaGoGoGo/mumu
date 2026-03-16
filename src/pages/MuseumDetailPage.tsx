@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Landmark, Copy, Check, Navigation } from 'lucide-react';
+import { ExternalLink, Landmark, Copy, Check, Navigation, MessageCircle } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -15,29 +15,35 @@ import { VisitSnapshot } from '@/components/museum-detail/VisitSnapshot';
 import { VisitIntakeForm } from '@/components/museum-detail/VisitIntakeForm';
 import { TicketPlan } from '@/components/museum-detail/TicketPlan';
 import { IndoorRoute } from '@/components/museum-detail/IndoorRoute';
-import { AskMuMuChat } from '@/components/museum-detail/AskMuMuChat';
+import { AskMuMuFab } from '@/components/museum-detail/AskMuMuFab';
 import { MuseumKnowledge } from '@/components/museum-detail/MuseumKnowledge';
 import { ArtworkDetailSheet } from '@/components/museum-detail/ArtworkDetailSheet';
+import { VisitProgressProvider, useVisitProgress } from '@/components/museum-detail/VisitProgressContext';
+import { VisitProgressBar } from '@/components/museum-detail/VisitProgressBar';
 import { generateRoute } from '@/lib/routeEngine';
 import type { VisitIntake, ArtworkRef, RoutePlan } from '@/types/museumDetail';
 
-export default function MuseumDetailPage() {
+function MuseumDetailContent() {
   const { museum_id } = useParams<{ museum_id: string }>();
   const navigate = useNavigate();
   const { data, isLoading, error } = useMuseumDetail(museum_id);
 
   const [isSticky, setIsSticky] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [activePhase, setActivePhase] = useState<'before' | 'during'>('before');
   const [showTicketPlan, setShowTicketPlan] = useState(false);
   const [showRoute, setShowRoute] = useState(false);
   const [currentIntake, setCurrentIntake] = useState<Partial<VisitIntake> | null>(null);
   const [generatedRoute, setGeneratedRoute] = useState<RoutePlan | null>(null);
   const [selectedArtwork, setSelectedArtwork] = useState<ArtworkRef | null>(null);
+  const [askMuMuOpen, setAskMuMuOpen] = useState(false);
+  const [askMuMuInitialQuestion, setAskMuMuInitialQuestion] = useState<string | null>(null);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const intakeRef = useRef<HTMLDivElement>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
-  const askMuMuRef = useRef<HTMLDivElement>(null);
+
+  const { initializeRoute } = useVisitProgress();
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -64,29 +70,29 @@ export default function MuseumDetailPage() {
     setCurrentIntake(intake);
     const route = generateRoute(intake, data.artworks);
     setGeneratedRoute(route);
+    initializeRoute(route.steps.filter(s => s.type === 'gallery').map(s => s.stepId));
     setShowTicketPlan(true);
     setShowRoute(true);
-    setTimeout(() => ticketRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-  }, [data]);
+    setActivePhase('during');
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+  }, [data, initializeRoute]);
 
   const handleReplan = () => {
-    intakeRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setActivePhase('before');
+    setTimeout(() => intakeRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
   const handleArtworkClick = (artwork: ArtworkRef) => {
     setSelectedArtwork(artwork);
   };
 
-  const handleAskMuMuFromArtwork = (question: string) => {
-    // Scroll to Ask MuMu and send the question
-    askMuMuRef.current?.scrollIntoView({ behavior: 'smooth' });
-    setTimeout(() => {
-      (window as any).__askMuMuSend?.(question);
-    }, 300);
+  const handleAskMuMu = (question?: string) => {
+    if (question) setAskMuMuInitialQuestion(question);
+    setAskMuMuOpen(true);
   };
 
-  const handleScrollToAskMuMu = () => {
-    askMuMuRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const handleAskMuMuFromArtwork = (question: string) => {
+    handleAskMuMu(question);
   };
 
   if (isLoading) {
@@ -210,56 +216,99 @@ export default function MuseumDetailPage() {
         </div>
       </div>
 
+      {/* Phase Tabs */}
+      <div className="sticky top-[57px] sm:top-[65px] z-[1400] border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="container max-w-4xl">
+          <div className="flex">
+            <button
+              onClick={() => setActivePhase('before')}
+              className={cn(
+                'flex-1 py-3 text-sm font-medium text-center transition-colors relative',
+                activePhase === 'before'
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Before Your Visit
+              {activePhase === 'before' && (
+                <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-primary rounded-full" />
+              )}
+            </button>
+            <button
+              onClick={() => setActivePhase('during')}
+              className={cn(
+                'flex-1 py-3 text-sm font-medium text-center transition-colors relative',
+                activePhase === 'during'
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground',
+                !showRoute && 'opacity-50'
+              )}
+              disabled={!showRoute}
+            >
+              During Your Visit
+              {activePhase === 'during' && (
+                <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-primary rounded-full" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Main content */}
       <div className="container max-w-4xl py-5 sm:py-6 space-y-6 sm:space-y-8 pb-24 sm:pb-8">
-        {/* 1. Visit Snapshot */}
-        <VisitSnapshot
-          overview={overview}
-          onPlanVisit={handlePlanVisit}
-          onBuySmart={handleBuySmart}
-        />
+        {/* BEFORE YOUR VISIT */}
+        {activePhase === 'before' && (
+          <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+            {/* 1. Visit Snapshot */}
+            <VisitSnapshot
+              overview={overview}
+              onPlanVisit={handlePlanVisit}
+              onBuySmart={handleBuySmart}
+            />
 
-        {/* 2. Personalized Visit Intake */}
-        <div ref={intakeRef}>
-          <VisitIntakeForm
-            museumId={overview.museumId}
-            entrances={overview.visitSnapshot.entrances}
-            onSubmit={handleIntakeSubmit}
-          />
-        </div>
+            {/* 2. Buy Smart / Ticket Plan */}
+            <div ref={ticketRef}>
+              {showTicketPlan && ticketRecommendation && (
+                <TicketPlan ticket={ticketRecommendation} exhibitions={exhibitions} />
+              )}
+            </div>
 
-        {/* 3. Best Ticket Plan */}
-        <div ref={ticketRef}>
-          {showTicketPlan && ticketRecommendation && (
-            <TicketPlan ticket={ticketRecommendation} exhibitions={exhibitions} />
-          )}
-        </div>
-
-        {/* 4. Indoor Route */}
-        {showRoute && generatedRoute && (
-          <IndoorRoute
-            route={generatedRoute}
-            intake={currentIntake || undefined}
-            onReplan={handleReplan}
-          />
+            {/* 3. Personalized Visit Intake */}
+            <div ref={intakeRef}>
+              <VisitIntakeForm
+                museumId={overview.museumId}
+                entrances={overview.visitSnapshot.entrances}
+                onSubmit={handleIntakeSubmit}
+              />
+            </div>
+          </div>
         )}
 
-        {/* 5. Ask MuMu */}
-        <div ref={askMuMuRef}>
-          <AskMuMuChat
-            museumId={overview.museumId}
-            onScrollTo={handleScrollToAskMuMu}
-          />
-        </div>
+        {/* DURING YOUR VISIT */}
+        {activePhase === 'during' && showRoute && generatedRoute && (
+          <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+            {/* Visit Progress */}
+            <VisitProgressBar totalSteps={generatedRoute.steps.filter(s => s.type === 'gallery').length} />
 
-        {/* 6. Museum Knowledge */}
-        <MuseumKnowledge
-          overview={overview}
-          knowledge={knowledge}
-          artworks={artworks}
-          exhibitions={exhibitions}
-          onArtworkClick={handleArtworkClick}
-        />
+            {/* Route */}
+            <IndoorRoute
+              route={generatedRoute}
+              intake={currentIntake || undefined}
+              onReplan={handleReplan}
+              onArtworkClick={handleArtworkClick}
+              onAskMuMu={handleAskMuMu}
+            />
+
+            {/* Museum Knowledge */}
+            <MuseumKnowledge
+              overview={overview}
+              knowledge={knowledge}
+              artworks={artworks}
+              exhibitions={exhibitions}
+              onArtworkClick={handleArtworkClick}
+            />
+          </div>
+        )}
 
         {/* Freshness footer */}
         {overview.freshness && (
@@ -274,6 +323,15 @@ export default function MuseumDetailPage() {
         )}
       </div>
 
+      {/* Floating Ask MuMu FAB */}
+      <AskMuMuFab
+        museumId={overview.museumId}
+        open={askMuMuOpen}
+        onOpenChange={setAskMuMuOpen}
+        initialQuestion={askMuMuInitialQuestion}
+        onInitialQuestionHandled={() => setAskMuMuInitialQuestion(null)}
+      />
+
       {/* Artwork Detail Sheet */}
       <ArtworkDetailSheet
         artwork={selectedArtwork}
@@ -282,5 +340,13 @@ export default function MuseumDetailPage() {
         onAskMuMu={handleAskMuMuFromArtwork}
       />
     </div>
+  );
+}
+
+export default function MuseumDetailPage() {
+  return (
+    <VisitProgressProvider>
+      <MuseumDetailContent />
+    </VisitProgressProvider>
   );
 }

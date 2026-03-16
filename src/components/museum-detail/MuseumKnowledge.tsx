@@ -102,7 +102,7 @@ export function MuseumKnowledge({ overview, knowledge, artworks, exhibitions, on
         {activeTab === 'quiet_spaces' && knowledge.quietSpaces && (
           <div className="space-y-3">
             {knowledge.quietSpaces.tips.map((tip, i) => (
-              <p key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+              <p key={i} className="text-sm text-foreground/70 flex items-start gap-2">
                 <span className="text-accent mt-0.5">●</span> {tip}
               </p>
             ))}
@@ -113,9 +113,9 @@ export function MuseumKnowledge({ overview, knowledge, artworks, exhibitions, on
           <div className="space-y-3">
             {knowledge.dining.venues.map((v, i) => (
               <div key={i} className="p-3 bg-background border border-border rounded-lg">
-                <p className="text-sm font-medium">{v.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{v.description}</p>
-                {v.location && <p className="text-xs text-muted-foreground mt-1 italic">{v.location}</p>}
+                <p className="text-sm font-medium text-foreground">{v.name}</p>
+                <p className="text-xs text-foreground/60 mt-0.5">{v.description}</p>
+                {v.location && <p className="text-xs text-foreground/50 mt-1 italic">{v.location}</p>}
               </div>
             ))}
             {knowledge.dining.citations.length > 0 && (
@@ -130,8 +130,8 @@ export function MuseumKnowledge({ overview, knowledge, artworks, exhibitions, on
           <div className="space-y-3">
             {knowledge.shop.shops.map((s, i) => (
               <div key={i} className="p-3 bg-background border border-border rounded-lg">
-                <p className="text-sm font-medium">{s.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{s.description}</p>
+                <p className="text-sm font-medium text-foreground">{s.name}</p>
+                <p className="text-xs text-foreground/60 mt-0.5">{s.description}</p>
               </div>
             ))}
           </div>
@@ -152,13 +152,18 @@ function ArtworkGrid({ artworks, emptyMessage, note, onArtworkClick }: {
   onArtworkClick?: (artwork: ArtworkRef) => void;
 }) {
   if (artworks.length === 0) {
-    return <p className="text-sm text-muted-foreground text-center py-6">{emptyMessage}</p>;
+    return (
+      <div className="text-center py-8">
+        <img src={mumuLogo} alt="" className="w-10 h-10 mx-auto opacity-20 mb-3" />
+        <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-3">
       {note && (
-        <p className="text-xs text-muted-foreground italic">{note}</p>
+        <p className="text-xs text-foreground/50 italic">{note}</p>
       )}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {artworks.map(art => (
@@ -177,7 +182,7 @@ function ArtworkTile({ artwork, onClick }: { artwork: ArtworkRef; onClick?: (a: 
       onClick={() => onClick?.(artwork)}
       className="group text-left cursor-pointer"
     >
-      <div className="aspect-square rounded-lg overflow-hidden bg-muted border border-border relative">
+      <div className="aspect-square rounded-lg overflow-hidden bg-secondary/30 border border-border relative">
         {artwork.imageUrl && !imgError ? (
           <img
             src={artwork.imageUrl}
@@ -187,31 +192,38 @@ function ArtworkTile({ artwork, onClick }: { artwork: ArtworkRef; onClick?: (a: 
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-1.5">
-            <img src={mumuLogo} alt="" className="w-8 h-8 opacity-20" />
-            <span className="text-[0.6rem] text-muted-foreground/60">Image unavailable</span>
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 bg-secondary/20">
+            <img src={mumuLogo} alt="" className="w-8 h-8 opacity-15" />
+            <span className="text-[0.6rem] text-muted-foreground">Image unavailable</span>
+          </div>
+        )}
+        {artwork.mustSee && (
+          <div className="absolute top-1.5 right-1.5">
+            <Badge className="bg-amber-100/90 text-amber-800 border-amber-200 text-[0.55rem] px-1.5 py-0 h-4 backdrop-blur-sm">
+              <Star className="w-2.5 h-2.5 mr-0.5" /> Must-see
+            </Badge>
           </div>
         )}
       </div>
-      <p className="text-xs font-medium mt-1.5 truncate">{artwork.title}</p>
-      <p className="text-[0.65rem] text-muted-foreground truncate">
+      <p className="text-xs font-medium mt-1.5 truncate text-foreground">{artwork.title}</p>
+      <p className="text-[0.65rem] text-foreground/50 truncate">
         {artwork.artistTitle}
       </p>
-      <div className="flex gap-1 mt-0.5 flex-wrap">
-        {artwork.mustSee && (
-          <Badge variant="outline" className="text-[0.55rem] px-1 py-0 h-3.5">Must-see</Badge>
-        )}
-        {artwork.galleryNumber && (
-          <span className="text-[0.55rem] text-muted-foreground">Gallery {artwork.galleryNumber}</span>
-        )}
-      </div>
+      {artwork.galleryNumber && (
+        <span className="text-[0.55rem] text-foreground/40">Gallery {artwork.galleryNumber}</span>
+      )}
     </button>
   );
 }
 
 function ExhibitionList({ exhibitions }: { exhibitions: ExhibitionRef[] }) {
   if (exhibitions.length === 0) {
-    return <p className="text-sm text-muted-foreground text-center py-6">No current exhibitions available.</p>;
+    return (
+      <div className="text-center py-8">
+        <img src={mumuLogo} alt="" className="w-10 h-10 mx-auto opacity-20 mb-3" />
+        <p className="text-sm text-muted-foreground">No current exhibitions available.</p>
+      </div>
+    );
   }
 
   return (
@@ -219,15 +231,15 @@ function ExhibitionList({ exhibitions }: { exhibitions: ExhibitionRef[] }) {
       {exhibitions.map(ex => (
         <div key={ex.id} className="p-3 bg-background border border-border rounded-lg">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-medium">{ex.title}</p>
+            <p className="text-sm font-medium text-foreground">{ex.title}</p>
             {ex.requiresAddOnTicket && (
               <Badge variant="secondary" className="text-[0.65rem] flex-shrink-0">Extra ticket</Badge>
             )}
           </div>
           {ex.shortDescription && (
-            <p className="text-xs text-muted-foreground mt-1">{ex.shortDescription}</p>
+            <p className="text-xs text-foreground/60 mt-1">{ex.shortDescription}</p>
           )}
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-foreground/50 mt-1">
             {ex.startDate && ex.endDate
               ? `${new Date(ex.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(ex.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
               : 'Dates TBD'
@@ -252,8 +264,8 @@ function InfoList({ items, citations }: {
     <div className="space-y-3">
       {items.map((item, i) => (
         <div key={i}>
-          <p className="text-sm font-medium">{item.title}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
+          <p className="text-sm font-medium text-foreground">{item.title}</p>
+          <p className="text-xs text-foreground/60 mt-0.5">{item.description}</p>
         </div>
       ))}
       {citations.length > 0 && (
