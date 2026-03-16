@@ -1,0 +1,935 @@
+{
+  "metadata": {
+    "packageVersion": "2026-03-15",
+    "intendedUse": "Prototype accelerator for Lovable Museum Detail 2.0 implementation",
+    "currentLivePageUrl": "https://mumu.lovable.app/museum/art-institute-of-chicago-us",
+    "generatedAt": "2026-03-15"
+  },
+  "museumOverview": {
+    "museumId": "art-institute-of-chicago-us",
+    "slug": "art-institute-of-chicago-us",
+    "name": "The Art Institute of Chicago",
+    "city": "Chicago",
+    "state": "Illinois",
+    "country": "United States",
+    "heroImageUrl": "https://unavatar.io/artic.edu",
+    "officialSiteUrl": "https://www.artic.edu/",
+    "visitPageUrl": "https://www.artic.edu/visit",
+    "summary": "A flagship MuMu prototype museum page that combines visit operations, museum-scoped artwork browsing, ticket guidance, an indoor-route shell, and a source-aware Ask MuMu layer.",
+    "visitSnapshot": {
+      "openToday": true,
+      "statusLabel": "Open today",
+      "todayHours": "Sunday, 11:00 AM-5:00 PM",
+      "nextOpenLabel": "Closed Tuesdays",
+      "ticketUrl": "https://sales.artic.edu/admissions",
+      "entrances": [
+        {
+          "id": "michigan-avenue",
+          "name": "Michigan Avenue Entrance",
+          "address": "111 S Michigan Ave, Chicago, IL 60603",
+          "summary": "Main lobby entry and the clearest first-time arrival path.",
+          "recommendedFor": "First-time visitors and users starting from the main museum side."
+        },
+        {
+          "id": "modern-wing",
+          "name": "Modern Wing Entrance",
+          "address": "159 E Monroe St, Chicago, IL 60603",
+          "summary": "Fast access to modern and contemporary galleries.",
+          "recommendedFor": "Users prioritizing modern galleries, the Ryan Learning Center, or a quicker art-first start."
+        }
+      ],
+      "mustKnow": [
+        "General admission includes the museum and all non-ticketed exhibitions.",
+        "Some special exhibitions may require an additional paid ticket.",
+        "Members have a member-only hour from 10:00 AM to 11:00 AM."
+      ]
+    },
+    "counts": {
+      "artworkCount": 1531,
+      "currentExhibitionCount": 12,
+      "mustSeeCount": 8
+    },
+    "featureFlags": {
+      "hasRoutePrototype": true,
+      "hasAskMuMu": true,
+      "hasMuseumScopedArtworks": true,
+      "hasDiningGuide": true,
+      "hasAccessibilityGuide": true
+    },
+    "knowledgeTabs": [
+      {
+        "key": "on_view_now",
+        "label": "On View Now"
+      },
+      {
+        "key": "current_exhibitions",
+        "label": "Current Exhibitions"
+      },
+      {
+        "key": "must_sees",
+        "label": "Must-Sees"
+      },
+      {
+        "key": "family",
+        "label": "Family"
+      },
+      {
+        "key": "accessibility",
+        "label": "Accessibility"
+      },
+      {
+        "key": "quiet_spaces",
+        "label": "Quiet Spaces"
+      },
+      {
+        "key": "dining",
+        "label": "Dining"
+      },
+      {
+        "key": "shop",
+        "label": "Shop"
+      },
+      {
+        "key": "know_before_you_go",
+        "label": "Know Before You Go"
+      }
+    ],
+    "citations": [
+      {
+        "id": "visit-main",
+        "label": "AIC Visit",
+        "url": "https://www.artic.edu/visit",
+        "sourceKind": "official_live",
+        "accessedAt": "2026-03-15"
+      },
+      {
+        "id": "floor-plan",
+        "label": "AIC Museum Floor Plan",
+        "url": "https://www.artic.edu/visit/explore-on-your-own/museum-floor-plan",
+        "sourceKind": "official_live",
+        "accessedAt": "2026-03-15"
+      },
+      {
+        "id": "visitor-policies",
+        "label": "AIC Visitor Policies",
+        "url": "https://www.artic.edu/visit/visitor-policies",
+        "sourceKind": "official_live",
+        "accessedAt": "2026-03-15"
+      },
+      {
+        "id": "accessibility",
+        "label": "AIC Accessibility",
+        "url": "https://www.artic.edu/visit/accessibility",
+        "sourceKind": "official_live",
+        "accessedAt": "2026-03-15"
+      },
+      {
+        "id": "dining-shopping",
+        "label": "AIC Dining and Shopping",
+        "url": "https://www.artic.edu/visit/dining-and-shopping",
+        "sourceKind": "official_live",
+        "accessedAt": "2026-03-15"
+      }
+    ],
+    "freshness": {
+      "liveOpsAsOf": "2026-03-15",
+      "catalogAsOf": "2026-03-15",
+      "note": "Use official live visit sources and official AIC API data ahead of local MuMu static fields when there is a conflict."
+    }
+  },
+  "artworks": [
+    {
+      "id": "27992",
+      "title": "A Sunday on La Grande Jatte - 1884",
+      "artistTitle": "Georges Seurat",
+      "year": "1884-86, border added 1888-89",
+      "imageUrl": "https://www.artic.edu/iiif/2/2d484387-2509-5e8e-2c43-22f9981972eb/full/843,/0/default.jpg",
+      "museumPageUrl": "https://www.artic.edu/artworks/27992",
+      "apiUrl": "https://api.artic.edu/api/v1/artworks/27992",
+      "isOnView": true,
+      "galleryId": "2147478672",
+      "galleryNumber": "240",
+      "floor": "2",
+      "mustSee": true,
+      "shortDescription": "An iconic pointillist painting and a useful anchor work for a highlights route."
+    },
+    {
+      "id": "80607",
+      "title": "Self-Portrait",
+      "artistTitle": "Vincent van Gogh",
+      "year": "1887",
+      "imageUrl": "https://www.artic.edu/iiif/2/47c5bcb8-62ef-e5d7-55e7-f5121f409a30/full/843,/0/default.jpg",
+      "museumPageUrl": "https://www.artic.edu/artworks/80607",
+      "apiUrl": "https://api.artic.edu/api/v1/artworks/80607",
+      "isOnView": true,
+      "galleryId": "2147479705",
+      "galleryNumber": "241",
+      "floor": "2",
+      "mustSee": true,
+      "shortDescription": "One of the most recognizable Van Gogh works in the museum and a strong route priority."
+    },
+    {
+      "id": "14586",
+      "title": "The Poet's Garden",
+      "artistTitle": "Vincent van Gogh",
+      "year": "1888",
+      "imageUrl": "https://www.artic.edu/iiif/2/d4bc1723-7cbc-d36d-a9cb-f84553f2a6f6/full/843,/0/default.jpg",
+      "museumPageUrl": "https://www.artic.edu/artworks/14586",
+      "apiUrl": "https://api.artic.edu/api/v1/artworks/14586",
+      "isOnView": true,
+      "galleryId": "2147479705",
+      "galleryNumber": "241",
+      "floor": "2",
+      "mustSee": false,
+      "shortDescription": "Pairs naturally with Van Gogh's Self-Portrait for a compact gallery stop."
+    },
+    {
+      "id": "111628",
+      "title": "Nighthawks",
+      "artistTitle": "Edward Hopper",
+      "year": "1942",
+      "imageUrl": "https://www.artic.edu/iiif/2/831a05de-d3f6-f4fa-a460-23008dd58dda/full/843,/0/default.jpg",
+      "museumPageUrl": "https://www.artic.edu/artworks/111628",
+      "apiUrl": "https://api.artic.edu/api/v1/artworks/111628",
+      "isOnView": true,
+      "galleryId": "2147478064",
+      "galleryNumber": "262",
+      "floor": "2",
+      "mustSee": true,
+      "shortDescription": "An iconic American painting and a high-priority stop for first-time visitors."
+    },
+    {
+      "id": "81539",
+      "title": "On the Bank of the Seine, Bennecourt",
+      "artistTitle": "Claude Monet",
+      "year": "1868",
+      "imageUrl": "https://www.artic.edu/iiif/2/66f95ea3-a11a-1cf4-6599-d0a49bb25744/full/843,/0/default.jpg",
+      "museumPageUrl": "https://www.artic.edu/artworks/81539",
+      "apiUrl": "https://api.artic.edu/api/v1/artworks/81539",
+      "isOnView": true,
+      "galleryId": "2147483643",
+      "galleryNumber": "201",
+      "floor": "2",
+      "mustSee": false,
+      "shortDescription": "Useful as part of a final quick Impressionist stop on level 2."
+    },
+    {
+      "id": "14647",
+      "title": "Young Woman Sewing",
+      "artistTitle": "Pierre-Auguste Renoir",
+      "year": "1879",
+      "imageUrl": "https://www.artic.edu/iiif/2/147e3ce7-1c08-fa84-57f7-f59d4ec90d3c/full/843,/0/default.jpg",
+      "museumPageUrl": "https://www.artic.edu/artworks/14647",
+      "apiUrl": "https://api.artic.edu/api/v1/artworks/14647",
+      "isOnView": true,
+      "galleryId": "2147483643",
+      "galleryNumber": "201",
+      "floor": "2",
+      "mustSee": false,
+      "shortDescription": "A useful supporting work for a softer finish to a highlights route."
+    },
+    {
+      "id": "11723",
+      "title": "Woman at Her Toilette",
+      "artistTitle": "Berthe Morisot",
+      "year": "1875-80",
+      "imageUrl": "https://www.artic.edu/iiif/2/78c80988-6524-cec7-c661-a4c0a706d06f/full/843,/0/default.jpg",
+      "museumPageUrl": "https://www.artic.edu/artworks/11723",
+      "apiUrl": "https://api.artic.edu/api/v1/artworks/11723",
+      "isOnView": false,
+      "galleryId": null,
+      "galleryNumber": null,
+      "floor": null,
+      "mustSee": false,
+      "shortDescription": "Included as a useful example of a museum-scoped artwork that is not currently on view."
+    },
+    {
+      "id": "28560",
+      "title": "The Bedroom",
+      "artistTitle": "Vincent van Gogh",
+      "year": "1889",
+      "imageUrl": "https://www.artic.edu/iiif/2/25c31d8d-21a4-9ea1-1d73-6a2eca4dda7e/full/843,/0/default.jpg",
+      "museumPageUrl": "https://www.artic.edu/artworks/28560",
+      "apiUrl": "https://api.artic.edu/api/v1/artworks/28560",
+      "isOnView": false,
+      "galleryId": null,
+      "galleryNumber": null,
+      "floor": null,
+      "mustSee": true,
+      "shortDescription": "Included to demonstrate that a famous work can belong to the museum but still not be on view today."
+    }
+  ],
+  "exhibitions": [
+    {
+      "id": "aic-exh-matisse-jazz",
+      "title": "Matisse's Jazz: Rhythms in Color",
+      "startDate": "2026-03-07",
+      "endDate": "2026-06-01",
+      "officialUrl": "https://www.artic.edu/exhibitions/10557/matisses-jazz-rhythms-in-color",
+      "shortDescription": "A focused exhibition around Matisse's Jazz with additional paintings, prints, and sculptures.",
+      "status": "current",
+      "requiresAddOnTicket": true
+    },
+    {
+      "id": "aic-exh-korean-national-treasures",
+      "title": "Korean National Treasures: 2,000 Years of Art",
+      "startDate": "2026-03-07",
+      "endDate": "2026-07-05",
+      "officialUrl": "https://www.artic.edu/exhibitions/10209/korean-national-treasures-2000-years-of-art",
+      "shortDescription": "A major exhibition devoted to Korean art across two millennia.",
+      "status": "current",
+      "requiresAddOnTicket": false
+    },
+    {
+      "id": "aic-exh-lucas-samaras",
+      "title": "Lucas Samaras: Sitting, Standing, Walking, Looking",
+      "startDate": "2026-01-31",
+      "endDate": "2026-07-20",
+      "officialUrl": "https://www.artic.edu/exhibitions/10584/lucas-samaras-sitting-standing-walking-looking",
+      "shortDescription": "A presentation centered on Samaras's photographs alongside paintings and sculptures.",
+      "status": "current",
+      "requiresAddOnTicket": false
+    },
+    {
+      "id": "aic-exh-saint-porchaire",
+      "title": "Saint-Porchaire",
+      "startDate": "2026-03-28",
+      "endDate": "2026-11-15",
+      "officialUrl": "https://www.artic.edu/exhibitions/10601/saint-porchaire",
+      "shortDescription": "An upcoming ceramics-focused exhibition opening later in March.",
+      "status": "upcoming",
+      "requiresAddOnTicket": false
+    },
+    {
+      "id": "aic-exh-mary-cassatt",
+      "title": "Mary Cassatt: After Impressionism",
+      "startDate": "2026-09-06",
+      "endDate": "2027-01-03",
+      "officialUrl": "https://www.artic.edu/exhibitions/10487/mary-cassatt-after-impressionism",
+      "shortDescription": "A large upcoming exhibition focused on Cassatt's later ambitious work.",
+      "status": "upcoming",
+      "requiresAddOnTicket": false
+    }
+  ],
+  "sampleVisitIntake": {
+    "museumId": "art-institute-of-chicago-us",
+    "visitDate": "2026-03-15",
+    "timeBudgetMinutes": 150,
+    "groupProfile": "adults",
+    "withChildren": false,
+    "withStroller": false,
+    "largeBags": true,
+    "needsAccessibility": false,
+    "foodPlan": "coffee_break",
+    "pace": "steady",
+    "interests": [
+      "iconic_paintings",
+      "impressionism",
+      "modern"
+    ],
+    "mustSeeArtworkIds": [
+      "27992",
+      "80607",
+      "111628"
+    ],
+    "mustSeeExhibitionIds": [
+      "aic-exh-matisse-jazz"
+    ],
+    "entryEntranceId": "michigan-avenue",
+    "language": "en",
+    "notes": "First visit. Prioritize iconic works and keep the route mostly on one floor."
+  },
+  "sampleTicketRecommendation": {
+    "museumId": "art-institute-of-chicago-us",
+    "visitDate": "2026-03-15",
+    "recommendationLabel": "General admission plus optional add-on for ticketed special exhibitions",
+    "recommendationSummary": "Use the official admissions flow. General admission covers the museum and non-ticketed exhibitions. Add the special-exhibition ticket only if this visit should include Matisse's Jazz.",
+    "officialPurchaseUrl": "https://sales.artic.edu/admissions",
+    "estimatedBasePrice": null,
+    "estimatedAddOnPrice": 5,
+    "currency": "USD",
+    "requiresOfficialCheckout": true,
+    "eligibilitySummary": "No discount eligibility assumed in this sample.",
+    "notes": [
+      "Keep MuMu in recommendation mode only; checkout should remain on the official museum path.",
+      "Members have a member-only hour from 10:00 AM to 11:00 AM.",
+      "Matisse's Jazz is a useful example of a special exhibition that may require an extra paid ticket."
+    ],
+    "addOnExhibitions": [
+      {
+        "id": "aic-exh-matisse-jazz",
+        "title": "Matisse's Jazz: Rhythms in Color",
+        "startDate": "2026-03-07",
+        "endDate": "2026-06-01",
+        "officialUrl": "https://www.artic.edu/exhibitions/10557/matisses-jazz-rhythms-in-color",
+        "shortDescription": "A current special exhibition that is useful for ticket add-on handling.",
+        "status": "current",
+        "requiresAddOnTicket": true
+      }
+    ],
+    "citations": [
+      {
+        "id": "visit-main",
+        "label": "AIC Visit",
+        "url": "https://www.artic.edu/visit",
+        "sourceKind": "official_live",
+        "accessedAt": "2026-03-15"
+      },
+      {
+        "id": "matisse-exhibition",
+        "label": "AIC Exhibition Page: Matisse's Jazz",
+        "url": "https://www.artic.edu/exhibitions/10557/matisses-jazz-rhythms-in-color",
+        "sourceKind": "official_live",
+        "accessedAt": "2026-03-15"
+      }
+    ]
+  },
+  "sampleRoutePlan": {
+    "planId": "aic-sample-route-2026-03-15-01",
+    "museumId": "art-institute-of-chicago-us",
+    "visitDate": "2026-03-15",
+    "routeMode": "highlights",
+    "confidence": "prototype",
+    "entryEntranceId": "michigan-avenue",
+    "exitSuggestion": "modern-wing",
+    "totalDurationMinutes": 145,
+    "summary": "A level-2 highlights route focused on iconic paintings, with one optional coffee stop and minimal floor changes.",
+    "rationale": [
+      "This route stays mostly on floor 2 to reduce friction.",
+      "It prioritizes widely recognized works before adding a softer Impressionist finish.",
+      "It includes a bag-check step because the sample intake says the visitor is carrying a large bag."
+    ],
+    "steps": [
+      {
+        "stepId": "step-1",
+        "order": 1,
+        "type": "entrance",
+        "title": "Enter via Michigan Avenue",
+        "subtitle": "Check your large bag before starting the route",
+        "location": {
+          "label": "Michigan Avenue Entrance",
+          "floor": "1",
+          "galleryId": null,
+          "galleryNumber": null,
+          "zone": "Main entry"
+        },
+        "durationMinutes": 10,
+        "walkMinutesFromPrevious": 0,
+        "whyThisStop": "The main entrance gives a clear first-time arrival path, and the attached sample intake includes a large bag that should be checked before entering galleries.",
+        "primaryObjects": [],
+        "nearbyFacilities": [
+          {
+            "key": "checkroom",
+            "label": "Free checkroom at entrance"
+          },
+          {
+            "key": "restroom",
+            "label": "Entry-level restrooms"
+          }
+        ],
+        "replanHints": [
+          "If the line is long, keep the same route but trim the final optional coffee stop."
+        ],
+        "citations": [
+          {
+            "id": "visitor-policies",
+            "label": "AIC Visitor Policies",
+            "url": "https://www.artic.edu/visit/visitor-policies",
+            "sourceKind": "official_live",
+            "accessedAt": "2026-03-15"
+          },
+          {
+            "id": "floor-plan",
+            "label": "AIC Museum Floor Plan",
+            "url": "https://www.artic.edu/visit/explore-on-your-own/museum-floor-plan",
+            "sourceKind": "official_live",
+            "accessedAt": "2026-03-15"
+          }
+        ]
+      },
+      {
+        "stepId": "step-2",
+        "order": 2,
+        "type": "gallery",
+        "title": "Start with Seurat in Gallery 240",
+        "subtitle": "Open with one of the museum's signature paintings",
+        "location": {
+          "label": "Gallery 240",
+          "floor": "2",
+          "galleryId": "2147478672",
+          "galleryNumber": "240",
+          "zone": "European painting sequence"
+        },
+        "durationMinutes": 25,
+        "walkMinutesFromPrevious": 8,
+        "whyThisStop": "La Grande Jatte is an ideal opening anchor because it is iconic, large, and easy to orient around in a short visit.",
+        "primaryObjects": [
+          {
+            "id": "27992",
+            "title": "A Sunday on La Grande Jatte - 1884",
+            "artistTitle": "Georges Seurat",
+            "year": "1884-86, border added 1888-89",
+            "imageUrl": "https://www.artic.edu/iiif/2/2d484387-2509-5e8e-2c43-22f9981972eb/full/843,/0/default.jpg",
+            "museumPageUrl": "https://www.artic.edu/artworks/27992",
+            "apiUrl": "https://api.artic.edu/api/v1/artworks/27992",
+            "isOnView": true,
+            "galleryId": "2147478672",
+            "galleryNumber": "240",
+            "floor": "2",
+            "mustSee": true
+          }
+        ],
+        "nearbyFacilities": [
+          {
+            "key": "elevator",
+            "label": "Nearby elevator access"
+          },
+          {
+            "key": "restroom",
+            "label": "Nearby restrooms"
+          }
+        ],
+        "replanHints": [
+          "If time drops below 90 minutes, keep this stop but shorten the final Impressionist stop."
+        ],
+        "citations": [
+          {
+            "id": "artwork-27992",
+            "label": "AIC API Artwork 27992",
+            "url": "https://api.artic.edu/api/v1/artworks/27992",
+            "sourceKind": "official_api",
+            "accessedAt": "2026-03-15"
+          },
+          {
+            "id": "gallery-240",
+            "label": "AIC API Gallery 240",
+            "url": "https://api.artic.edu/api/v1/galleries/2147478672",
+            "sourceKind": "official_api",
+            "accessedAt": "2026-03-15"
+          }
+        ]
+      },
+      {
+        "stepId": "step-3",
+        "order": 3,
+        "type": "gallery",
+        "title": "Move to Van Gogh in Gallery 241",
+        "subtitle": "Keep the route tight with an adjacent gallery stop",
+        "location": {
+          "label": "Gallery 241",
+          "floor": "2",
+          "galleryId": "2147479705",
+          "galleryNumber": "241",
+          "zone": "European painting sequence"
+        },
+        "durationMinutes": 30,
+        "walkMinutesFromPrevious": 3,
+        "whyThisStop": "This gallery keeps the route efficient and supports a strong second stop centered on Van Gogh.",
+        "primaryObjects": [
+          {
+            "id": "80607",
+            "title": "Self-Portrait",
+            "artistTitle": "Vincent van Gogh",
+            "year": "1887",
+            "imageUrl": "https://www.artic.edu/iiif/2/47c5bcb8-62ef-e5d7-55e7-f5121f409a30/full/843,/0/default.jpg",
+            "museumPageUrl": "https://www.artic.edu/artworks/80607",
+            "apiUrl": "https://api.artic.edu/api/v1/artworks/80607",
+            "isOnView": true,
+            "galleryId": "2147479705",
+            "galleryNumber": "241",
+            "floor": "2",
+            "mustSee": true
+          },
+          {
+            "id": "14586",
+            "title": "The Poet's Garden",
+            "artistTitle": "Vincent van Gogh",
+            "year": "1888",
+            "imageUrl": "https://www.artic.edu/iiif/2/d4bc1723-7cbc-d36d-a9cb-f84553f2a6f6/full/843,/0/default.jpg",
+            "museumPageUrl": "https://www.artic.edu/artworks/14586",
+            "apiUrl": "https://api.artic.edu/api/v1/artworks/14586",
+            "isOnView": true,
+            "galleryId": "2147479705",
+            "galleryNumber": "241",
+            "floor": "2",
+            "mustSee": false
+          }
+        ],
+        "nearbyFacilities": [
+          {
+            "key": "quiet_space",
+            "label": "Bench or slower-viewing pause nearby"
+          },
+          {
+            "key": "elevator",
+            "label": "Nearby elevator access"
+          }
+        ],
+        "replanHints": [
+          "If the visitor only has 60 minutes left, skip directly from here to Nighthawks and drop the final Impressionist stop."
+        ],
+        "citations": [
+          {
+            "id": "artwork-80607",
+            "label": "AIC API Artwork 80607",
+            "url": "https://api.artic.edu/api/v1/artworks/80607",
+            "sourceKind": "official_api",
+            "accessedAt": "2026-03-15"
+          },
+          {
+            "id": "artwork-14586",
+            "label": "AIC API Artwork 14586",
+            "url": "https://api.artic.edu/api/v1/artworks/14586",
+            "sourceKind": "official_api",
+            "accessedAt": "2026-03-15"
+          },
+          {
+            "id": "gallery-241",
+            "label": "AIC API Gallery 241",
+            "url": "https://api.artic.edu/api/v1/galleries/2147479705",
+            "sourceKind": "official_api",
+            "accessedAt": "2026-03-15"
+          }
+        ]
+      },
+      {
+        "stepId": "step-4",
+        "order": 4,
+        "type": "gallery",
+        "title": "Continue to Hopper in Gallery 262",
+        "subtitle": "Shift from European icons to an American classic",
+        "location": {
+          "label": "Gallery 262",
+          "floor": "2",
+          "galleryId": "2147478064",
+          "galleryNumber": "262",
+          "zone": "Modern and American painting"
+        },
+        "durationMinutes": 20,
+        "walkMinutesFromPrevious": 7,
+        "whyThisStop": "Nighthawks is an efficient high-value stop that broadens the route without forcing a major floor change.",
+        "primaryObjects": [
+          {
+            "id": "111628",
+            "title": "Nighthawks",
+            "artistTitle": "Edward Hopper",
+            "year": "1942",
+            "imageUrl": "https://www.artic.edu/iiif/2/831a05de-d3f6-f4fa-a460-23008dd58dda/full/843,/0/default.jpg",
+            "museumPageUrl": "https://www.artic.edu/artworks/111628",
+            "apiUrl": "https://api.artic.edu/api/v1/artworks/111628",
+            "isOnView": true,
+            "galleryId": "2147478064",
+            "galleryNumber": "262",
+            "floor": "2",
+            "mustSee": true
+          }
+        ],
+        "nearbyFacilities": [
+          {
+            "key": "restroom",
+            "label": "Nearby restrooms"
+          },
+          {
+            "key": "elevator",
+            "label": "Nearby elevator access"
+          }
+        ],
+        "replanHints": [
+          "If the visitor is getting tired, end here and skip to an exit or coffee stop."
+        ],
+        "citations": [
+          {
+            "id": "artwork-111628",
+            "label": "AIC API Artwork 111628",
+            "url": "https://api.artic.edu/api/v1/artworks/111628",
+            "sourceKind": "official_api",
+            "accessedAt": "2026-03-15"
+          },
+          {
+            "id": "gallery-262",
+            "label": "AIC API Gallery 262",
+            "url": "https://api.artic.edu/api/v1/galleries/2147478064",
+            "sourceKind": "official_api",
+            "accessedAt": "2026-03-15"
+          }
+        ]
+      },
+      {
+        "stepId": "step-5",
+        "order": 5,
+        "type": "gallery",
+        "title": "Finish with a short Impressionist pair in Gallery 201",
+        "subtitle": "A softer close if time and energy allow",
+        "location": {
+          "label": "Gallery 201",
+          "floor": "2",
+          "galleryId": "2147483643",
+          "galleryNumber": "201",
+          "zone": "Impressionist painting"
+        },
+        "durationMinutes": 20,
+        "walkMinutesFromPrevious": 6,
+        "whyThisStop": "This is an efficient optional finish because two on-view works sit in the same gallery and the stop can be shortened easily.",
+        "primaryObjects": [
+          {
+            "id": "81539",
+            "title": "On the Bank of the Seine, Bennecourt",
+            "artistTitle": "Claude Monet",
+            "year": "1868",
+            "imageUrl": "https://www.artic.edu/iiif/2/66f95ea3-a11a-1cf4-6599-d0a49bb25744/full/843,/0/default.jpg",
+            "museumPageUrl": "https://www.artic.edu/artworks/81539",
+            "apiUrl": "https://api.artic.edu/api/v1/artworks/81539",
+            "isOnView": true,
+            "galleryId": "2147483643",
+            "galleryNumber": "201",
+            "floor": "2",
+            "mustSee": false
+          },
+          {
+            "id": "14647",
+            "title": "Young Woman Sewing",
+            "artistTitle": "Pierre-Auguste Renoir",
+            "year": "1879",
+            "imageUrl": "https://www.artic.edu/iiif/2/147e3ce7-1c08-fa84-57f7-f59d4ec90d3c/full/843,/0/default.jpg",
+            "museumPageUrl": "https://www.artic.edu/artworks/14647",
+            "apiUrl": "https://api.artic.edu/api/v1/artworks/14647",
+            "isOnView": true,
+            "galleryId": "2147483643",
+            "galleryNumber": "201",
+            "floor": "2",
+            "mustSee": false
+          }
+        ],
+        "nearbyFacilities": [
+          {
+            "key": "cafe",
+            "label": "Modern Bar can be used as an optional next stop"
+          },
+          {
+            "key": "restroom",
+            "label": "Nearby restrooms"
+          }
+        ],
+        "replanHints": [
+          "If time is under 20 minutes, view only one work here before exiting.",
+          "If the visitor wants a break, convert the end of this stop into a coffee or exit decision."
+        ],
+        "citations": [
+          {
+            "id": "artwork-81539",
+            "label": "AIC API Artwork 81539",
+            "url": "https://api.artic.edu/api/v1/artworks/81539",
+            "sourceKind": "official_api",
+            "accessedAt": "2026-03-15"
+          },
+          {
+            "id": "artwork-14647",
+            "label": "AIC API Artwork 14647",
+            "url": "https://api.artic.edu/api/v1/artworks/14647",
+            "sourceKind": "official_api",
+            "accessedAt": "2026-03-15"
+          },
+          {
+            "id": "gallery-201",
+            "label": "AIC API Gallery 201",
+            "url": "https://api.artic.edu/api/v1/galleries/2147483643",
+            "sourceKind": "official_api",
+            "accessedAt": "2026-03-15"
+          }
+        ]
+      },
+      {
+        "stepId": "step-6",
+        "order": 6,
+        "type": "meal",
+        "title": "Optional coffee break before exit",
+        "subtitle": "Use only if the visit is running on schedule",
+        "location": {
+          "label": "Modern Bar",
+          "floor": "2",
+          "galleryId": null,
+          "galleryNumber": null,
+          "zone": "Modern Wing"
+        },
+        "durationMinutes": 15,
+        "walkMinutesFromPrevious": 4,
+        "whyThisStop": "The sample intake asked for a coffee break, so this is offered as an optional close rather than a required part of the route.",
+        "primaryObjects": [],
+        "nearbyFacilities": [
+          {
+            "key": "cafe",
+            "label": "Modern Bar"
+          },
+          {
+            "key": "shop",
+            "label": "Modern Shop nearby"
+          }
+        ],
+        "replanHints": [
+          "Drop this step first if the route falls behind schedule."
+        ],
+        "citations": [
+          {
+            "id": "dining-shopping",
+            "label": "AIC Dining and Shopping",
+            "url": "https://www.artic.edu/visit/dining-and-shopping",
+            "sourceKind": "official_live",
+            "accessedAt": "2026-03-15"
+          }
+        ]
+      }
+    ],
+    "citations": [
+      {
+        "id": "floor-plan",
+        "label": "AIC Museum Floor Plan",
+        "url": "https://www.artic.edu/visit/explore-on-your-own/museum-floor-plan",
+        "sourceKind": "official_live",
+        "accessedAt": "2026-03-15"
+      },
+      {
+        "id": "visitor-policies",
+        "label": "AIC Visitor Policies",
+        "url": "https://www.artic.edu/visit/visitor-policies",
+        "sourceKind": "official_live",
+        "accessedAt": "2026-03-15"
+      },
+      {
+        "id": "dining-shopping",
+        "label": "AIC Dining and Shopping",
+        "url": "https://www.artic.edu/visit/dining-and-shopping",
+        "sourceKind": "official_live",
+        "accessedAt": "2026-03-15"
+      }
+    ]
+  },
+  "sampleAskMuMu": [
+    {
+      "request": {
+        "museumId": "art-institute-of-chicago-us",
+        "visitDate": "2026-03-15",
+        "userQuestion": "I am bringing a carry-on suitcase. What should I do when I arrive?",
+        "currentModule": "snapshot",
+        "routePlanId": null,
+        "visibleEntityIds": [],
+        "intake": {
+          "largeBags": true
+        },
+        "conversation": [],
+        "language": "en"
+      },
+      "response": {
+        "answerMarkdown": "Start by using a checkroom as soon as you enter. At the Art Institute, bags and backpacks larger than 13 x 17 x 4 inches are not allowed in the galleries and must be checked. Checkrooms are free at both the Michigan Avenue and Modern Wing entrances.",
+        "answerType": "logistics",
+        "confidence": "high",
+        "suggestions": [
+          "Enter a few minutes earlier so bag check does not cut into gallery time.",
+          "If you also need a restroom stop, do it before heading up to floor 2."
+        ],
+        "disclaimers": [],
+        "citations": [
+          {
+            "id": "visitor-policies",
+            "label": "AIC Visitor Policies",
+            "url": "https://www.artic.edu/visit/visitor-policies",
+            "sourceKind": "official_live",
+            "accessedAt": "2026-03-15"
+          }
+        ],
+        "quickFollowUps": [
+          {
+            "label": "What if I have a stroller too?",
+            "question": "What should I know if I have a stroller as well?"
+          },
+          {
+            "label": "Which entrance is best?",
+            "question": "Which entrance should I use if I want the easiest first-time arrival?"
+          }
+        ]
+      }
+    },
+    {
+      "request": {
+        "museumId": "art-institute-of-chicago-us",
+        "visitDate": "2026-03-15",
+        "userQuestion": "I only have about two hours and I want iconic paintings. What should I prioritize?",
+        "currentModule": "route",
+        "routePlanId": "aic-sample-route-2026-03-15-01",
+        "visibleEntityIds": [
+          "27992",
+          "80607",
+          "14586",
+          "111628",
+          "81539",
+          "14647"
+        ],
+        "intake": {
+          "timeBudgetMinutes": 120,
+          "interests": [
+            "iconic_paintings"
+          ]
+        },
+        "conversation": [],
+        "language": "en"
+      },
+      "response": {
+        "answerMarkdown": "For a two-hour iconic-paintings visit, keep the route tight on floor 2. I would start with **A Sunday on La Grande Jatte** in Gallery 240, move next door to **Van Gogh's Self-Portrait** and **The Poet's Garden** in Gallery 241, then continue to **Nighthawks** in Gallery 262. If you still have time, finish with a short Impressionist stop in Gallery 201.",
+        "answerType": "route",
+        "confidence": "medium",
+        "suggestions": [
+          "Skip the optional coffee stop if your total time is under two hours.",
+          "Use the route shell's replan state if arrival or bag check takes longer than expected."
+        ],
+        "disclaimers": [
+          "This is a prototype route recommendation based on current official artwork and gallery data plus a simplified route shell."
+        ],
+        "citations": [
+          {
+            "id": "artwork-27992",
+            "label": "AIC API Artwork 27992",
+            "url": "https://api.artic.edu/api/v1/artworks/27992",
+            "sourceKind": "official_api",
+            "accessedAt": "2026-03-15"
+          },
+          {
+            "id": "artwork-80607",
+            "label": "AIC API Artwork 80607",
+            "url": "https://api.artic.edu/api/v1/artworks/80607",
+            "sourceKind": "official_api",
+            "accessedAt": "2026-03-15"
+          },
+          {
+            "id": "artwork-111628",
+            "label": "AIC API Artwork 111628",
+            "url": "https://api.artic.edu/api/v1/artworks/111628",
+            "sourceKind": "official_api",
+            "accessedAt": "2026-03-15"
+          },
+          {
+            "id": "floor-plan",
+            "label": "AIC Museum Floor Plan",
+            "url": "https://www.artic.edu/visit/explore-on-your-own/museum-floor-plan",
+            "sourceKind": "official_live",
+            "accessedAt": "2026-03-15"
+          }
+        ],
+        "routeAdjustments": [
+          {
+            "label": "Drop the final Impressionist stop",
+            "reason": "Best first cut if arrival or bag check takes longer than expected."
+          }
+        ],
+        "quickFollowUps": [
+          {
+            "label": "What if I need accessibility support?",
+            "question": "Can you adapt this route if I need to avoid stairs?"
+          },
+          {
+            "label": "Which one is not on view today?",
+            "question": "Which famous works in this museum are not on view today?"
+          }
+        ]
+      }
+    }
+  ]
+}
