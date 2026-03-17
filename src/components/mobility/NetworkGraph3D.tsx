@@ -1,6 +1,6 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { useMemo, useState, useCallback, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Text, Html } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Landmark, ArrowRightLeft, Image as ImageIcon, X, RotateCw } from 'lucide-react';
 import { getMuseumDisplayName } from '@/lib/humanizeMuseumId';
 import { getArtworkImageUrl } from '@/types/art';
+import { getCountryFlag } from '@/lib/countryFlag';
 import type { ArtworkMovement } from '@/types/movement';
 import type { EnrichedArtwork } from '@/types/art';
 
@@ -43,18 +44,20 @@ interface GraphEdge {
   width: number;
 }
 
-const GOLD = new THREE.Color('#b8860b');
-const GOLD_LIGHT = new THREE.Color('#d4a84b');
-const BURGUNDY = new THREE.Color('#7a2e3b');
-const BURGUNDY_LIGHT = new THREE.Color('#9b4a58');
+// MuMu brand colors
+const GOLD = new THREE.Color('hsl(43, 60%, 45%)');
+const GOLD_GLOW = new THREE.Color('hsl(43, 70%, 65%)');
+const BURGUNDY = new THREE.Color('hsl(348, 45%, 32%)');
+const BURGUNDY_GLOW = new THREE.Color('hsl(348, 50%, 50%)');
+const BG_DEEP = new THREE.Color('hsl(348, 45%, 10%)');
+const BG_MID = new THREE.Color('hsl(348, 30%, 14%)');
 
-/** Simple force-directed layout in 3D */
-function computeLayout(nodes: GraphNode[], edges: GraphEdge[], iterations = 80) {
-  // Initialize positions based on a sphere
+/** Force-directed 3D layout */
+function computeLayout(nodes: GraphNode[], edges: GraphEdge[], iterations = 100) {
   const positioned = nodes.map((n, i) => {
     const phi = Math.acos(-1 + (2 * i) / Math.max(1, nodes.length));
     const theta = Math.sqrt(nodes.length * Math.PI) * phi;
-    const r = 40 + Math.random() * 20;
+    const r = 35 + Math.random() * 15;
     return {
       ...n,
       x: r * Math.cos(theta) * Math.sin(phi),
@@ -69,14 +72,13 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[], iterations = 80) 
   for (let iter = 0; iter < iterations; iter++) {
     const alpha = 0.3 * (1 - iter / iterations);
 
-    // Repulsion between all nodes
     for (let i = 0; i < positioned.length; i++) {
       for (let j = i + 1; j < positioned.length; j++) {
         const dx = positioned[j].x - positioned[i].x;
         const dy = positioned[j].y - positioned[i].y;
         const dz = positioned[j].z - positioned[i].z;
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
-        const force = 600 / (dist * dist);
+        const force = 800 / (dist * dist);
         const fx = (dx / dist) * force * alpha;
         const fy = (dy / dist) * force * alpha;
         const fz = (dz / dist) * force * alpha;
@@ -85,7 +87,6 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[], iterations = 80) 
       }
     }
 
-    // Attraction along edges
     for (const e of edges) {
       const si = nodeIndex.get(e.source);
       const ti = nodeIndex.get(e.target);
@@ -96,7 +97,7 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[], iterations = 80) 
       const dy = t.y - s.y;
       const dz = t.z - s.z;
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
-      const force = (dist - 25) * 0.02 * alpha;
+      const force = (dist - 20) * 0.03 * alpha;
       const fx = (dx / dist) * force;
       const fy = (dy / dist) * force;
       const fz = (dz / dist) * force;
@@ -104,17 +105,15 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[], iterations = 80) 
       t.vx -= fx; t.vy -= fy; t.vz -= fz;
     }
 
-    // Center gravity
     for (const n of positioned) {
-      n.vx -= n.x * 0.01 * alpha;
-      n.vy -= n.y * 0.01 * alpha;
-      n.vz -= n.z * 0.01 * alpha;
+      n.vx -= n.x * 0.008 * alpha;
+      n.vy -= n.y * 0.008 * alpha;
+      n.vz -= n.z * 0.008 * alpha;
     }
 
-    // Apply velocity with damping
     for (const n of positioned) {
       n.x += n.vx * 0.8; n.y += n.vy * 0.8; n.z += n.vz * 0.8;
-      n.vx *= 0.6; n.vy *= 0.6; n.vz *= 0.6;
+      n.vx *= 0.55; n.vy *= 0.55; n.vz *= 0.55;
     }
   }
 
@@ -124,48 +123,76 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[], iterations = 80) 
   }));
 }
 
-/** A single node sphere */
-function NodeSphere({ node, isSelected, onClick }: { node: GraphNode; isSelected: boolean; onClick: () => void }) {
+/** Glowing node sphere with atmospheric shell */
+function NodeSphere({ node, isSelected, isHovered, onPointerOver, onPointerOut, onClick }: {
+  node: GraphNode; isSelected: boolean; isHovered: boolean;
+  onPointerOver: () => void; onPointerOut: () => void; onClick: () => void;
+}) {
   const meshRef = useRef<THREE.Mesh>(null!);
-  const baseScale = Math.max(0.8, Math.sqrt(node.total) * 0.5);
-  const scale = isSelected ? baseScale * 1.6 : baseScale;
+  const glowRef = useRef<THREE.Mesh>(null!);
   const netFlow = node.inflow - node.outflow;
-  const color = netFlow > 0 ? GOLD : netFlow < 0 ? BURGUNDY : BURGUNDY_LIGHT;
-  const emissive = isSelected ? (netFlow > 0 ? GOLD_LIGHT : BURGUNDY_LIGHT) : new THREE.Color('#000000');
+  const baseScale = Math.max(1, Math.sqrt(node.total) * 0.6);
+  const targetScale = (isSelected || isHovered) ? baseScale * 1.5 : baseScale;
+
+  const coreColor = netFlow > 0 ? GOLD : BURGUNDY;
+  const glowColor = netFlow > 0 ? GOLD_GLOW : BURGUNDY_GLOW;
 
   useFrame(() => {
     if (meshRef.current) {
-      meshRef.current.scale.lerp(new THREE.Vector3(scale, scale, scale), 0.1);
+      meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.08);
+    }
+    if (glowRef.current) {
+      const glowScale = targetScale * 1.6;
+      glowRef.current.scale.lerp(new THREE.Vector3(glowScale, glowScale, glowScale), 0.08);
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = (isSelected || isHovered) ? 0.25 : 0.08;
     }
   });
 
   return (
-    <mesh ref={meshRef} position={node.position} onClick={(e) => { e.stopPropagation(); onClick(); }}>
-      <sphereGeometry args={[1, 16, 16]} />
-      <meshStandardMaterial color={color} emissive={emissive} emissiveIntensity={isSelected ? 0.5 : 0.1} roughness={0.4} metalness={0.3} />
-    </mesh>
+    <group position={node.position}>
+      {/* Outer glow */}
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[1, 16, 16]} />
+        <meshBasicMaterial color={glowColor} transparent opacity={0.08} depthWrite={false} />
+      </mesh>
+      {/* Core sphere */}
+      <mesh ref={meshRef}
+        onPointerOver={(e) => { e.stopPropagation(); onPointerOver(); }}
+        onPointerOut={(e) => { e.stopPropagation(); onPointerOut(); }}
+        onClick={(e) => { e.stopPropagation(); onClick(); }}>
+        <sphereGeometry args={[1, 24, 24]} />
+        <meshStandardMaterial
+          color={coreColor}
+          emissive={coreColor}
+          emissiveIntensity={(isSelected || isHovered) ? 0.6 : 0.2}
+          roughness={0.3}
+          metalness={0.5}
+        />
+      </mesh>
+    </group>
   );
 }
 
-/** Edge line between two nodes */
-function EdgeLine({ from, to, opacity }: { from: [number, number, number]; to: [number, number, number]; width: number; opacity: number }) {
+/** Edge rendered as a primitive Line */
+function EdgeLine({ from, to, opacity, isActive }: { from: [number, number, number]; to: [number, number, number]; width: number; opacity: number; isActive: boolean }) {
   const lineObj = useMemo(() => {
     const points = [new THREE.Vector3(...from), new THREE.Vector3(...to)];
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = new THREE.LineBasicMaterial({ color: '#b8860b', transparent: true, opacity });
+    const color = isActive ? '#d4a84b' : '#b8860b';
+    const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
     return new THREE.Line(geometry, material);
-  }, [from, to, opacity]);
+  }, [from, to, opacity, isActive]);
 
   return <primitive object={lineObj} />;
 }
 
-/** Animated particles along edges */
-function EdgeParticle({ from, to }: { from: [number, number, number]; to: [number, number, number] }) {
+/** Animated particle flowing along an edge */
+function EdgeParticle({ from, to, speed = 0.12, color }: { from: [number, number, number]; to: [number, number, number]; speed?: number; color: THREE.Color }) {
   const meshRef = useRef<THREE.Mesh>(null!);
   const progressRef = useRef(Math.random());
 
   useFrame((_, delta) => {
-    progressRef.current += delta * 0.15;
+    progressRef.current += delta * speed;
     if (progressRef.current > 1) progressRef.current = 0;
     const t = progressRef.current;
     if (meshRef.current) {
@@ -179,40 +206,55 @@ function EdgeParticle({ from, to }: { from: [number, number, number]; to: [numbe
 
   return (
     <mesh ref={meshRef}>
-      <sphereGeometry args={[0.25, 8, 8]} />
-      <meshStandardMaterial color={GOLD_LIGHT} emissive={GOLD_LIGHT} emissiveIntensity={0.8} />
+      <sphereGeometry args={[0.2, 8, 8]} />
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1} />
     </mesh>
   );
 }
 
-/** Slow auto-rotation */
-function AutoRotate() {
+/** Slow idle camera drift */
+function IdleDrift() {
   const { camera } = useThree();
-  const angleRef = useRef(0);
+  const timeRef = useRef(0);
+  const initialPos = useRef<THREE.Vector3 | null>(null);
 
   useFrame((_, delta) => {
-    angleRef.current += delta * 0.05;
-    const radius = camera.position.length();
-    camera.position.x = Math.sin(angleRef.current) * radius * 0.3 + camera.position.x * 0.7;
-    camera.position.z = Math.cos(angleRef.current) * radius * 0.3 + camera.position.z * 0.7;
+    if (!initialPos.current) {
+      initialPos.current = camera.position.clone();
+    }
+    timeRef.current += delta * 0.15;
+    const drift = 3;
+    camera.position.x = initialPos.current.x + Math.sin(timeRef.current * 0.7) * drift;
+    camera.position.y = initialPos.current.y + Math.cos(timeRef.current * 0.5) * drift * 0.5;
     camera.lookAt(0, 0, 0);
   });
 
   return null;
 }
 
-/** The 3D scene content */
-function NetworkScene({ nodes, edges, selectedNodeId, onNodeClick, maxCount }: {
-  nodes: GraphNode[]; edges: GraphEdge[]; selectedNodeId: string | null;
-  onNodeClick: (id: string) => void; maxCount: number;
+/** The 3D scene */
+function NetworkScene({ nodes, edges, selectedNodeId, hoveredNodeId, onNodeHover, onNodeClick, maxCount }: {
+  nodes: GraphNode[]; edges: GraphEdge[]; selectedNodeId: string | null; hoveredNodeId: string | null;
+  onNodeHover: (id: string | null) => void; onNodeClick: (id: string) => void; maxCount: number;
 }) {
   const nodePositionMap = useMemo(() => new Map(nodes.map(n => [n.id, n.position])), [nodes]);
+  const activeNodeIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (selectedNodeId) ids.add(selectedNodeId);
+    if (hoveredNodeId) ids.add(hoveredNodeId);
+    return ids;
+  }, [selectedNodeId, hoveredNodeId]);
 
   return (
     <>
-      <ambientLight intensity={0.6} />
-      <pointLight position={[50, 50, 50]} intensity={0.8} />
-      <pointLight position={[-50, -30, 30]} intensity={0.4} color="#d4a84b" />
+      {/* Deep atmospheric lighting */}
+      <ambientLight intensity={0.15} />
+      <pointLight position={[60, 40, 60]} intensity={1.2} color="#d4a84b" />
+      <pointLight position={[-40, -30, 40]} intensity={0.5} color="#b8860b" />
+      <pointLight position={[0, 60, -30]} intensity={0.3} color="#9b4a58" />
+
+      {/* Background fog */}
+      <fog attach="fog" args={['#1a0e12', 80, 250]} />
 
       {/* Edges */}
       {edges.map((e, i) => {
@@ -220,28 +262,37 @@ function NetworkScene({ nodes, edges, selectedNodeId, onNodeClick, maxCount }: {
         const to = nodePositionMap.get(e.target);
         if (!from || !to) return null;
         const intensity = e.count / maxCount;
+        const isConnectedToActive = activeNodeIds.has(e.source) || activeNodeIds.has(e.target);
+        const opacity = isConnectedToActive ? 0.5 + intensity * 0.4 : 0.06 + intensity * 0.2;
         return (
           <group key={`edge-${i}`}>
-            <EdgeLine from={from} to={to} width={e.width} opacity={0.1 + intensity * 0.5} />
-            {intensity > 0.3 && <EdgeParticle from={from} to={to} />}
+            <EdgeLine from={from} to={to} width={e.width} opacity={opacity} isActive={isConnectedToActive} />
+            {(intensity > 0.25 || isConnectedToActive) && (
+              <EdgeParticle from={from} to={to} speed={0.08 + intensity * 0.12} color={isConnectedToActive ? GOLD_GLOW : GOLD} />
+            )}
           </group>
         );
       })}
 
       {/* Nodes */}
       {nodes.map(node => (
-        <NodeSphere key={node.id} node={node} isSelected={selectedNodeId === node.id}
-          onClick={() => onNodeClick(node.id)} />
+        <NodeSphere key={node.id} node={node}
+          isSelected={selectedNodeId === node.id}
+          isHovered={hoveredNodeId === node.id}
+          onPointerOver={() => onNodeHover(node.id)}
+          onPointerOut={() => onNodeHover(null)}
+          onClick={() => onNodeClick(node.id)}
+        />
       ))}
 
-      <OrbitControls enableDamping dampingFactor={0.05} minDistance={20} maxDistance={200} />
+      <OrbitControls enableDamping dampingFactor={0.05} minDistance={25} maxDistance={180} autoRotate autoRotateSpeed={0.3} />
     </>
   );
 }
 
 export function NetworkGraph3D({ movements, museumMap, artworks, onArtworkSelect }: Props) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [selectedEdge, setSelectedEdge] = useState<GraphEdge | null>(null);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
   const { rawNodes, rawEdges, maxCount } = useMemo(() => {
     const nodeMap = new Map<string, { inflow: number; outflow: number }>();
@@ -294,6 +345,14 @@ export function NetworkGraph3D({ movements, museumMap, artworks, onArtworkSelect
 
   const selectedNode = useMemo(() => selectedNodeId ? layoutNodes.find(n => n.id === selectedNodeId) || null : null, [selectedNodeId, layoutNodes]);
 
+  const nodeEdges = useMemo(() => {
+    if (!selectedNode) return [];
+    return rawEdges
+      .filter(e => e.source === selectedNode.id || e.target === selectedNode.id)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  }, [selectedNode, rawEdges]);
+
   const nodeArtworks = useMemo(() => {
     if (!selectedNode) return [];
     const ids = new Set<string>();
@@ -310,7 +369,7 @@ export function NetworkGraph3D({ movements, museumMap, artworks, onArtworkSelect
 
   const handleResetView = useCallback(() => {
     setSelectedNodeId(null);
-    setSelectedEdge(null);
+    setHoveredNodeId(null);
   }, []);
 
   return (
@@ -318,9 +377,9 @@ export function NetworkGraph3D({ movements, museumMap, artworks, onArtworkSelect
       <CardContent className="p-0">
         <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-semibold">3D Mobility Network</h3>
+            <h3 className="text-sm font-semibold">Museum Constellation</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {layoutNodes.length} museums · {rawEdges.length} corridors · Drag to rotate
+              {layoutNodes.length} museums · {rawEdges.length} corridors · Drag to explore
             </p>
           </div>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleResetView} title="Reset view">
@@ -328,69 +387,93 @@ export function NetworkGraph3D({ movements, museumMap, artworks, onArtworkSelect
           </Button>
         </div>
 
-        <div className="relative" style={{ height: 500, background: 'hsl(39, 33%, 96%)' }}>
-          <Canvas camera={{ position: [0, 0, 100], fov: 60 }} dpr={[1, 2]}>
+        <div className="relative" style={{ height: 560, background: 'linear-gradient(180deg, hsl(348, 45%, 10%) 0%, hsl(348, 30%, 8%) 100%)' }}>
+          <Canvas camera={{ position: [0, 0, 90], fov: 55 }} dpr={[1, 2]}>
             <NetworkScene nodes={layoutNodes} edges={rawEdges} selectedNodeId={selectedNodeId}
+              hoveredNodeId={hoveredNodeId}
+              onNodeHover={setHoveredNodeId}
               onNodeClick={handleNodeClick} maxCount={maxCount} />
           </Canvas>
 
           {/* Legend */}
-          <div className="absolute bottom-3 left-3 z-10 bg-background/90 backdrop-blur-sm rounded-lg p-2.5 text-[10px] space-y-1 border border-border/60 shadow-sm">
+          <div className="absolute bottom-3 left-3 z-10 bg-black/60 backdrop-blur-sm rounded-lg p-3 text-[10px] space-y-1.5 border border-white/10">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ background: '#b8860b' }} />
-              <span className="text-muted-foreground">Net Importer</span>
+              <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(43, 60%, 45%)', boxShadow: '0 0 6px hsl(43, 70%, 55%)' }} />
+              <span className="text-white/70">Net Importer</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ background: '#7a2e3b' }} />
-              <span className="text-muted-foreground">Net Exporter</span>
+              <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(348, 45%, 32%)', boxShadow: '0 0 6px hsl(348, 50%, 45%)' }} />
+              <span className="text-white/70">Net Exporter</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-[2px] rounded-full" style={{ background: '#b8860b' }} />
-              <span className="text-muted-foreground">Movement corridor</span>
+              <div className="w-6 h-[2px] rounded-full" style={{ background: 'hsl(43, 60%, 45%)' }} />
+              <span className="text-white/70">Movement corridor</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full" style={{ background: 'hsl(43, 70%, 65%)', boxShadow: '0 0 4px hsl(43, 70%, 65%)' }} />
+              <span className="text-white/70">Flow particle</span>
             </div>
           </div>
 
           {/* Node detail panel */}
           {selectedNode && (
-            <div className="absolute top-3 right-3 z-10 bg-background/95 backdrop-blur-sm rounded-xl border border-border/60 shadow-lg w-72 max-h-[440px] overflow-y-auto">
+            <div className="absolute top-3 right-3 z-10 bg-black/80 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl w-72 max-h-[500px] overflow-y-auto">
               <div className="p-4 space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <Landmark className="h-4 w-4 text-accent shrink-0" />
-                      <h4 className="text-sm font-semibold truncate">{selectedNode.name}</h4>
+                      <Landmark className="h-4 w-4 text-amber-400 shrink-0" />
+                      <h4 className="text-sm font-semibold text-white truncate">{selectedNode.name}</h4>
                     </div>
                     <div className="flex gap-2 mt-2">
-                      <Badge variant="secondary" className="text-[10px] gap-1">
-                        <span className="text-green-600">↓</span> {selectedNode.inflow} in
+                      <Badge variant="secondary" className="text-[10px] gap-1 bg-white/10 text-white/80 border-white/10">
+                        <span className="text-green-400">↓</span> {selectedNode.inflow} in
                       </Badge>
-                      <Badge variant="secondary" className="text-[10px] gap-1">
-                        <span className="text-red-500">↑</span> {selectedNode.outflow} out
+                      <Badge variant="secondary" className="text-[10px] gap-1 bg-white/10 text-white/80 border-white/10">
+                        <span className="text-red-400">↑</span> {selectedNode.outflow} out
                       </Badge>
-                      <Badge variant="outline" className="text-[10px]">
+                      <Badge variant="outline" className="text-[10px] border-white/10 text-white/70">
                         Net: {selectedNode.inflow - selectedNode.outflow > 0 ? '+' : ''}{selectedNode.inflow - selectedNode.outflow}
                       </Badge>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setSelectedNodeId(null)}>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-white/50 hover:text-white hover:bg-white/10" onClick={() => setSelectedNodeId(null)}>
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 </div>
 
+                {/* Top corridors for this node */}
+                {nodeEdges.length > 0 && (
+                  <div className="space-y-1.5">
+                    <h5 className="text-[10px] font-semibold uppercase tracking-wide text-white/40">Top Corridors</h5>
+                    {nodeEdges.map((e, i) => {
+                      const partner = e.source === selectedNode.id ? e.target : e.source;
+                      const partnerName = getMuseumDisplayName(partner, museumMap);
+                      return (
+                        <div key={i} className="flex items-center gap-2 text-xs text-white/70">
+                          <ArrowRightLeft className="h-3 w-3 text-amber-400/60 shrink-0" />
+                          <span className="truncate">{partnerName}</span>
+                          <span className="ml-auto text-white/50 tabular-nums shrink-0">{e.count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {nodeArtworks.length > 0 && (
                   <div className="space-y-2">
-                    <h5 className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Artworks</h5>
+                    <h5 className="text-[10px] font-semibold uppercase tracking-wide text-white/40">Artworks</h5>
                     <div className="grid grid-cols-4 gap-1.5">
                       {nodeArtworks.map(artwork => {
                         const imgUrl = getArtworkImageUrl(artwork);
                         return (
                           <button key={artwork.artwork_id}
-                            onClick={() => onArtworkSelect(artwork.artwork_id)}
-                            className="aspect-square rounded-md overflow-hidden border border-border/60 bg-muted hover:border-accent/60 transition-colors group">
+                            onClick={() => { try { onArtworkSelect(artwork.artwork_id); } catch {} }}
+                            className="aspect-square rounded-md overflow-hidden border border-white/10 bg-white/5 hover:border-amber-400/40 transition-colors group">
                             {imgUrl ? (
                               <img src={imgUrl} alt={artwork.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" loading="lazy" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center"><ImageIcon className="h-3 w-3 text-muted-foreground/30" /></div>
+                              <div className="w-full h-full flex items-center justify-center"><ImageIcon className="h-3 w-3 text-white/20" /></div>
                             )}
                           </button>
                         );

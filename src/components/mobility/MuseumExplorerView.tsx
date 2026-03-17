@@ -5,7 +5,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown, Landmark, X, Globe, Building, Map as MapIcon } from 'lucide-react';
+import { TrendingUp, TrendingDown, Landmark, X, Globe, Building, Map as MapIcon, Globe2 } from 'lucide-react';
 import { AnimatedPolyline } from './AnimatedPolyline';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { getMuseumDisplayName } from '@/lib/humanizeMuseumId';
@@ -32,23 +32,38 @@ interface Props {
 }
 
 type CountMode = 'events' | 'artworks';
-type GeoGranularity = 'museum' | 'country' | 'city';
+type GeoGranularity = 'museum' | 'city' | 'country' | 'continent';
 
-/**
- * Get proper city and country for a museum by looking up the full museums dataset.
- * This avoids parsing addresses which leads to garbage data.
- */
-function getMuseumGeoFromDataset(
-  museumId: string,
-  museumsByIdMap: Map<string, Museum>,
-): { country: string; city: string } {
+const CONTINENT_MAP: Record<string, string> = {
+  'United States': 'North America', 'Canada': 'North America', 'Mexico': 'North America',
+  'Brazil': 'South America', 'Argentina': 'South America', 'Chile': 'South America', 'Colombia': 'South America', 'Peru': 'South America',
+  'United Kingdom': 'Europe', 'France': 'Europe', 'Germany': 'Europe', 'Italy': 'Europe', 'Spain': 'Europe',
+  'Netherlands': 'Europe', 'Belgium': 'Europe', 'Austria': 'Europe', 'Switzerland': 'Europe', 'Sweden': 'Europe',
+  'Norway': 'Europe', 'Denmark': 'Europe', 'Finland': 'Europe', 'Poland': 'Europe', 'Czech Republic': 'Europe',
+  'Czechia': 'Europe', 'Hungary': 'Europe', 'Romania': 'Europe', 'Greece': 'Europe', 'Portugal': 'Europe',
+  'Ireland': 'Europe', 'Russia': 'Europe', 'Ukraine': 'Europe', 'Turkey': 'Europe', 'Croatia': 'Europe',
+  'Serbia': 'Europe', 'Bulgaria': 'Europe', 'Slovakia': 'Europe', 'Slovenia': 'Europe', 'Lithuania': 'Europe',
+  'Latvia': 'Europe', 'Estonia': 'Europe', 'Luxembourg': 'Europe', 'Malta': 'Europe', 'Cyprus': 'Europe',
+  'Iceland': 'Europe', 'Montenegro': 'Europe', 'North Macedonia': 'Europe', 'Albania': 'Europe',
+  'Bosnia and Herzegovina': 'Europe', 'Moldova': 'Europe', 'Georgia': 'Europe', 'Armenia': 'Europe',
+  'China': 'Asia', 'Japan': 'Asia', 'South Korea': 'Asia', 'India': 'Asia', 'Indonesia': 'Asia',
+  'Thailand': 'Asia', 'Vietnam': 'Asia', 'Philippines': 'Asia', 'Malaysia': 'Asia', 'Singapore': 'Asia',
+  'Taiwan': 'Asia', 'Israel': 'Asia', 'UAE': 'Asia', 'United Arab Emirates': 'Asia', 'Saudi Arabia': 'Asia',
+  'Qatar': 'Asia', 'Iran': 'Asia', 'Iraq': 'Asia', 'Pakistan': 'Asia', 'Bangladesh': 'Asia',
+  'Sri Lanka': 'Asia', 'Nepal': 'Asia', 'Cambodia': 'Asia', 'Myanmar': 'Asia', 'Mongolia': 'Asia',
+  'Kazakhstan': 'Asia', 'Uzbekistan': 'Asia', 'Azerbaijan': 'Asia',
+  'Australia': 'Oceania', 'New Zealand': 'Oceania', 'Fiji': 'Oceania',
+  'Egypt': 'Africa', 'South Africa': 'Africa', 'Nigeria': 'Africa', 'Kenya': 'Africa', 'Morocco': 'Africa',
+  'Tunisia': 'Africa', 'Ghana': 'Africa', 'Ethiopia': 'Africa', 'Tanzania': 'Africa', 'Senegal': 'Africa',
+};
+
+function getContinent(country: string): string {
+  return CONTINENT_MAP[country] || 'Other';
+}
+
+function getMuseumGeoFromDataset(museumId: string, museumsByIdMap: Map<string, Museum>): { country: string; city: string } {
   const museum = museumsByIdMap.get(museumId);
-  if (museum) {
-    return {
-      country: museum.country || 'Unknown',
-      city: museum.city || 'Unknown',
-    };
-  }
+  if (museum) return { country: museum.country || 'Unknown', city: museum.city || 'Unknown' };
   return { country: 'Unknown', city: 'Unknown' };
 }
 
@@ -89,12 +104,9 @@ export function MuseumExplorerView({ movements, museumMap, artworks, museums, on
   const [geoGranularity, setGeoGranularity] = useState<GeoGranularity>('museum');
   const [selectedMuseum, setSelectedMuseum] = useState<string | null>(null);
 
-  // Build a proper museum-by-id map from the full museum dataset
   const museumsByIdMap = useMemo(() => {
     const m = new Map<string, Museum>();
-    for (const museum of museums) {
-      m.set(museum.museum_id, museum);
-    }
+    for (const museum of museums) m.set(museum.museum_id, museum);
     return m;
   }, [museums]);
 
@@ -132,41 +144,44 @@ export function MuseumExplorerView({ movements, museumMap, artworks, museums, on
     return result;
   }, [movements, museumMap, artworks]);
 
-  // Geography aggregation - uses real museum city/country data
+  // Geography aggregation
   const geoStats = useMemo(() => {
     if (geoGranularity === 'museum') return null;
 
-    // Aggregate flow per movement at the geography level
-    const geoFlow = new Map<string, { inflow: number; outflow: number; lat: number; lng: number; latSum: number; lngSum: number; count: number }>();
+    const geoFlow = new Map<string, { inflow: number; outflow: number; lat: number; lng: number; latSum: number; lngSum: number; count: number; country?: string }>();
 
     for (const m of movements) {
       const lenderGeo = getMuseumGeoFromDataset(m.lender_museum_id, museumsByIdMap);
       const borrowerGeo = getMuseumGeoFromDataset(m.borrower_museum_id, museumsByIdMap);
 
-      const lenderKey = geoGranularity === 'country' ? lenderGeo.country : lenderGeo.city;
-      const borrowerKey = geoGranularity === 'country' ? borrowerGeo.country : borrowerGeo.city;
+      const lenderKey = geoGranularity === 'continent' ? getContinent(lenderGeo.country)
+        : geoGranularity === 'country' ? lenderGeo.country
+        : `${lenderGeo.city}, ${lenderGeo.country}`;
+      const borrowerKey = geoGranularity === 'continent' ? getContinent(borrowerGeo.country)
+        : geoGranularity === 'country' ? borrowerGeo.country
+        : `${borrowerGeo.city}, ${borrowerGeo.country}`;
 
       // Lender outflow
       if (!geoFlow.has(lenderKey)) {
         const lm = museumMap.get(m.lender_museum_id);
-        geoFlow.set(lenderKey, { inflow: 0, outflow: 0, lat: lm?.lat || 0, lng: lm?.lng || 0, latSum: lm?.lat || 0, lngSum: lm?.lng || 0, count: 1 });
+        geoFlow.set(lenderKey, { inflow: 0, outflow: 0, lat: lm?.lat || 0, lng: lm?.lng || 0, latSum: lm?.lat || 0, lngSum: lm?.lng || 0, count: 1, country: lenderGeo.country });
       }
-      const lg = geoFlow.get(lenderKey)!;
-      lg.outflow++;
+      geoFlow.get(lenderKey)!.outflow++;
 
       // Borrower inflow
       if (!geoFlow.has(borrowerKey)) {
         const bm = museumMap.get(m.borrower_museum_id);
-        geoFlow.set(borrowerKey, { inflow: 0, outflow: 0, lat: bm?.lat || 0, lng: bm?.lng || 0, latSum: bm?.lat || 0, lngSum: bm?.lng || 0, count: 1 });
+        geoFlow.set(borrowerKey, { inflow: 0, outflow: 0, lat: bm?.lat || 0, lng: bm?.lng || 0, latSum: bm?.lat || 0, lngSum: bm?.lng || 0, count: 1, country: borrowerGeo.country });
       }
-      const bg = geoFlow.get(borrowerKey)!;
-      bg.inflow++;
+      geoFlow.get(borrowerKey)!.inflow++;
     }
 
-    // Compute average lat/lng for each geo key from all museums in that geo
+    // Compute average positions
     const geoPositions = new Map<string, { latSum: number; lngSum: number; count: number }>();
     for (const museum of museums) {
-      const key = geoGranularity === 'country' ? museum.country : museum.city;
+      const key = geoGranularity === 'continent' ? getContinent(museum.country)
+        : geoGranularity === 'country' ? museum.country
+        : `${museum.city}, ${museum.country}`;
       if (!key) continue;
       if (!geoPositions.has(key)) geoPositions.set(key, { latSum: 0, lngSum: 0, count: 0 });
       const p = geoPositions.get(key)!;
@@ -176,13 +191,20 @@ export function MuseumExplorerView({ movements, museumMap, artworks, museums, on
     }
 
     return Array.from(geoFlow.entries())
-      .filter(([name]) => name && name !== 'Unknown')
+      .filter(([name]) => name && name !== 'Unknown' && name !== 'Unknown, Unknown')
       .map(([name, g]) => {
         const pos = geoPositions.get(name);
+        // Display name with flag for country/city
+        let displayName = name;
+        if (geoGranularity === 'country') {
+          displayName = `${getCountryFlag(name)} ${name}`;
+        } else if (geoGranularity === 'city' && g.country) {
+          displayName = `${getCountryFlag(g.country)} ${name}`;
+        }
         return {
           name,
-          displayName: geoGranularity === 'country' ? `${getCountryFlag(name)} ${name}` : name,
-          sortName: name,
+          displayName,
+          sortName: name.replace(/^[^\w]+/, ''), // strip emoji for sorting
           inflow: g.inflow,
           outflow: g.outflow,
           net: g.inflow - g.outflow,
@@ -191,7 +213,7 @@ export function MuseumExplorerView({ movements, museumMap, artworks, museums, on
         };
       })
       .sort((a, b) => a.sortName.localeCompare(b.sortName));
-  }, [flowStats, geoGranularity, movements, museumsByIdMap, museums, museumMap]);
+  }, [geoGranularity, movements, museumsByIdMap, museums, museumMap]);
 
   const getFlowValue = (s: typeof flowStats[0], direction: 'in' | 'out' | 'net') => {
     if (countMode === 'artworks') {
@@ -307,6 +329,10 @@ export function MuseumExplorerView({ movements, museumMap, artworks, museums, on
 
   const handleMuseumToggle = (id: string) => setSelectedMuseum(prev => prev === id ? null : id);
 
+  const granularityLabel = geoGranularity === 'continent' ? 'Continent'
+    : geoGranularity === 'country' ? 'Country'
+    : geoGranularity === 'city' ? 'City' : 'Museum';
+
   return (
     <div className="space-y-6">
       {/* Controls */}
@@ -331,6 +357,9 @@ export function MuseumExplorerView({ movements, museumMap, artworks, museums, on
             <Button variant={geoGranularity === 'country' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3 gap-1.5" onClick={() => { setGeoGranularity('country'); setSelectedMuseum(null); }}>
               <Globe className="h-3 w-3" />Country
             </Button>
+            <Button variant={geoGranularity === 'continent' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3 gap-1.5" onClick={() => { setGeoGranularity('continent'); setSelectedMuseum(null); }}>
+              <Globe2 className="h-3 w-3" />Continent
+            </Button>
           </div>
         </div>
       </div>
@@ -340,16 +369,14 @@ export function MuseumExplorerView({ movements, museumMap, artworks, museums, on
         <Card className="border-border/60 overflow-hidden">
           <CardContent className="p-0">
             <div className="px-4 py-3 border-b border-border/60">
-              <h3 className="text-sm font-semibold">
-                {geoGranularity === 'country' ? 'Country' : 'City'} Flow Summary
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">{geoStats.length} {geoGranularity === 'country' ? 'countries' : 'cities'}</p>
+              <h3 className="text-sm font-semibold">{granularityLabel} Flow Summary</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">{geoStats.length} {granularityLabel.toLowerCase()}s</p>
             </div>
             <div className="max-h-[300px] overflow-y-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-card border-b">
                   <tr>
-                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">{geoGranularity === 'country' ? 'Country' : 'City'}</th>
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">{granularityLabel}</th>
                     <th className="text-right p-3 text-xs font-medium text-green-700 dark:text-green-400">In</th>
                     <th className="text-right p-3 text-xs font-medium text-red-700 dark:text-red-400">Out</th>
                     <th className="text-right p-3 text-xs font-medium text-muted-foreground">Net</th>
