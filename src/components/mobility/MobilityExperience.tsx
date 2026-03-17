@@ -144,6 +144,9 @@ export function MobilityExperience({ onBack }: Props) {
       {tab === 'museum' && (
         <MuseumExplorerView movements={filteredMovements} museumMap={museumMap} artworks={artworks} museums={museums} onArtworkSelect={handleOpenArtworkDetail} />
       )}
+      {tab === 'network' && (
+        <NetworkGraph3D movements={filteredMovements} museumMap={museumMap} artworks={artworks} onArtworkSelect={handleOpenArtworkDetail} />
+      )}
 
       <ArtworkDetailDrawer
         open={detailArtworkId !== null}
