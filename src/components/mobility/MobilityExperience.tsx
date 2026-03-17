@@ -119,6 +119,7 @@ export function MobilityExperience({ onBack }: Props) {
           <TabsList className={cn("h-10", isMobile ? 'w-full' : '')}>
             <TabsTrigger value="flow" className={cn("px-5", isMobile && 'flex-1')}>All Works Flow</TabsTrigger>
             <TabsTrigger value="time" className={cn("px-5", isMobile && 'flex-1')}>Flow Over Time</TabsTrigger>
+            <TabsTrigger value="network" className={cn("px-5", isMobile && 'flex-1')}>3D Network</TabsTrigger>
             <TabsTrigger value="museum" className={cn("px-5", isMobile && 'flex-1')}>Museum Explorer</TabsTrigger>
           </TabsList>
         </Tabs>
