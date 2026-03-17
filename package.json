@@ -45,6 +45,7 @@
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@react-leaflet/core": "2.1.0",
+    "@react-three/drei": "9.122.0",
     "@supabase/supabase-js": "^2.93.3",
     "@tanstack/react-query": "^5.83.0",
     "@types/leaflet": "^1.9.21",
