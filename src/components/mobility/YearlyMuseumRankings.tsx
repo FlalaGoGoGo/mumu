@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getMuseumDisplayName } from '@/lib/humanizeMuseumId';
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { useState } from 'react';
 import type { ArtworkMovement } from '@/types/movement';
 
 interface MuseumPoint {
@@ -33,7 +35,6 @@ export function YearlyMuseumRankings({ movements, museumMap, selectedYear }: Pro
   const isMobile = useIsMobile();
   const [expandedMuseum, setExpandedMuseum] = useState<string | null>(null);
 
-  // Filter movements to selected year
   const yearMovements = useMemo(() => {
     if (!selectedYear) return movements;
     return movements.filter(m => {
@@ -50,7 +51,6 @@ export function YearlyMuseumRankings({ movements, museumMap, selectedYear }: Pro
     }>();
 
     for (const m of yearMovements) {
-      // Lender = outflow
       if (!map.has(m.lender_museum_id)) {
         map.set(m.lender_museum_id, { inflow: 0, outflow: 0, inArtworks: new Set(), outArtworks: new Set() });
       }
@@ -58,7 +58,6 @@ export function YearlyMuseumRankings({ movements, museumMap, selectedYear }: Pro
       l.outflow++;
       l.outArtworks.add(m.artwork_id);
 
-      // Borrower = inflow
       if (!map.has(m.borrower_museum_id)) {
         map.set(m.borrower_museum_id, { inflow: 0, outflow: 0, inArtworks: new Set(), outArtworks: new Set() });
       }
@@ -69,10 +68,9 @@ export function YearlyMuseumRankings({ movements, museumMap, selectedYear }: Pro
 
     const result: MuseumYearData[] = [];
     for (const [id, s] of map) {
-      const museum = museumMap.get(id);
       result.push({
         museum_id: id,
-        name: museum?.name || id,
+        name: getMuseumDisplayName(id, museumMap),
         inflow: s.inflow,
         outflow: s.outflow,
         net: s.inflow - s.outflow,
@@ -83,17 +81,9 @@ export function YearlyMuseumRankings({ movements, museumMap, selectedYear }: Pro
     return result;
   }, [yearMovements, museumMap]);
 
-  const topInflow = useMemo(() =>
-    [...museumStats].sort((a, b) => b.inflow - a.inflow).slice(0, 6),
-    [museumStats]
-  );
+  const topInflow = useMemo(() => [...museumStats].sort((a, b) => b.inflow - a.inflow).slice(0, 6), [museumStats]);
+  const topOutflow = useMemo(() => [...museumStats].sort((a, b) => b.outflow - a.outflow).slice(0, 6), [museumStats]);
 
-  const topOutflow = useMemo(() =>
-    [...museumStats].sort((a, b) => b.outflow - a.outflow).slice(0, 6),
-    [museumStats]
-  );
-
-  // Museum trend data for expanded museum
   const museumTrend = useMemo(() => {
     if (!expandedMuseum) return [];
     const yearMap = new Map<number, { inflow: number; outflow: number }>();
@@ -107,21 +97,15 @@ export function YearlyMuseumRankings({ movements, museumMap, selectedYear }: Pro
       if (m.borrower_museum_id === expandedMuseum) row.inflow++;
       if (m.lender_museum_id === expandedMuseum) row.outflow++;
     }
-    return Array.from(yearMap.entries())
-      .map(([year, d]) => ({ year, inflow: d.inflow, outflow: d.outflow }))
-      .sort((a, b) => a.year - b.year);
+    return Array.from(yearMap.entries()).map(([year, d]) => ({ year, ...d })).sort((a, b) => a.year - b.year);
   }, [movements, expandedMuseum]);
 
-  const expandedName = expandedMuseum ? (museumMap.get(expandedMuseum)?.name || expandedMuseum) : '';
-
+  const expandedName = expandedMuseum ? getMuseumDisplayName(expandedMuseum, museumMap) : '';
   const label = selectedYear ? `in ${selectedYear}` : 'across all years';
 
   const renderRankList = (
-    data: MuseumYearData[],
-    direction: 'in' | 'out',
-    icon: React.ReactNode,
-    title: string,
-    color: string,
+    data: MuseumYearData[], direction: 'in' | 'out',
+    icon: React.ReactNode, title: string, color: string,
   ) => (
     <Card className="border-border/60">
       <CardContent className="p-4">
@@ -156,12 +140,9 @@ export function YearlyMuseumRankings({ movements, museumMap, selectedYear }: Pro
                     {isExpanded ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
                   </div>
                 </div>
-                {/* Inline trend chart */}
                 {isExpanded && museumTrend.length > 1 && (
                   <div className="ml-7 mt-2 mb-3 rounded-lg border border-border/40 bg-muted/20 p-3">
-                    <p className="text-[10px] font-medium text-muted-foreground mb-2">
-                      Year trend for {expandedName}
-                    </p>
+                    <p className="text-[10px] font-medium text-muted-foreground mb-2">Year trend for {expandedName}</p>
                     <ResponsiveContainer width="100%" height={100}>
                       <BarChart data={museumTrend} margin={{ left: 0, right: 5 }}>
                         <XAxis dataKey="year" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
@@ -197,8 +178,8 @@ export function YearlyMuseumRankings({ movements, museumMap, selectedYear }: Pro
 
   return (
     <div className={isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-5'}>
-      {renderRankList(topInflow, 'in', <TrendingUp className="h-4 w-4 text-green-600" />, 'Top Inflow Museums', 'text-green-700')}
-      {renderRankList(topOutflow, 'out', <TrendingDown className="h-4 w-4 text-red-600" />, 'Top Outflow Museums', 'text-red-700')}
+      {renderRankList(topInflow, 'in', <TrendingUp className="h-4 w-4 text-green-600" />, 'Top Inflow Museums', 'text-green-700 dark:text-green-400')}
+      {renderRankList(topOutflow, 'out', <TrendingDown className="h-4 w-4 text-red-600" />, 'Top Outflow Museums', 'text-red-700 dark:text-red-400')}
     </div>
   );
 }
