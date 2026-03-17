@@ -11,10 +11,11 @@ import { MobilityFilters } from './MobilityFilters';
 import { ArtistOverviewView } from './ArtistOverviewView';
 import { FlowOverTimeView } from './FlowOverTimeView';
 import { MuseumExplorerView } from './MuseumExplorerView';
+import { NetworkGraph3D } from './NetworkGraph3D';
 import { ArtworkDetailDrawer } from './ArtworkDetailDrawer';
 import type { MobilityResearchStatus } from '@/types/movement';
 
-type MobilityTab = 'flow' | 'time' | 'museum';
+type MobilityTab = 'flow' | 'time' | 'museum' | 'network';
 
 interface Props {
   onBack: () => void;
@@ -118,6 +119,7 @@ export function MobilityExperience({ onBack }: Props) {
           <TabsList className={cn("h-10", isMobile ? 'w-full' : '')}>
             <TabsTrigger value="flow" className={cn("px-5", isMobile && 'flex-1')}>All Works Flow</TabsTrigger>
             <TabsTrigger value="time" className={cn("px-5", isMobile && 'flex-1')}>Flow Over Time</TabsTrigger>
+            <TabsTrigger value="network" className={cn("px-5", isMobile && 'flex-1')}>3D Network</TabsTrigger>
             <TabsTrigger value="museum" className={cn("px-5", isMobile && 'flex-1')}>Museum Explorer</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -141,6 +143,9 @@ export function MobilityExperience({ onBack }: Props) {
       )}
       {tab === 'museum' && (
         <MuseumExplorerView movements={filteredMovements} museumMap={museumMap} artworks={artworks} museums={museums} onArtworkSelect={handleOpenArtworkDetail} />
+      )}
+      {tab === 'network' && (
+        <NetworkGraph3D movements={filteredMovements} museumMap={museumMap} artworks={artworks} onArtworkSelect={handleOpenArtworkDetail} />
       )}
 
       <ArtworkDetailDrawer
