@@ -69,7 +69,9 @@ export function MobilityExperience({ onBack }: Props) {
     return museums.filter(m => ids.has(m.museum_id)).sort((a, b) => a.name.localeCompare(b.name));
   }, [movements, museums, artistId]);
 
-  const handleOpenArtworkDetail = useCallback((artworkId: string) => setDetailArtworkId(artworkId), []);
+  const handleOpenArtworkDetail = useCallback((artworkId: string) => {
+    try { setDetailArtworkId(artworkId); } catch { /* prevent crash */ }
+  }, []);
 
   const detailArtwork = useMemo(() => detailArtworkId ? artworks.find(a => a.artwork_id === detailArtworkId) || null : null, [artworks, detailArtworkId]);
   const detailMovements = useMemo(() => detailArtworkId ? filteredMovements.filter(m => m.artwork_id === detailArtworkId) : [], [filteredMovements, detailArtworkId]);
@@ -136,7 +138,7 @@ export function MobilityExperience({ onBack }: Props) {
       </div>
 
       {tab === 'flow' && (
-        <ArtistOverviewView movements={filteredMovements} museumMap={museumMap} artworks={artworks} onDrillDown={handleOpenArtworkDetail} selectedArtist={selectedArtist} />
+        <ArtistOverviewView movements={filteredMovements} museumMap={museumMap} artworks={artworks} onDrillDown={handleOpenArtworkDetail} selectedArtist={selectedArtist} museums={museums} />
       )}
       {tab === 'time' && (
         <FlowOverTimeView movements={filteredMovements} museumMap={museumMap} artworks={artworks} onArtworkSelect={handleOpenArtworkDetail} />

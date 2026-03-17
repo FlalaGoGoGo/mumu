@@ -15,10 +15,9 @@ import type { ArtworkMovement } from '@/types/movement';
 import type { EnrichedArtwork } from '@/types/art';
 import 'leaflet/dist/leaflet.css';
 
-/** MuMu gold highlight - matches --accent / --gold-border tokens */
+/** MuMu gold from --accent token */
 const GOLD = 'hsl(43, 60%, 45%)';
-const GOLD_LIGHT = 'hsl(43, 50%, 60%)';
-const GOLD_DARK = 'hsl(43, 65%, 38%)';
+const GOLD_RING = 'hsl(43, 65%, 38%)';
 
 interface MuseumPoint {
   museum_id: string;
@@ -66,7 +65,7 @@ function createArc(from: [number, number], to: [number, number], segments = 30):
 
 function FitBounds({ points }: { points: [number, number][] }) {
   const map = useMap();
-  useMemo(() => {
+  useEffect(() => {
     if (points.length > 1) {
       const bounds = L.latLngBounds(points.map(p => L.latLng(p[0], p[1])));
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 });
@@ -92,7 +91,12 @@ function MapFocusController({ corridor, allPoints }: { corridor: CorridorInfo | 
         L.latLng(corridor.from[0], corridor.from[1]),
         L.latLng(corridor.to[0], corridor.to[1]),
       ]);
-      map.flyToBounds(bounds, { padding: [80, 80], maxZoom: 7, duration: 0.6 });
+      const dist = Math.sqrt(
+        Math.pow(corridor.from[0] - corridor.to[0], 2) +
+        Math.pow(corridor.from[1] - corridor.to[1], 2)
+      );
+      const maxZoom = dist < 0.5 ? 14 : dist < 2 ? 12 : dist < 5 ? 10 : 8;
+      map.flyToBounds(bounds, { padding: [100, 100], maxZoom, duration: 0.6 });
     } else if (defaultBoundsRef.current) {
       map.flyToBounds(defaultBoundsRef.current, { padding: [40, 40], maxZoom: 8, duration: 0.6 });
     }
@@ -135,7 +139,7 @@ function YearArtworkTray({ movements, artworks, year, onArtworkSelect }: {
               try { onArtworkSelect(artwork.artwork_id); } catch { /* prevent crash */ }
             }}
               className="group shrink-0 w-28 text-left rounded-lg border border-border/60 overflow-hidden hover:border-accent/60 hover:shadow-md transition-all">
-              <div className="aspect-square bg-muted overflow-hidden">
+              <div className="h-28 bg-muted overflow-hidden">
                 {imageUrl ? (<img src={imageUrl} alt={artwork.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
                 ) : (<div className="w-full h-full flex items-center justify-center"><ImageIcon className="h-6 w-6 text-muted-foreground/30" /></div>)}
               </div>
@@ -151,7 +155,6 @@ function YearArtworkTray({ movements, artworks, year, onArtworkSelect }: {
 export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSelect }: Props) {
   const isMobile = useIsMobile();
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [hoveredYear, setHoveredYear] = useState<number | null>(null);
   const [hoveredCorridor, setHoveredCorridor] = useState<string | null>(null);
 
   const activeYears = useMemo(() => {
@@ -215,10 +218,9 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
     return ids;
   }, [movements, playback.currentYear]);
 
-  const { corridors, allPoints, involvedMuseums, maxEvents, museumEventCounts } = useMemo(() => {
+  const { corridors, allPoints, involvedMuseums, maxEvents } = useMemo(() => {
     const src = selectedYear ? yearFocusedMovements : timeFilteredMovements;
     const corridorMap = new Map<string, { lender_museum_id: string; borrower_museum_id: string; count: number; maxYear: number }>();
-    const museumCounts = new Map<string, number>();
 
     for (const m of src) {
       const key = `${m.lender_museum_id}__${m.borrower_museum_id}`;
@@ -227,8 +229,6 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
       c.count++;
       const y = parseInt(m.start_date?.substring(0, 4) || '');
       if (!isNaN(y) && y > c.maxYear) c.maxYear = y;
-      museumCounts.set(m.lender_museum_id, (museumCounts.get(m.lender_museum_id) || 0) + 1);
-      museumCounts.set(m.borrower_museum_id, (museumCounts.get(m.borrower_museum_id) || 0) + 1);
     }
 
     const corridors: CorridorInfo[] = [];
@@ -246,7 +246,7 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
       involved.set(to.museum_id, to);
       if (c.count > maxEvents) maxEvents = c.count;
     }
-    return { corridors, allPoints: allPts, involvedMuseums: Array.from(involved.values()), maxEvents, museumEventCounts: museumCounts };
+    return { corridors, allPoints: allPts, involvedMuseums: Array.from(involved.values()), maxEvents };
   }, [selectedYear, yearFocusedMovements, timeFilteredMovements, museumMap]);
 
   const center: [number, number] = allPoints.length > 0
@@ -314,49 +314,55 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
           <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png" />
           {allPoints.length > 1 && <FitBounds points={allPoints} />}
           <MapFocusController corridor={hoveredCorridorInfo} allPoints={allPoints} />
+
+          {/* Route lines first (beneath markers) */}
           {corridors.map(c => {
             const intensity = c.count / maxEvents;
             const isCurrentYear = isAnimating && currentYearMovementKeys.has(c.key);
             const isHovered = hoveredCorridor === c.key;
             const isActive = isCurrentYear || isHovered;
             const isDimmed = (isAnimating && !isCurrentYear && !isHovered) || (hoveredCorridor !== null && !isHovered);
-            const weight = isActive ? 4 + intensity * 5 : 1.5 + intensity * 3;
-            const opacity = isActive ? 1 : isDimmed ? 0.05 : 0.15 + intensity * 0.5;
-            const color = isActive ? GOLD : 'hsl(348, 45%, 42%)';
             return (
               <AnimatedPolyline key={c.key} id={c.key}
                 positions={createArc(c.from, c.to)}
-                color={color} weight={weight} opacity={opacity}
-                highlighted={isActive} animated={isActive}
+                color={isActive ? GOLD : 'hsl(348, 45%, 42%)'}
+                weight={isActive ? 3 : 1 + intensity * 2.5}
+                opacity={isActive ? 0.9 : isDimmed ? 0.04 : 0.1 + intensity * 0.35}
+                highlighted={isActive}
+                animated={isActive}
               />
             );
           })}
+
+          {/* Museum markers on top */}
           {involvedMuseums.map(m => {
-            const count = museumEventCounts.get(m.museum_id) || 0;
-            const isTop = count > maxEvents * 0.5;
             const isActiveMuseum = (isAnimating && currentYearMuseums.has(m.museum_id)) || hoveredEndpoints.has(m.museum_id);
             const isDimmed = (isAnimating && !currentYearMuseums.has(m.museum_id) && !hoveredEndpoints.has(m.museum_id)) ||
               (hoveredCorridor !== null && !hoveredEndpoints.has(m.museum_id));
             return (
               <CircleMarker key={m.museum_id} center={[m.lat, m.lng]}
-                radius={isActiveMuseum ? 10 : isTop ? 6 : 4}
+                radius={isActiveMuseum ? 9 : 5}
                 pathOptions={{
-                  color: isActiveMuseum ? GOLD_DARK : 'white',
+                  color: isActiveMuseum ? GOLD_RING : 'hsl(348, 55%, 38%)',
                   weight: isActiveMuseum ? 3 : 2,
-                  fillColor: isActiveMuseum ? GOLD : isTop ? 'hsl(348, 55%, 38%)' : 'hsl(348, 45%, 48%)',
-                  fillOpacity: isDimmed ? 0.08 : isActiveMuseum ? 1 : isTop ? 0.9 : 0.7,
+                  fillColor: 'white',
+                  fillOpacity: isDimmed ? 0.1 : 1,
+                  opacity: isDimmed ? 0.1 : 1,
                 }}>
                 <Popup><span className="text-xs font-semibold">{getMuseumDisplayName(m.museum_id, museumMap)}</span></Popup>
               </CircleMarker>
             );
           })}
         </MapContainer>
+
+        {/* Year indicator - top-right to avoid zoom controls */}
         {isAnimating && (
-          <div className="absolute top-3 left-3 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs border border-border/60 shadow-sm">
+          <div className="absolute top-3 right-3 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs border border-border/60 shadow-sm">
             <span className="font-bold text-accent tabular-nums text-sm">{playback.currentYear}</span>
-            <span className="text-muted-foreground ml-1.5">active corridors highlighted</span>
+            <span className="text-muted-foreground ml-1.5">active</span>
           </div>
         )}
+
         {/* Legend */}
         <div className="absolute bottom-3 left-3 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg p-2.5 text-[10px] space-y-1 border border-border/60 shadow-sm">
           <div className="flex items-center gap-2">
@@ -370,60 +376,8 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
         </div>
       </div>
 
-      <AnnualFlowChart movements={timeFilteredMovements} selectedYear={selectedYear} onYearSelect={handleYearSelect} hoveredYear={hoveredYear} onYearHover={setHoveredYear} />
+      <AnnualFlowChart movements={timeFilteredMovements} selectedYear={selectedYear} onYearSelect={handleYearSelect} hoveredYear={null} onYearHover={() => {}} />
       <YearlyMuseumRankings movements={timeFilteredMovements} museumMap={museumMap} selectedYear={selectedYear} />
-
-      {selectedYear && (
-        <YearlyArtworkGrid movements={timeFilteredMovements} museumMap={museumMap} artworks={artworks} year={selectedYear} onArtworkSelect={safeArtworkSelect} />
-      )}
     </div>
-  );
-}
-
-function YearlyArtworkGrid({ movements, museumMap, artworks, year, onArtworkSelect }: {
-  movements: ArtworkMovement[]; museumMap: Map<string, MuseumPoint>; artworks: EnrichedArtwork[]; year: number; onArtworkSelect: (id: string) => void;
-}) {
-  const artworkMap = useMemo(() => new Map(artworks.map(a => [a.artwork_id, a])), [artworks]);
-  const yearData = useMemo(() => {
-    const items: { movement: ArtworkMovement; artwork: EnrichedArtwork | undefined }[] = [];
-    for (const m of movements) {
-      if (!m.start_date) continue;
-      if (parseInt(m.start_date.substring(0, 4)) === year) items.push({ movement: m, artwork: artworkMap.get(m.artwork_id) });
-    }
-    return items.sort((a, b) => (a.movement.start_date || '').localeCompare(b.movement.start_date || ''));
-  }, [movements, year, artworkMap]);
-
-  if (yearData.length === 0) return null;
-
-  return (
-    <Card className="border-border/60 overflow-hidden">
-      <CardContent className="p-0">
-        <div className="px-4 py-3 border-b border-border/60">
-          <h3 className="text-sm font-semibold">Artworks Moved in {year}</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">{yearData.length} movement events</p>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
-          {yearData.map(({ movement: m, artwork }, i) => {
-            const imageUrl = artwork ? getArtworkImageUrl(artwork) : null;
-            return (
-              <button key={`${m.movement_id}-${i}`} onClick={() => {
-                try { onArtworkSelect(m.artwork_id); } catch { /* prevent crash */ }
-              }}
-                className="group text-left rounded-lg border border-border/60 overflow-hidden hover:border-accent/40 hover:shadow-md transition-all">
-                <div className="aspect-square bg-muted overflow-hidden">
-                  {imageUrl ? (<img src={imageUrl} alt={m.artwork_title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-                  ) : (<div className="w-full h-full flex items-center justify-center"><ImageIcon className="h-8 w-8 text-muted-foreground/20" /></div>)}
-                </div>
-                <div className="p-2.5 space-y-1">
-                  <p className="text-xs font-medium line-clamp-2 leading-tight group-hover:text-accent transition-colors">{m.artwork_title || m.artwork_id}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{getMuseumDisplayName(m.lender_museum_id, museumMap)} → {getMuseumDisplayName(m.borrower_museum_id, museumMap)}</p>
-                  <p className="text-[10px] text-muted-foreground tabular-nums">{m.start_date?.substring(0, 10)}</p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
