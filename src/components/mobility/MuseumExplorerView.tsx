@@ -4,15 +4,16 @@ import L from 'leaflet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown, Landmark, ArrowRight, X, Globe, Building, Map as MapIcon } from 'lucide-react';
+import { TrendingUp, TrendingDown, Landmark, X, Globe, Building, Map as MapIcon } from 'lucide-react';
 import { AnimatedPolyline } from './AnimatedPolyline';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { getMuseumDisplayName } from '@/lib/humanizeMuseumId';
+import { getCountryFlag } from '@/lib/countryFlag';
+import { getArtworkImageUrl } from '@/types/art';
 import type { ArtworkMovement, MuseumFlowStats } from '@/types/movement';
 import type { EnrichedArtwork } from '@/types/art';
-import { getArtworkImageUrl } from '@/types/art';
+import type { Museum } from '@/types/museum';
 import 'leaflet/dist/leaflet.css';
 
 interface MuseumPoint {
@@ -26,28 +27,29 @@ interface Props {
   movements: ArtworkMovement[];
   museumMap: Map<string, MuseumPoint>;
   artworks: EnrichedArtwork[];
+  museums: Museum[];
   onArtworkSelect: (artworkId: string) => void;
 }
 
 type CountMode = 'events' | 'artworks';
 type GeoGranularity = 'museum' | 'country' | 'city';
 
-// Derive country/city from museum data (using the artworks' museum info)
-function getMuseumGeo(museumId: string, artworks: EnrichedArtwork[]): { country: string; city: string } {
-  const artwork = artworks.find(a => a.museum_id === museumId);
-  if (artwork?.museum_address) {
-    // Try to parse country/city from address
-    const parts = artwork.museum_address.split(',').map(s => s.trim());
-    if (parts.length >= 2) {
-      return { city: parts[0] || 'Unknown', country: parts[parts.length - 1] || 'Unknown' };
-    }
+/**
+ * Get proper city and country for a museum by looking up the full museums dataset.
+ * This avoids parsing addresses which leads to garbage data.
+ */
+function getMuseumGeoFromDataset(
+  museumId: string,
+  museumsByIdMap: Map<string, Museum>,
+): { country: string; city: string } {
+  const museum = museumsByIdMap.get(museumId);
+  if (museum) {
+    return {
+      country: museum.country || 'Unknown',
+      city: museum.city || 'Unknown',
+    };
   }
-  // Fallback: derive from museum_id slug
-  const parts = museumId.split('-');
-  const country = parts[parts.length - 1]?.toUpperCase() || 'Unknown';
-  const city = parts.length > 2 ? parts[parts.length - 2]
-    ?.replace(/^./, c => c.toUpperCase()) || 'Unknown' : 'Unknown';
-  return { country, city };
+  return { country: 'Unknown', city: 'Unknown' };
 }
 
 function createArc(from: [number, number], to: [number, number], segments = 30): [number, number][] {
@@ -81,11 +83,20 @@ function FitBounds({ points }: { points: [number, number][] }) {
   return null;
 }
 
-export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSelect }: Props) {
+export function MuseumExplorerView({ movements, museumMap, artworks, museums, onArtworkSelect }: Props) {
   const isMobile = useIsMobile();
   const [countMode, setCountMode] = useState<CountMode>('events');
   const [geoGranularity, setGeoGranularity] = useState<GeoGranularity>('museum');
   const [selectedMuseum, setSelectedMuseum] = useState<string | null>(null);
+
+  // Build a proper museum-by-id map from the full museum dataset
+  const museumsByIdMap = useMemo(() => {
+    const m = new Map<string, Museum>();
+    for (const museum of museums) {
+      m.set(museum.museum_id, museum);
+    }
+    return m;
+  }, [museums]);
 
   // Per-museum flow stats
   const flowStats = useMemo(() => {
@@ -121,37 +132,66 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
     return result;
   }, [movements, museumMap, artworks]);
 
-  // Geography aggregation
+  // Geography aggregation - uses real museum city/country data
   const geoStats = useMemo(() => {
     if (geoGranularity === 'museum') return null;
 
-    const geoMap = new Map<string, { inflow: number; outflow: number; inArt: Set<string>; outArt: Set<string>; lat: number; lng: number; count: number }>();
+    // Aggregate flow per movement at the geography level
+    const geoFlow = new Map<string, { inflow: number; outflow: number; lat: number; lng: number; latSum: number; lngSum: number; count: number }>();
 
-    for (const s of flowStats) {
-      const geo = getMuseumGeo(s.museum_id, artworks);
-      const key = geoGranularity === 'country' ? geo.country : geo.city;
+    for (const m of movements) {
+      const lenderGeo = getMuseumGeoFromDataset(m.lender_museum_id, museumsByIdMap);
+      const borrowerGeo = getMuseumGeoFromDataset(m.borrower_museum_id, museumsByIdMap);
 
-      if (!geoMap.has(key)) {
-        geoMap.set(key, { inflow: 0, outflow: 0, inArt: new Set(), outArt: new Set(), lat: s.lat, lng: s.lng, count: 0 });
+      const lenderKey = geoGranularity === 'country' ? lenderGeo.country : lenderGeo.city;
+      const borrowerKey = geoGranularity === 'country' ? borrowerGeo.country : borrowerGeo.city;
+
+      // Lender outflow
+      if (!geoFlow.has(lenderKey)) {
+        const lm = museumMap.get(m.lender_museum_id);
+        geoFlow.set(lenderKey, { inflow: 0, outflow: 0, lat: lm?.lat || 0, lng: lm?.lng || 0, latSum: lm?.lat || 0, lngSum: lm?.lng || 0, count: 1 });
       }
-      const g = geoMap.get(key)!;
-      g.inflow += s.inflow_count;
-      g.outflow += s.outflow_count;
-      // Average position
-      g.lat = (g.lat * g.count + s.lat) / (g.count + 1);
-      g.lng = (g.lng * g.count + s.lng) / (g.count + 1);
-      g.count++;
+      const lg = geoFlow.get(lenderKey)!;
+      lg.outflow++;
+
+      // Borrower inflow
+      if (!geoFlow.has(borrowerKey)) {
+        const bm = museumMap.get(m.borrower_museum_id);
+        geoFlow.set(borrowerKey, { inflow: 0, outflow: 0, lat: bm?.lat || 0, lng: bm?.lng || 0, latSum: bm?.lat || 0, lngSum: bm?.lng || 0, count: 1 });
+      }
+      const bg = geoFlow.get(borrowerKey)!;
+      bg.inflow++;
     }
 
-    return Array.from(geoMap.entries()).map(([name, g]) => ({
-      name,
-      inflow: g.inflow,
-      outflow: g.outflow,
-      net: g.inflow - g.outflow,
-      lat: g.lat,
-      lng: g.lng,
-    })).sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
-  }, [flowStats, geoGranularity, artworks]);
+    // Compute average lat/lng for each geo key from all museums in that geo
+    const geoPositions = new Map<string, { latSum: number; lngSum: number; count: number }>();
+    for (const museum of museums) {
+      const key = geoGranularity === 'country' ? museum.country : museum.city;
+      if (!key) continue;
+      if (!geoPositions.has(key)) geoPositions.set(key, { latSum: 0, lngSum: 0, count: 0 });
+      const p = geoPositions.get(key)!;
+      p.latSum += museum.lat;
+      p.lngSum += museum.lng;
+      p.count++;
+    }
+
+    return Array.from(geoFlow.entries())
+      .filter(([name]) => name && name !== 'Unknown')
+      .map(([name, g]) => {
+        const pos = geoPositions.get(name);
+        return {
+          name,
+          displayName: geoGranularity === 'country' ? `${getCountryFlag(name)} ${name}` : name,
+          sortName: name,
+          inflow: g.inflow,
+          outflow: g.outflow,
+          net: g.inflow - g.outflow,
+          lat: pos ? pos.latSum / pos.count : g.lat,
+          lng: pos ? pos.lngSum / pos.count : g.lng,
+        };
+      })
+      .sort((a, b) => a.sortName.localeCompare(b.sortName));
+  }, [flowStats, geoGranularity, movements, museumsByIdMap, museums, museumMap]);
 
   const getFlowValue = (s: typeof flowStats[0], direction: 'in' | 'out' | 'net') => {
     if (countMode === 'artworks') {
@@ -164,11 +204,34 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
     return s.net_flow;
   };
 
-  const allPoints: [number, number][] = flowStats.map(s => [s.lat, s.lng]);
-  const maxMagnitude = Math.max(1, ...flowStats.map(s => Math.abs(getFlowValue(s, 'net'))));
+  // Map data depends on granularity
+  const mapData = useMemo(() => {
+    if (geoGranularity === 'museum' || !geoStats) {
+      return {
+        points: flowStats.map(s => ({ id: s.museum_id, name: s.museum_name, lat: s.lat, lng: s.lng, inflow: s.inflow_count, outflow: s.outflow_count, net: s.net_flow })),
+      };
+    }
+    return {
+      points: geoStats.map(s => ({ id: s.name, name: s.displayName, lat: s.lat, lng: s.lng, inflow: s.inflow, outflow: s.outflow, net: s.net })),
+    };
+  }, [geoGranularity, geoStats, flowStats]);
 
-  const topInflow = useMemo(() => [...flowStats].sort((a, b) => getFlowValue(b, 'in') - getFlowValue(a, 'in')).slice(0, 8), [flowStats, countMode]);
-  const topOutflow = useMemo(() => [...flowStats].sort((a, b) => getFlowValue(b, 'out') - getFlowValue(a, 'out')).slice(0, 8), [flowStats, countMode]);
+  const allPoints: [number, number][] = mapData.points.map(p => [p.lat, p.lng]);
+  const maxMagnitude = Math.max(1, ...mapData.points.map(p => Math.abs(p.net)));
+
+  // Top inflow / outflow adapts to granularity
+  const { topInflow, topOutflow } = useMemo(() => {
+    if (geoGranularity === 'museum' || !geoStats) {
+      const sorted = [...flowStats].sort((a, b) => getFlowValue(b, 'in') - getFlowValue(a, 'in'));
+      return {
+        topInflow: sorted.slice(0, 8),
+        topOutflow: [...flowStats].sort((a, b) => getFlowValue(b, 'out') - getFlowValue(a, 'out')).slice(0, 8),
+      };
+    }
+    const sortedIn = [...geoStats].sort((a, b) => b.inflow - a.inflow).slice(0, 8);
+    const sortedOut = [...geoStats].sort((a, b) => b.outflow - a.outflow).slice(0, 8);
+    return { topInflow: sortedIn, topOutflow: sortedOut };
+  }, [flowStats, geoStats, geoGranularity, countMode]);
 
   // Selected museum detail
   const selectedMuseumData = useMemo(() => {
@@ -201,10 +264,7 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
     for (const m of movements) {
       if (m.lender_museum_id === selectedMuseum || m.borrower_museum_id === selectedMuseum) ids.add(m.artwork_id);
     }
-    return Array.from(ids).slice(0, 12).map(id => {
-      const a = artworks.find(art => art.artwork_id === id);
-      return a || null;
-    }).filter(Boolean) as EnrichedArtwork[];
+    return Array.from(ids).slice(0, 12).map(id => artworks.find(art => art.artwork_id === id) || null).filter(Boolean) as EnrichedArtwork[];
   }, [movements, selectedMuseum, artworks]);
 
   const museumTrend = useMemo(() => {
@@ -254,28 +314,21 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
         <div className="flex items-center gap-3">
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Count by:</span>
           <div className="flex gap-0.5 rounded-lg border border-border/60 p-0.5">
-            <Button variant={countMode === 'events' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3" onClick={() => setCountMode('events')}>
-              Events
-            </Button>
-            <Button variant={countMode === 'artworks' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3" onClick={() => setCountMode('artworks')}>
-              Artworks
-            </Button>
+            <Button variant={countMode === 'events' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3" onClick={() => setCountMode('events')}>Events</Button>
+            <Button variant={countMode === 'artworks' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3" onClick={() => setCountMode('artworks')}>Artworks</Button>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Granularity:</span>
           <div className="flex gap-0.5 rounded-lg border border-border/60 p-0.5">
-            <Button variant={geoGranularity === 'museum' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3 gap-1.5"
-              onClick={() => setGeoGranularity('museum')}>
+            <Button variant={geoGranularity === 'museum' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3 gap-1.5" onClick={() => { setGeoGranularity('museum'); setSelectedMuseum(null); }}>
               <Building className="h-3 w-3" />Museum
             </Button>
-            <Button variant={geoGranularity === 'city' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3 gap-1.5"
-              onClick={() => setGeoGranularity('city')}>
+            <Button variant={geoGranularity === 'city' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3 gap-1.5" onClick={() => { setGeoGranularity('city'); setSelectedMuseum(null); }}>
               <MapIcon className="h-3 w-3" />City
             </Button>
-            <Button variant={geoGranularity === 'country' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3 gap-1.5"
-              onClick={() => setGeoGranularity('country')}>
+            <Button variant={geoGranularity === 'country' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3 gap-1.5" onClick={() => { setGeoGranularity('country'); setSelectedMuseum(null); }}>
               <Globe className="h-3 w-3" />Country
             </Button>
           </div>
@@ -296,18 +349,16 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-card border-b">
                   <tr>
-                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">
-                      {geoGranularity === 'country' ? 'Country' : 'City'}
-                    </th>
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">{geoGranularity === 'country' ? 'Country' : 'City'}</th>
                     <th className="text-right p-3 text-xs font-medium text-green-700 dark:text-green-400">In</th>
                     <th className="text-right p-3 text-xs font-medium text-red-700 dark:text-red-400">Out</th>
                     <th className="text-right p-3 text-xs font-medium text-muted-foreground">Net</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
-                  {geoStats.map(s => (
+                  {[...geoStats].sort((a, b) => Math.abs(b.net) - Math.abs(a.net)).map(s => (
                     <tr key={s.name} className="hover:bg-muted/40 transition-colors">
-                      <td className="p-3 font-medium">{s.name}</td>
+                      <td className="p-3 font-medium">{s.displayName}</td>
                       <td className="p-3 text-right text-green-700 dark:text-green-400 tabular-nums">{s.inflow}</td>
                       <td className="p-3 text-right text-red-700 dark:text-red-400 tabular-nums">{s.outflow}</td>
                       <td className={cn("p-3 text-right font-semibold tabular-nums",
@@ -328,7 +379,7 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
         <MapContainer center={[48, 2]} zoom={4} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
           />
           {allPoints.length > 1 && <FitBounds points={allPoints} />}
 
@@ -343,36 +394,35 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
             />
           ))}
 
-          {flowStats.map(s => {
-            const netValue = getFlowValue(s, 'net');
-            const magnitude = Math.abs(netValue);
+          {mapData.points.map(p => {
+            const magnitude = Math.abs(p.net);
             const radius = 6 + (magnitude / maxMagnitude) * 16;
-            const color = netValue > 0 ? 'hsl(160, 50%, 40%)' : netValue < 0 ? 'hsl(348, 45%, 42%)' : 'hsl(43, 60%, 45%)';
-            const isSelected = selectedMuseum === s.museum_id;
-            const isDimmed = selectedMuseum !== null && !isSelected && !counterparts.some(c => c.museum_id === s.museum_id);
+            const color = p.net > 0 ? 'hsl(160, 50%, 40%)' : p.net < 0 ? 'hsl(348, 45%, 42%)' : 'hsl(43, 60%, 45%)';
+            const isSelected = geoGranularity === 'museum' && selectedMuseum === p.id;
+            const isDimmed = geoGranularity === 'museum' && selectedMuseum !== null && !isSelected && !counterparts.some(c => c.museum_id === p.id);
 
             return (
               <CircleMarker
-                key={s.museum_id} center={[s.lat, s.lng]}
+                key={p.id} center={[p.lat, p.lng]}
                 radius={isSelected ? radius + 3 : radius}
                 pathOptions={{
                   color: isSelected ? 'hsl(348, 55%, 32%)' : 'white',
                   weight: isSelected ? 3 : 2,
                   fillColor: color, fillOpacity: isDimmed ? 0.15 : 0.75,
                 }}
-                eventHandlers={{ click: () => handleMuseumToggle(s.museum_id) }}
+                eventHandlers={geoGranularity === 'museum' ? { click: () => handleMuseumToggle(p.id) } : {}}
               >
                 <Popup>
                   <div className="text-xs space-y-1 min-w-[180px]">
-                    <p className="font-semibold">{s.museum_name}</p>
+                    <p className="font-semibold">{p.name}</p>
                     <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
                       <span className="text-muted-foreground">Inflow:</span>
-                      <span className="font-medium text-green-700">{getFlowValue(s, 'in')}</span>
+                      <span className="font-medium text-green-700">{p.inflow}</span>
                       <span className="text-muted-foreground">Outflow:</span>
-                      <span className="font-medium text-red-700">{getFlowValue(s, 'out')}</span>
+                      <span className="font-medium text-red-700">{p.outflow}</span>
                       <span className="text-muted-foreground">Net:</span>
-                      <span className={cn("font-bold", netValue > 0 ? 'text-green-700' : netValue < 0 ? 'text-red-700' : '')}>
-                        {netValue > 0 ? '+' : ''}{netValue}
+                      <span className={cn("font-bold", p.net > 0 ? 'text-green-700' : p.net < 0 ? 'text-red-700' : '')}>
+                        {p.net > 0 ? '+' : ''}{p.net}
                       </span>
                     </div>
                   </div>
@@ -399,7 +449,7 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
       </div>
 
       {/* Selected Museum Detail Panel */}
-      {selectedMuseumData && (
+      {selectedMuseumData && geoGranularity === 'museum' && (
         <Card className="border-primary/20 bg-primary/[0.02]">
           <CardContent className="p-5 space-y-5">
             <div className="flex items-start justify-between gap-3">
@@ -419,7 +469,6 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
               </Button>
             </div>
 
-            {/* Year Trend */}
             {museumTrend.length > 1 && (
               <div className="space-y-2">
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Inflow vs Outflow Over Time</h4>
@@ -446,7 +495,6 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
               </div>
             )}
 
-            {/* Counterpart Museums */}
             {counterparts.length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Top Counterparts</h4>
@@ -467,7 +515,6 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
               </div>
             )}
 
-            {/* Related Artworks - Visual Grid */}
             {relatedArtworks.length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Related Artworks</h4>
@@ -475,23 +522,16 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
                   {relatedArtworks.map(a => {
                     const imageUrl = getArtworkImageUrl(a);
                     return (
-                      <button
-                        key={a.artwork_id}
-                        onClick={() => onArtworkSelect(a.artwork_id)}
-                        className="group text-left rounded-lg border border-border/60 overflow-hidden hover:border-primary/40 transition-all"
-                      >
+                      <button key={a.artwork_id} onClick={() => onArtworkSelect(a.artwork_id)}
+                        className="group text-left rounded-lg border border-border/60 overflow-hidden hover:border-primary/40 transition-all">
                         <div className="aspect-square bg-muted overflow-hidden">
                           {imageUrl ? (
                             <img src={imageUrl} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
-                              <Landmark className="h-5 w-5" />
-                            </div>
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground/30"><Landmark className="h-5 w-5" /></div>
                           )}
                         </div>
-                        <div className="p-1.5">
-                          <p className="text-[10px] font-medium line-clamp-1 group-hover:text-primary transition-colors">{a.title}</p>
-                        </div>
+                        <div className="p-1.5"><p className="text-[10px] font-medium line-clamp-1 group-hover:text-primary transition-colors">{a.title}</p></div>
                       </button>
                     );
                   })}
@@ -502,7 +542,7 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
         </Card>
       )}
 
-      {/* Rankings */}
+      {/* Rankings - adapts to granularity */}
       <div className={isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-5'}>
         <Card className="border-border/60">
           <CardContent className="p-4">
@@ -511,20 +551,23 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
               <h3 className="text-sm font-semibold">Top Inflow</h3>
             </div>
             <div className="space-y-1">
-              {topInflow.map((s, i) => (
+              {(topInflow as any[]).map((s: any, i: number) => (
                 <div
-                  key={s.museum_id}
+                  key={s.museum_id || s.name}
                   className={cn(
-                    "flex items-center justify-between rounded-md px-3 py-2 text-sm cursor-pointer transition-colors",
-                    selectedMuseum === s.museum_id ? 'bg-primary/5 ring-1 ring-primary/20' : 'hover:bg-muted/40'
+                    "flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
+                    geoGranularity === 'museum' ? 'cursor-pointer' : '',
+                    geoGranularity === 'museum' && selectedMuseum === s.museum_id ? 'bg-primary/5 ring-1 ring-primary/20' : 'hover:bg-muted/40'
                   )}
-                  onClick={() => handleMuseumToggle(s.museum_id)}
+                  onClick={() => geoGranularity === 'museum' && handleMuseumToggle(s.museum_id)}
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-xs font-medium text-muted-foreground w-5 shrink-0">{i + 1}</span>
-                    <span className="truncate text-xs sm:text-sm">{s.museum_name}</span>
+                    <span className="truncate text-xs sm:text-sm">{s.museum_name || s.displayName || s.name}</span>
                   </div>
-                  <span className="text-green-700 dark:text-green-400 font-semibold shrink-0 ml-2 tabular-nums">{getFlowValue(s, 'in')}</span>
+                  <span className="text-green-700 dark:text-green-400 font-semibold shrink-0 ml-2 tabular-nums">
+                    {geoGranularity === 'museum' ? getFlowValue(s, 'in') : s.inflow}
+                  </span>
                 </div>
               ))}
             </div>
@@ -538,20 +581,23 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
               <h3 className="text-sm font-semibold">Top Outflow</h3>
             </div>
             <div className="space-y-1">
-              {topOutflow.map((s, i) => (
+              {(topOutflow as any[]).map((s: any, i: number) => (
                 <div
-                  key={s.museum_id}
+                  key={s.museum_id || s.name}
                   className={cn(
-                    "flex items-center justify-between rounded-md px-3 py-2 text-sm cursor-pointer transition-colors",
-                    selectedMuseum === s.museum_id ? 'bg-primary/5 ring-1 ring-primary/20' : 'hover:bg-muted/40'
+                    "flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
+                    geoGranularity === 'museum' ? 'cursor-pointer' : '',
+                    geoGranularity === 'museum' && selectedMuseum === s.museum_id ? 'bg-primary/5 ring-1 ring-primary/20' : 'hover:bg-muted/40'
                   )}
-                  onClick={() => handleMuseumToggle(s.museum_id)}
+                  onClick={() => geoGranularity === 'museum' && handleMuseumToggle(s.museum_id)}
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-xs font-medium text-muted-foreground w-5 shrink-0">{i + 1}</span>
-                    <span className="truncate text-xs sm:text-sm">{s.museum_name}</span>
+                    <span className="truncate text-xs sm:text-sm">{s.museum_name || s.displayName || s.name}</span>
                   </div>
-                  <span className="text-red-700 dark:text-red-400 font-semibold shrink-0 ml-2 tabular-nums">{getFlowValue(s, 'out')}</span>
+                  <span className="text-red-700 dark:text-red-400 font-semibold shrink-0 ml-2 tabular-nums">
+                    {geoGranularity === 'museum' ? getFlowValue(s, 'out') : s.outflow}
+                  </span>
                 </div>
               ))}
             </div>
@@ -584,11 +630,9 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
                       const net = getFlowValue(s, 'net');
                       const isSelected = selectedMuseum === s.museum_id;
                       return (
-                        <tr
-                          key={s.museum_id}
+                        <tr key={s.museum_id}
                           className={cn("cursor-pointer transition-colors", isSelected ? 'bg-primary/5' : 'hover:bg-muted/40')}
-                          onClick={() => handleMuseumToggle(s.museum_id)}
-                        >
+                          onClick={() => handleMuseumToggle(s.museum_id)}>
                           <td className="p-3 truncate max-w-[200px]">{s.museum_name}</td>
                           <td className="p-3 text-right text-green-700 dark:text-green-400 tabular-nums">{getFlowValue(s, 'in')}</td>
                           <td className="p-3 text-right text-red-700 dark:text-red-400 tabular-nums">{getFlowValue(s, 'out')}</td>
