@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Landmark, Copy, Check, Navigation, MessageCircle } from 'lucide-react';
+import { ExternalLink, Landmark, Copy, Check, Navigation, Map } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -18,9 +18,14 @@ import { IndoorRoute } from '@/components/museum-detail/IndoorRoute';
 import { AskMuMuFab } from '@/components/museum-detail/AskMuMuFab';
 import { MuseumKnowledge } from '@/components/museum-detail/MuseumKnowledge';
 import { ArtworkDetailSheet } from '@/components/museum-detail/ArtworkDetailSheet';
+import { MuseumHoursCard } from '@/components/museum/MuseumHoursCard';
+import { DiscountCalculator } from '@/components/museum/DiscountCalculator';
+import { MuseumArtworkWall } from '@/components/museum-detail/MuseumArtworkWall';
+import { MuseumFloorPlan } from '@/components/museum-detail/MuseumFloorPlan';
 import { VisitProgressProvider, useVisitProgress } from '@/components/museum-detail/VisitProgressContext';
 import { VisitProgressBar } from '@/components/museum-detail/VisitProgressBar';
 import { generateRoute } from '@/lib/routeEngine';
+import { getMuseumConfig } from '@/config/museumConfig';
 import type { VisitIntake, ArtworkRef, RoutePlan } from '@/types/museumDetail';
 
 function MuseumDetailContent() {
@@ -31,7 +36,6 @@ function MuseumDetailContent() {
   const [isSticky, setIsSticky] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activePhase, setActivePhase] = useState<'before' | 'during'>('before');
-  const [showTicketPlan, setShowTicketPlan] = useState(false);
   const [showRoute, setShowRoute] = useState(false);
   const [currentIntake, setCurrentIntake] = useState<Partial<VisitIntake> | null>(null);
   const [generatedRoute, setGeneratedRoute] = useState<RoutePlan | null>(null);
@@ -41,9 +45,9 @@ function MuseumDetailContent() {
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const intakeRef = useRef<HTMLDivElement>(null);
-  const ticketRef = useRef<HTMLDivElement>(null);
 
   const { initializeRoute } = useVisitProgress();
+  const config = museum_id ? getMuseumConfig(museum_id) : null;
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -60,18 +64,12 @@ function MuseumDetailContent() {
     intakeRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleBuySmart = () => {
-    setShowTicketPlan(true);
-    setTimeout(() => ticketRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-  };
-
   const handleIntakeSubmit = useCallback((intake: Partial<VisitIntake>) => {
     if (!data) return;
     setCurrentIntake(intake);
     const route = generateRoute(intake, data.artworks);
     setGeneratedRoute(route);
     initializeRoute(route.steps.filter(s => s.type === 'gallery').map(s => s.stepId));
-    setShowTicketPlan(true);
     setShowRoute(true);
     setActivePhase('during');
     setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
@@ -91,24 +89,22 @@ function MuseumDetailContent() {
     setAskMuMuOpen(true);
   };
 
-  const handleAskMuMuFromArtwork = (question: string) => {
-    handleAskMuMu(question);
-  };
-
   if (isLoading) {
     return (
-      <div className="container max-w-4xl py-8 space-y-4">
+      <div className="container max-w-6xl py-8 space-y-4">
         <Skeleton className="h-12 w-64" />
         <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-48 w-full rounded-xl" />
-        <Skeleton className="h-48 w-full rounded-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-96 w-full rounded-xl" />
+          <Skeleton className="h-96 w-full rounded-xl" />
+        </div>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="container max-w-4xl py-16 text-center">
+      <div className="container max-w-6xl py-16 text-center">
         <h1 className="text-2xl font-bold mb-4">Museum Not Found</h1>
         <p className="text-muted-foreground mb-6">
           {error || 'This museum does not have a detailed guide available yet.'}
@@ -137,7 +133,7 @@ function MuseumDetailContent() {
           isSticky && 'shadow-sm'
         )}
       >
-        <div className="container max-w-4xl">
+        <div className="container max-w-6xl">
           <div className={cn(
             'flex items-center gap-3 sm:gap-4 transition-all duration-200',
             isSticky ? 'py-2.5' : 'py-4 sm:py-5'
@@ -218,7 +214,7 @@ function MuseumDetailContent() {
 
       {/* Phase Tabs */}
       <div className="sticky top-[57px] sm:top-[65px] z-[1400] border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="container max-w-4xl">
+        <div className="container max-w-6xl">
           <div className="flex">
             <button
               onClick={() => setActivePhase('before')}
@@ -255,38 +251,71 @@ function MuseumDetailContent() {
       </div>
 
       {/* Main content */}
-      <div className="container max-w-4xl py-5 sm:py-6 space-y-6 sm:space-y-8 pb-24 sm:pb-8">
-        {/* BEFORE YOUR VISIT */}
+      <div className="container max-w-6xl py-5 sm:py-6 pb-24 sm:pb-8">
+        {/* BEFORE YOUR VISIT — Two-column layout */}
         {activePhase === 'before' && (
-          <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
-            {/* 1. Visit Snapshot */}
-            <VisitSnapshot
-              overview={overview}
-              onPlanVisit={handlePlanVisit}
-              onBuySmart={handleBuySmart}
-            />
-
-            {/* 2. Buy Smart / Ticket Plan */}
-            <div ref={ticketRef}>
-              {showTicketPlan && ticketRecommendation && (
-                <TicketPlan ticket={ticketRecommendation} exhibitions={exhibitions} />
-              )}
+          <div className="animate-in fade-in duration-300">
+            {/* Visit Snapshot — full width */}
+            <div className="mb-6 sm:mb-8">
+              <VisitSnapshot
+                overview={overview}
+                onPlanVisit={handlePlanVisit}
+                onBuySmart={() => {
+                  document.getElementById('discount-calculator')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              />
             </div>
 
-            {/* 3. Personalized Visit Intake */}
-            <div ref={intakeRef}>
-              <VisitIntakeForm
-                museumId={overview.museumId}
-                entrances={overview.visitSnapshot.entrances}
-                onSubmit={handleIntakeSubmit}
-              />
+            {/* Two-column grid: Left = planning tools, Right = visual collection */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
+              {/* Left column — Planning tools (3/5) */}
+              <div className="lg:col-span-3 space-y-6">
+                {/* Visit Schedule Calendar */}
+                {config && (
+                  <MuseumHoursCard hours={config.hours} />
+                )}
+
+                {/* Discount Calculator */}
+                {config && (
+                  <div id="discount-calculator">
+                    <DiscountCalculator config={config} />
+                  </div>
+                )}
+
+                {/* Ticket Plan (simplified — Buy Smart recommendation) */}
+                {ticketRecommendation && (
+                  <TicketPlan ticket={ticketRecommendation} exhibitions={exhibitions} />
+                )}
+
+                {/* Floor Plan */}
+                <MuseumFloorPlan museumId={overview.museumId} />
+
+                {/* Personalized Visit Intake */}
+                <div ref={intakeRef}>
+                  <VisitIntakeForm
+                    museumId={overview.museumId}
+                    entrances={overview.visitSnapshot.entrances}
+                    onSubmit={handleIntakeSubmit}
+                  />
+                </div>
+              </div>
+
+              {/* Right column — Visual collection (2/5) */}
+              <div className="lg:col-span-2 space-y-6">
+                <MuseumArtworkWall
+                  artworks={artworks}
+                  exhibitions={exhibitions}
+                  museumName={overview.name}
+                  onArtworkClick={handleArtworkClick}
+                />
+              </div>
             </div>
           </div>
         )}
 
         {/* DURING YOUR VISIT */}
         {activePhase === 'during' && showRoute && generatedRoute && (
-          <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+          <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300 max-w-4xl mx-auto">
             {/* Visit Progress */}
             <VisitProgressBar totalSteps={generatedRoute.steps.filter(s => s.type === 'gallery').length} />
 
@@ -312,7 +341,7 @@ function MuseumDetailContent() {
 
         {/* Freshness footer */}
         {overview.freshness && (
-          <div className="text-center py-4 border-t border-border">
+          <div className="text-center py-4 border-t border-border mt-8">
             <p className="text-xs text-muted-foreground">
               {overview.freshness.note}
               {overview.freshness.liveOpsAsOf && (
@@ -337,7 +366,7 @@ function MuseumDetailContent() {
         artwork={selectedArtwork}
         open={!!selectedArtwork}
         onClose={() => setSelectedArtwork(null)}
-        onAskMuMu={handleAskMuMuFromArtwork}
+        onAskMuMu={(q) => { handleAskMuMu(q); }}
       />
     </div>
   );
