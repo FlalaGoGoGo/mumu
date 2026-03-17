@@ -148,15 +148,15 @@ function NodeSphere({ node, isSelected, onClick }: { node: GraphNode; isSelected
 }
 
 /** Edge line between two nodes */
-function EdgeLine({ from, to, width, opacity }: { from: [number, number, number]; to: [number, number, number]; width: number; opacity: number }) {
-  const points = useMemo(() => [new THREE.Vector3(...from), new THREE.Vector3(...to)], [from, to]);
-  const geometry = useMemo(() => new THREE.BufferGeometry().setFromPoints(points), [points]);
+function EdgeLine({ from, to, opacity }: { from: [number, number, number]; to: [number, number, number]; width: number; opacity: number }) {
+  const lineObj = useMemo(() => {
+    const points = [new THREE.Vector3(...from), new THREE.Vector3(...to)];
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({ color: '#b8860b', transparent: true, opacity });
+    return new THREE.Line(geometry, material);
+  }, [from, to, opacity]);
 
-  return (
-    <line geometry={geometry}>
-      <lineBasicMaterial color="#b8860b" transparent opacity={opacity} linewidth={1} />
-    </line>
-  );
+  return <primitive object={lineObj} />;
 }
 
 /** Animated particles along edges */
