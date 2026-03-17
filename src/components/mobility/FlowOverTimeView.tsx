@@ -3,13 +3,14 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Card, CardContent } from '@/components/ui/card';
-import { CalendarRange, ArrowRightLeft } from 'lucide-react';
+import { CalendarRange, ArrowRightLeft, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AnimatedPolyline } from './AnimatedPolyline';
 import { TimePlaybackControl, useTimePlayback } from './TimePlaybackControl';
 import { AnnualFlowChart } from './AnnualFlowChart';
 import { YearlyMuseumRankings } from './YearlyMuseumRankings';
-import { YearlyArtworkList } from './YearlyArtworkList';
+import { getArtworkImageUrl } from '@/types/art';
+import { getMuseumDisplayName } from '@/lib/humanizeMuseumId';
 import type { ArtworkMovement } from '@/types/movement';
 import type { EnrichedArtwork } from '@/types/art';
 import 'leaflet/dist/leaflet.css';
@@ -59,6 +60,67 @@ function FitBounds({ points }: { points: [number, number][] }) {
   return null;
 }
 
+/** Artwork tray showing works that moved in a specific year */
+function YearArtworkTray({ movements, artworks, year, onArtworkSelect }: {
+  movements: ArtworkMovement[];
+  artworks: EnrichedArtwork[];
+  year: number;
+  onArtworkSelect: (id: string) => void;
+}) {
+  const artworkMap = useMemo(() => new Map(artworks.map(a => [a.artwork_id, a])), [artworks]);
+
+  const yearArtworks = useMemo(() => {
+    const ids = new Set<string>();
+    for (const m of movements) {
+      if (!m.start_date) continue;
+      const y = parseInt(m.start_date.substring(0, 4));
+      if (y === year) ids.add(m.artwork_id);
+    }
+    return Array.from(ids).map(id => artworkMap.get(id)).filter(Boolean) as EnrichedArtwork[];
+  }, [movements, year, artworkMap]);
+
+  if (yearArtworks.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <ImageIcon className="h-3.5 w-3.5 text-primary" />
+        <h4 className="text-xs font-semibold text-muted-foreground">
+          Artworks in <span className="text-foreground font-bold">{year}</span>
+          <span className="ml-1.5 text-muted-foreground font-normal">({yearArtworks.length})</span>
+        </h4>
+      </div>
+      <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-thin">
+        {yearArtworks.map(artwork => {
+          const imageUrl = getArtworkImageUrl(artwork);
+          return (
+            <button
+              key={artwork.artwork_id}
+              onClick={() => onArtworkSelect(artwork.artwork_id)}
+              className="group shrink-0 w-28 text-left rounded-lg border border-border/60 overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
+            >
+              <div className="aspect-square bg-muted overflow-hidden">
+                {imageUrl ? (
+                  <img src={imageUrl} alt={artwork.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
+                  </div>
+                )}
+              </div>
+              <div className="p-1.5">
+                <p className="text-[10px] font-medium line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                  {artwork.title}
+                </p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSelect }: Props) {
   const isMobile = useIsMobile();
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
@@ -81,7 +143,6 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
 
   const playback = useTimePlayback(yearBounds.min, yearBounds.max, activeYears);
 
-  // Filter movements by playback year
   const timeFilteredMovements = useMemo(() => {
     if (playback.isAtEnd && !playback.isPlaying) return movements;
     return movements.filter(m => {
@@ -91,7 +152,6 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
     });
   }, [movements, playback.currentYear, playback.isAtEnd, playback.isPlaying]);
 
-  // Year-focused movements for analytics
   const yearFocusedMovements = useMemo(() => {
     if (!selectedYear) return timeFilteredMovements;
     return timeFilteredMovements.filter(m => {
@@ -101,7 +161,6 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
     });
   }, [timeFilteredMovements, selectedYear]);
 
-  // Build corridors for the time-filtered map
   const { corridors, allPoints, involvedMuseums, maxEvents, museumEventCounts } = useMemo(() => {
     const src = selectedYear ? yearFocusedMovements : timeFilteredMovements;
     const corridorMap = new Map<string, {
@@ -123,7 +182,7 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
       museumCounts.set(m.borrower_museum_id, (museumCounts.get(m.borrower_museum_id) || 0) + 1);
     }
 
-    const corridors: { key: string; from: [number, number]; to: [number, number]; count: number; maxYear: number; lenderName: string; borrowerName: string }[] = [];
+    const corridors: { key: string; from: [number, number]; to: [number, number]; count: number; maxYear: number }[] = [];
     const allPts: [number, number][] = [];
     const involved = new Map<string, MuseumPoint>();
     let maxEvents = 1;
@@ -132,10 +191,7 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
       const from = museumMap.get(c.lender_museum_id);
       const to = museumMap.get(c.borrower_museum_id);
       if (!from || !to || (from.lat === 0 && from.lng === 0) || (to.lat === 0 && to.lng === 0)) continue;
-      corridors.push({
-        key, from: [from.lat, from.lng], to: [to.lat, to.lng],
-        count: c.count, maxYear: c.maxYear, lenderName: from.name, borrowerName: to.name,
-      });
+      corridors.push({ key, from: [from.lat, from.lng], to: [to.lat, to.lng], count: c.count, maxYear: c.maxYear });
       allPts.push([from.lat, from.lng], [to.lat, to.lng]);
       involved.set(from.museum_id, from);
       involved.set(to.museum_id, to);
@@ -153,7 +209,9 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
     if (year !== null) playback.setCurrentYear(year);
   }, [playback]);
 
-  // Summary
+  // Active year for artwork tray: prefer selected, then playing year
+  const artworkTrayYear = selectedYear || (playback.isPlaying ? playback.currentYear : null);
+
   const activeCount = activeYears.length;
   const totalEvents = timeFilteredMovements.length;
   const focusLabel = selectedYear ? `Focused: ${selectedYear}` : `${activeCount} active years`;
@@ -203,6 +261,16 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
         />
       )}
 
+      {/* Artwork Tray for active year */}
+      {artworkTrayYear && (
+        <YearArtworkTray
+          movements={movements}
+          artworks={artworks}
+          year={artworkTrayYear}
+          onArtworkSelect={onArtworkSelect}
+        />
+      )}
+
       {/* Time-filtered corridor map */}
       <div className="rounded-xl border border-border/60 overflow-hidden relative" style={{ height: isMobile ? 300 : 420 }}>
         <MapContainer center={center} zoom={4} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
@@ -242,7 +310,7 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
                   fillOpacity: isTop ? 0.9 : 0.7,
                 }}
               >
-                <Popup><span className="text-xs font-semibold">{m.name}</span></Popup>
+                <Popup><span className="text-xs font-semibold">{getMuseumDisplayName(m.museum_id, museumMap)}</span></Popup>
               </CircleMarker>
             );
           })}
@@ -270,13 +338,83 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
         selectedYear={selectedYear}
       />
 
-      {/* Yearly Artwork List */}
-      <YearlyArtworkList
-        movements={timeFilteredMovements}
-        museumMap={museumMap}
-        selectedYear={selectedYear}
-        onArtworkSelect={onArtworkSelect}
-      />
+      {/* Yearly Artwork Visual Grid (replaces text table) */}
+      {selectedYear && (
+        <YearlyArtworkGrid
+          movements={timeFilteredMovements}
+          museumMap={museumMap}
+          artworks={artworks}
+          year={selectedYear}
+          onArtworkSelect={onArtworkSelect}
+        />
+      )}
     </div>
+  );
+}
+
+/** Visual artwork grid for a selected year */
+function YearlyArtworkGrid({ movements, museumMap, artworks, year, onArtworkSelect }: {
+  movements: ArtworkMovement[];
+  museumMap: Map<string, MuseumPoint>;
+  artworks: EnrichedArtwork[];
+  year: number;
+  onArtworkSelect: (id: string) => void;
+}) {
+  const artworkMap = useMemo(() => new Map(artworks.map(a => [a.artwork_id, a])), [artworks]);
+
+  const yearData = useMemo(() => {
+    const items: { movement: ArtworkMovement; artwork: EnrichedArtwork | undefined }[] = [];
+    for (const m of movements) {
+      if (!m.start_date) continue;
+      const y = parseInt(m.start_date.substring(0, 4));
+      if (y === year) {
+        items.push({ movement: m, artwork: artworkMap.get(m.artwork_id) });
+      }
+    }
+    return items.sort((a, b) => (a.movement.start_date || '').localeCompare(b.movement.start_date || ''));
+  }, [movements, year, artworkMap]);
+
+  if (yearData.length === 0) return null;
+
+  return (
+    <Card className="border-border/60 overflow-hidden">
+      <CardContent className="p-0">
+        <div className="px-4 py-3 border-b border-border/60">
+          <h3 className="text-sm font-semibold">Artworks Moved in {year}</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">{yearData.length} movement events</p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
+          {yearData.map(({ movement: m, artwork }, i) => {
+            const imageUrl = artwork ? getArtworkImageUrl(artwork) : null;
+            return (
+              <button
+                key={`${m.movement_id}-${i}`}
+                onClick={() => onArtworkSelect(m.artwork_id)}
+                className="group text-left rounded-lg border border-border/60 overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
+              >
+                <div className="aspect-square bg-muted overflow-hidden">
+                  {imageUrl ? (
+                    <img src={imageUrl} alt={m.artwork_title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ImageIcon className="h-8 w-8 text-muted-foreground/20" />
+                    </div>
+                  )}
+                </div>
+                <div className="p-2.5 space-y-1">
+                  <p className="text-xs font-medium line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                    {m.artwork_title || m.artwork_id}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {getMuseumDisplayName(m.lender_museum_id, museumMap)} → {getMuseumDisplayName(m.borrower_museum_id, museumMap)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground tabular-nums">{m.start_date?.substring(0, 10)}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
