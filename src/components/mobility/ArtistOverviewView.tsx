@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -14,6 +14,10 @@ import { getCountryFlag } from '@/lib/countryFlag';
 import type { ArtworkMovement } from '@/types/movement';
 import type { EnrichedArtwork, Artist } from '@/types/art';
 import 'leaflet/dist/leaflet.css';
+
+/** MuMu gold highlight */
+const GOLD = 'hsl(43, 60%, 45%)';
+const GOLD_DARK = 'hsl(43, 65%, 38%)';
 
 interface MuseumPoint {
   museum_id: string;
@@ -66,6 +70,32 @@ function FitBounds({ points }: { points: [number, number][] }) {
   return null;
 }
 
+/** Map zoom controller for route hover */
+function MapHoverFocus({ corridor, allPoints }: { corridor: CorridorData | null; allPoints: [number, number][] }) {
+  const map = useMap();
+  const defaultBoundsRef = useRef<L.LatLngBounds | null>(null);
+
+  useEffect(() => {
+    if (allPoints.length > 1 && !defaultBoundsRef.current) {
+      defaultBoundsRef.current = L.latLngBounds(allPoints.map(p => L.latLng(p[0], p[1])));
+    }
+  }, [allPoints]);
+
+  useEffect(() => {
+    if (corridor) {
+      const bounds = L.latLngBounds([
+        L.latLng(corridor.from[0], corridor.from[1]),
+        L.latLng(corridor.to[0], corridor.to[1]),
+      ]);
+      map.flyToBounds(bounds, { padding: [80, 80], maxZoom: 7, duration: 0.5 });
+    } else if (defaultBoundsRef.current) {
+      map.flyToBounds(defaultBoundsRef.current, { padding: [40, 40], maxZoom: 8, duration: 0.5 });
+    }
+  }, [corridor, map]);
+
+  return null;
+}
+
 /** Stacked artwork thumbnails for a route */
 function ArtworkStack({ artworkIds, artworks, maxShow = 4 }: { artworkIds: string[]; artworks: EnrichedArtwork[]; maxShow?: number }) {
   const artworkMap = useMemo(() => new Map(artworks.map(a => [a.artwork_id, a])), [artworks]);
@@ -105,11 +135,8 @@ function ArtistProfileCard({ artist }: { artist: Artist }) {
     <Card className="border-border/60 overflow-hidden">
       <CardContent className="p-4 flex items-start gap-4">
         {artist.portrait_url ? (
-          <img
-            src={artist.portrait_url}
-            alt={artist.artist_name}
-            className="w-16 h-16 rounded-full object-cover border-2 border-border/60 shrink-0"
-          />
+          <img src={artist.portrait_url} alt={artist.artist_name}
+            className="w-16 h-16 rounded-full object-cover border-2 border-border/60 shrink-0" />
         ) : (
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center border-2 border-border/60 shrink-0">
             <User className="h-7 w-7 text-muted-foreground/40" />
@@ -118,19 +145,11 @@ function ArtistProfileCard({ artist }: { artist: Artist }) {
         <div className="min-w-0 space-y-1">
           <h3 className="text-base font-semibold truncate">{flag} {artist.artist_name}</h3>
           <div className="flex flex-wrap items-center gap-2">
-            {artist.nationality && (
-              <Badge variant="secondary" className="text-[10px]">{artist.nationality}</Badge>
-            )}
-            {lifeSpan && (
-              <span className="text-xs text-muted-foreground tabular-nums">{lifeSpan}</span>
-            )}
-            {artist.movement && (
-              <Badge variant="outline" className="text-[10px]">{artist.movement}</Badge>
-            )}
+            {artist.nationality && <Badge variant="secondary" className="text-[10px]">{artist.nationality}</Badge>}
+            {lifeSpan && <span className="text-xs text-muted-foreground tabular-nums">{lifeSpan}</span>}
+            {artist.movement && <Badge variant="outline" className="text-[10px]">{artist.movement}</Badge>}
           </div>
-          {artist.bio && (
-            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{artist.bio}</p>
-          )}
+          {artist.bio && <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{artist.bio}</p>}
         </div>
       </CardContent>
     </Card>
@@ -223,12 +242,16 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
   const handleCorridorHover = useCallback((key: string | null) => setHighlightedCorridor(key), []);
   const handleRouteClick = useCallback((corridor: CorridorData) => setSelectedRoute(corridor), []);
 
-  // Get endpoint museum IDs for the highlighted corridor
   const highlightedEndpoints = useMemo(() => {
     if (!highlightedCorridor) return new Set<string>();
     const c = corridors.find(c => c.key === highlightedCorridor);
     if (!c) return new Set<string>();
     return new Set([c.lender_museum_id, c.borrower_museum_id]);
+  }, [highlightedCorridor, corridors]);
+
+  const highlightedCorridorData = useMemo(() => {
+    if (!highlightedCorridor) return null;
+    return corridors.find(c => c.key === highlightedCorridor) || null;
   }, [highlightedCorridor, corridors]);
 
   if (movements.length === 0) {
@@ -242,7 +265,6 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
 
   return (
     <div className="space-y-6">
-      {/* Artist Profile Card */}
       {selectedArtist && <ArtistProfileCard artist={selectedArtist} />}
 
       {/* Summary Cards */}
@@ -275,12 +297,13 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
 
       {/* Map + Top Routes */}
       <div className={cn(isMobile ? 'space-y-4' : 'grid grid-cols-5 gap-5')}>
-        {/* Corridor Map - slightly larger */}
+        {/* Corridor Map */}
         <div className={cn("rounded-xl border border-border/60 overflow-hidden relative", isMobile ? '' : 'col-span-3')}
           style={{ height: isMobile ? 350 : 540 }}>
           <MapContainer center={center} zoom={4} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
             <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png" />
             {allPoints.length > 1 && <FitBounds points={allPoints} />}
+            <MapHoverFocus corridor={highlightedCorridorData} allPoints={allPoints} />
 
             {corridors.map(c => {
               const intensity = c.event_count / maxEvents;
@@ -291,9 +314,9 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
               return (
                 <AnimatedPolyline key={c.key} id={c.key}
                   positions={createArc(c.from, c.to)}
-                  color={isHighlighted ? 'hsl(30, 90%, 50%)' : 'hsl(348, 45%, 42%)'}
-                  weight={isHighlighted ? weight + 3 : weight}
-                  opacity={isDimmed ? 0.06 : isHighlighted ? 1 : baseOpacity}
+                  color={isHighlighted ? GOLD : 'hsl(348, 45%, 42%)'}
+                  weight={isHighlighted ? weight + 4 : weight}
+                  opacity={isDimmed ? 0.04 : isHighlighted ? 1 : baseOpacity}
                   highlighted={isHighlighted} animated={isHighlighted}
                 />
               );
@@ -306,12 +329,12 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
               const isDimmedMuseum = highlightedCorridor !== null && !isEndpoint;
               return (
                 <CircleMarker key={m.museum_id} center={[m.lat, m.lng]}
-                  radius={isEndpoint ? 10 : isTopMuseum ? 7 : 5}
+                  radius={isEndpoint ? 11 : isTopMuseum ? 7 : 5}
                   pathOptions={{
-                    color: isEndpoint ? 'hsl(30, 90%, 45%)' : 'white',
+                    color: isEndpoint ? GOLD_DARK : 'white',
                     weight: isEndpoint ? 3 : isTopMuseum ? 3 : 2,
-                    fillColor: isEndpoint ? 'hsl(30, 90%, 50%)' : isTopMuseum ? 'hsl(348, 55%, 38%)' : 'hsl(348, 45%, 48%)',
-                    fillOpacity: isDimmedMuseum ? 0.12 : isEndpoint ? 1 : isTopMuseum ? 0.9 : 0.7,
+                    fillColor: isEndpoint ? GOLD : isTopMuseum ? 'hsl(348, 55%, 38%)' : 'hsl(348, 45%, 48%)',
+                    fillOpacity: isDimmedMuseum ? 0.08 : isEndpoint ? 1 : isTopMuseum ? 0.9 : 0.7,
                   }}>
                   <Popup><span className="text-xs font-semibold">{getMuseumDisplayName(m.museum_id, museumMap)}</span></Popup>
                 </CircleMarker>
@@ -319,14 +342,14 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
             })}
           </MapContainer>
 
-          <div className="absolute bottom-3 left-3 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg p-3 text-xs space-y-1.5 border border-border/60 shadow-sm">
+          <div className="absolute bottom-3 left-3 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg p-2.5 text-[10px] space-y-1 border border-border/60 shadow-sm">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-[3px] rounded-full" style={{ background: 'hsl(348,45%,42%)' }} />
-              <span className="text-muted-foreground">Corridor (thickness = frequency)</span>
+              <div className="w-6 h-[3px] rounded-full" style={{ background: GOLD }} />
+              <span className="text-muted-foreground">Selected route</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ background: 'hsl(348,55%,38%)' }} />
-              <span className="text-muted-foreground">Museum</span>
+              <div className="w-6 h-[2px] rounded-full" style={{ background: 'hsl(348,45%,42%)' }} />
+              <span className="text-muted-foreground">Corridor</span>
             </div>
           </div>
         </div>
@@ -343,7 +366,7 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
                 const isActive = highlightedCorridor === c.key;
                 return (
                   <div key={c.key}
-                    className={cn("px-4 py-3.5 border-b border-border/30 cursor-pointer transition-all", isActive ? 'bg-primary/5' : 'hover:bg-muted/40')}
+                    className={cn("px-4 py-3.5 border-b border-border/30 cursor-pointer transition-all", isActive ? 'bg-accent/10' : 'hover:bg-muted/40')}
                     onMouseEnter={() => handleCorridorHover(c.key)}
                     onMouseLeave={() => handleCorridorHover(null)}
                     onClick={() => handleRouteClick(c)}>
@@ -362,7 +385,7 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
                     </div>
                     <div className="mt-2.5 h-1 rounded-full bg-muted overflow-hidden">
                       <div className="h-full rounded-full transition-all duration-300"
-                        style={{ width: `${Math.max(8, (c.event_count / maxEvents) * 100)}%`, background: 'hsl(348, 45%, 42%)', opacity: isActive ? 1 : 0.6 }} />
+                        style={{ width: `${Math.max(8, (c.event_count / maxEvents) * 100)}%`, background: isActive ? GOLD : 'hsl(348, 45%, 42%)', opacity: isActive ? 1 : 0.6 }} />
                     </div>
                   </div>
                 );
