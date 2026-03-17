@@ -4,12 +4,15 @@ import L from 'leaflet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown, Landmark, ArrowRight, X } from 'lucide-react';
+import { TrendingUp, TrendingDown, Landmark, ArrowRight, X, Globe, Building, Map as MapIcon } from 'lucide-react';
 import { AnimatedPolyline } from './AnimatedPolyline';
-import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { getMuseumDisplayName } from '@/lib/humanizeMuseumId';
 import type { ArtworkMovement, MuseumFlowStats } from '@/types/movement';
 import type { EnrichedArtwork } from '@/types/art';
+import { getArtworkImageUrl } from '@/types/art';
 import 'leaflet/dist/leaflet.css';
 
 interface MuseumPoint {
@@ -27,6 +30,25 @@ interface Props {
 }
 
 type CountMode = 'events' | 'artworks';
+type GeoGranularity = 'museum' | 'country' | 'city';
+
+// Derive country/city from museum data (using the artworks' museum info)
+function getMuseumGeo(museumId: string, artworks: EnrichedArtwork[]): { country: string; city: string } {
+  const artwork = artworks.find(a => a.museum_id === museumId);
+  if (artwork?.museum_address) {
+    // Try to parse country/city from address
+    const parts = artwork.museum_address.split(',').map(s => s.trim());
+    if (parts.length >= 2) {
+      return { city: parts[0] || 'Unknown', country: parts[parts.length - 1] || 'Unknown' };
+    }
+  }
+  // Fallback: derive from museum_id slug
+  const parts = museumId.split('-');
+  const country = parts[parts.length - 1]?.toUpperCase() || 'Unknown';
+  const city = parts.length > 2 ? parts[parts.length - 2]
+    ?.replace(/^./, c => c.toUpperCase()) || 'Unknown' : 'Unknown';
+  return { country, city };
+}
 
 function createArc(from: [number, number], to: [number, number], segments = 30): [number, number][] {
   const points: [number, number][] = [];
@@ -62,6 +84,7 @@ function FitBounds({ points }: { points: [number, number][] }) {
 export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSelect }: Props) {
   const isMobile = useIsMobile();
   const [countMode, setCountMode] = useState<CountMode>('events');
+  const [geoGranularity, setGeoGranularity] = useState<GeoGranularity>('museum');
   const [selectedMuseum, setSelectedMuseum] = useState<string | null>(null);
 
   // Per-museum flow stats
@@ -85,7 +108,9 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
       const museum = museumMap.get(museumId);
       if (!museum || (museum.lat === 0 && museum.lng === 0)) continue;
       result.push({
-        museum_id: museumId, museum_name: museum.name, lat: museum.lat, lng: museum.lng,
+        museum_id: museumId,
+        museum_name: getMuseumDisplayName(museumId, museumMap),
+        lat: museum.lat, lng: museum.lng,
         inflow_count: s.inflow, outflow_count: s.outflow, net_flow: s.inflow - s.outflow,
         unique_in: s.artworkIdsIn.size, unique_out: s.artworkIdsOut.size,
         top_artworks: Array.from(new Set([...s.artworkIdsIn, ...s.artworkIdsOut])).slice(0, 8).map(id => ({
@@ -95,6 +120,38 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
     }
     return result;
   }, [movements, museumMap, artworks]);
+
+  // Geography aggregation
+  const geoStats = useMemo(() => {
+    if (geoGranularity === 'museum') return null;
+
+    const geoMap = new Map<string, { inflow: number; outflow: number; inArt: Set<string>; outArt: Set<string>; lat: number; lng: number; count: number }>();
+
+    for (const s of flowStats) {
+      const geo = getMuseumGeo(s.museum_id, artworks);
+      const key = geoGranularity === 'country' ? geo.country : geo.city;
+
+      if (!geoMap.has(key)) {
+        geoMap.set(key, { inflow: 0, outflow: 0, inArt: new Set(), outArt: new Set(), lat: s.lat, lng: s.lng, count: 0 });
+      }
+      const g = geoMap.get(key)!;
+      g.inflow += s.inflow_count;
+      g.outflow += s.outflow_count;
+      // Average position
+      g.lat = (g.lat * g.count + s.lat) / (g.count + 1);
+      g.lng = (g.lng * g.count + s.lng) / (g.count + 1);
+      g.count++;
+    }
+
+    return Array.from(geoMap.entries()).map(([name, g]) => ({
+      name,
+      inflow: g.inflow,
+      outflow: g.outflow,
+      net: g.inflow - g.outflow,
+      lat: g.lat,
+      lng: g.lng,
+    })).sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+  }, [flowStats, geoGranularity, artworks]);
 
   const getFlowValue = (s: typeof flowStats[0], direction: 'in' | 'out' | 'net') => {
     if (countMode === 'artworks') {
@@ -119,7 +176,6 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
     return flowStats.find(s => s.museum_id === selectedMuseum) || null;
   }, [flowStats, selectedMuseum]);
 
-  // Counterpart museums for selected
   const counterparts = useMemo(() => {
     if (!selectedMuseum) return [];
     const map = new Map<string, { inflow: number; outflow: number }>();
@@ -134,27 +190,23 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
       }
     }
     return Array.from(map.entries())
-      .map(([id, d]) => ({ museum_id: id, name: museumMap.get(id)?.name || id, ...d, total: d.inflow + d.outflow }))
+      .map(([id, d]) => ({ museum_id: id, name: getMuseumDisplayName(id, museumMap), ...d, total: d.inflow + d.outflow }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 8);
   }, [movements, selectedMuseum, museumMap]);
 
-  // Related artworks for selected museum
   const relatedArtworks = useMemo(() => {
     if (!selectedMuseum) return [];
     const ids = new Set<string>();
     for (const m of movements) {
-      if (m.lender_museum_id === selectedMuseum || m.borrower_museum_id === selectedMuseum) {
-        ids.add(m.artwork_id);
-      }
+      if (m.lender_museum_id === selectedMuseum || m.borrower_museum_id === selectedMuseum) ids.add(m.artwork_id);
     }
-    return Array.from(ids).slice(0, 10).map(id => {
+    return Array.from(ids).slice(0, 12).map(id => {
       const a = artworks.find(art => art.artwork_id === id);
-      return { artwork_id: id, title: a?.title || id };
-    });
+      return a || null;
+    }).filter(Boolean) as EnrichedArtwork[];
   }, [movements, selectedMuseum, artworks]);
 
-  // Year trend for selected museum
   const museumTrend = useMemo(() => {
     if (!selectedMuseum) return [];
     const yearMap = new Map<number, { inflow: number; outflow: number }>();
@@ -171,7 +223,6 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
     return Array.from(yearMap.entries()).map(([year, d]) => ({ year, ...d })).sort((a, b) => a.year - b.year);
   }, [movements, selectedMuseum]);
 
-  // Map arcs for selected museum only
   const selectedArcs = useMemo(() => {
     if (!selectedMuseum) return [];
     const corridorMap = new Map<string, { from: MuseumPoint; to: MuseumPoint; count: number }>();
@@ -198,18 +249,79 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
 
   return (
     <div className="space-y-6">
-      {/* Count Mode Toggle */}
-      <div className="flex items-center gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Count by:</span>
-        <div className="flex gap-0.5 rounded-lg border border-border/60 p-0.5">
-          <Button variant={countMode === 'events' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3" onClick={() => setCountMode('events')}>
-            Event Count
-          </Button>
-          <Button variant={countMode === 'artworks' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3" onClick={() => setCountMode('artworks')}>
-            Unique Artworks
-          </Button>
+      {/* Controls */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Count by:</span>
+          <div className="flex gap-0.5 rounded-lg border border-border/60 p-0.5">
+            <Button variant={countMode === 'events' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3" onClick={() => setCountMode('events')}>
+              Events
+            </Button>
+            <Button variant={countMode === 'artworks' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3" onClick={() => setCountMode('artworks')}>
+              Artworks
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Granularity:</span>
+          <div className="flex gap-0.5 rounded-lg border border-border/60 p-0.5">
+            <Button variant={geoGranularity === 'museum' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3 gap-1.5"
+              onClick={() => setGeoGranularity('museum')}>
+              <Building className="h-3 w-3" />Museum
+            </Button>
+            <Button variant={geoGranularity === 'city' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3 gap-1.5"
+              onClick={() => setGeoGranularity('city')}>
+              <MapIcon className="h-3 w-3" />City
+            </Button>
+            <Button variant={geoGranularity === 'country' ? 'default' : 'ghost'} size="sm" className="h-7 text-xs px-3 gap-1.5"
+              onClick={() => setGeoGranularity('country')}>
+              <Globe className="h-3 w-3" />Country
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Geography aggregation table */}
+      {geoStats && (
+        <Card className="border-border/60 overflow-hidden">
+          <CardContent className="p-0">
+            <div className="px-4 py-3 border-b border-border/60">
+              <h3 className="text-sm font-semibold">
+                {geoGranularity === 'country' ? 'Country' : 'City'} Flow Summary
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">{geoStats.length} {geoGranularity === 'country' ? 'countries' : 'cities'}</p>
+            </div>
+            <div className="max-h-[300px] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-card border-b">
+                  <tr>
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">
+                      {geoGranularity === 'country' ? 'Country' : 'City'}
+                    </th>
+                    <th className="text-right p-3 text-xs font-medium text-green-700 dark:text-green-400">In</th>
+                    <th className="text-right p-3 text-xs font-medium text-red-700 dark:text-red-400">Out</th>
+                    <th className="text-right p-3 text-xs font-medium text-muted-foreground">Net</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {geoStats.map(s => (
+                    <tr key={s.name} className="hover:bg-muted/40 transition-colors">
+                      <td className="p-3 font-medium">{s.name}</td>
+                      <td className="p-3 text-right text-green-700 dark:text-green-400 tabular-nums">{s.inflow}</td>
+                      <td className="p-3 text-right text-red-700 dark:text-red-400 tabular-nums">{s.outflow}</td>
+                      <td className={cn("p-3 text-right font-semibold tabular-nums",
+                        s.net > 0 ? 'text-green-700 dark:text-green-400' : s.net < 0 ? 'text-red-700 dark:text-red-400' : '')}>
+                        {s.net > 0 ? '+' : ''}{s.net}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Map */}
       <div className="rounded-xl border border-border/60 overflow-hidden relative" style={{ height: isMobile ? 350 : 480 }}>
@@ -220,17 +332,14 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
           />
           {allPoints.length > 1 && <FitBounds points={allPoints} />}
 
-          {/* Show arcs only for selected museum */}
           {selectedArcs.map(arc => (
             <AnimatedPolyline
-              key={arc.key}
-              id={arc.key}
+              key={arc.key} id={arc.key}
               positions={createArc(arc.from, arc.to)}
               color="hsl(348, 45%, 42%)"
               weight={1.5 + arc.intensity * 4}
               opacity={0.3 + arc.intensity * 0.5}
-              highlighted={false}
-              animated={false}
+              highlighted={false} animated={false}
             />
           ))}
 
@@ -244,14 +353,12 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
 
             return (
               <CircleMarker
-                key={s.museum_id}
-                center={[s.lat, s.lng]}
+                key={s.museum_id} center={[s.lat, s.lng]}
                 radius={isSelected ? radius + 3 : radius}
                 pathOptions={{
                   color: isSelected ? 'hsl(348, 55%, 32%)' : 'white',
                   weight: isSelected ? 3 : 2,
-                  fillColor: color,
-                  fillOpacity: isDimmed ? 0.15 : 0.75,
+                  fillColor: color, fillOpacity: isDimmed ? 0.15 : 0.75,
                 }}
                 eventHandlers={{ click: () => handleMuseumToggle(s.museum_id) }}
               >
@@ -275,7 +382,6 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
           })}
         </MapContainer>
 
-        {/* Legend */}
         <div className="absolute bottom-3 left-3 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg p-3 text-xs space-y-1.5 border border-border/60 shadow-sm">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(160,50%,40%)' }} />
@@ -343,7 +449,7 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
             {/* Counterpart Museums */}
             {counterparts.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Top Counterpart Museums</h4>
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Top Counterparts</h4>
                 <div className="space-y-1">
                   {counterparts.map((c, i) => (
                     <div key={c.museum_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-muted/40 transition-colors">
@@ -352,8 +458,8 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
                         <span className="truncate text-xs">{c.name}</span>
                       </div>
                       <div className="flex items-center gap-3 shrink-0 text-xs tabular-nums">
-                        <span className="text-green-700">{c.inflow} in</span>
-                        <span className="text-red-700">{c.outflow} out</span>
+                        <span className="text-green-700 dark:text-green-400">{c.inflow} in</span>
+                        <span className="text-red-700 dark:text-red-400">{c.outflow} out</span>
                       </div>
                     </div>
                   ))}
@@ -361,21 +467,34 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
               </div>
             )}
 
-            {/* Related Artworks */}
+            {/* Related Artworks - Visual Grid */}
             {relatedArtworks.length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Related Artworks</h4>
-                <div className="space-y-1">
-                  {relatedArtworks.map(a => (
-                    <div
-                      key={a.artwork_id}
-                      className="flex items-center justify-between rounded-md px-3 py-2 text-sm cursor-pointer hover:bg-muted/40 transition-colors"
-                      onClick={() => onArtworkSelect(a.artwork_id)}
-                    >
-                      <span className="truncate text-xs">{a.title}</span>
-                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    </div>
-                  ))}
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {relatedArtworks.map(a => {
+                    const imageUrl = getArtworkImageUrl(a);
+                    return (
+                      <button
+                        key={a.artwork_id}
+                        onClick={() => onArtworkSelect(a.artwork_id)}
+                        className="group text-left rounded-lg border border-border/60 overflow-hidden hover:border-primary/40 transition-all"
+                      >
+                        <div className="aspect-square bg-muted overflow-hidden">
+                          {imageUrl ? (
+                            <img src={imageUrl} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
+                              <Landmark className="h-5 w-5" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-1.5">
+                          <p className="text-[10px] font-medium line-clamp-1 group-hover:text-primary transition-colors">{a.title}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -389,7 +508,7 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp className="h-4 w-4 text-green-600" />
-              <h3 className="text-sm font-semibold">Top Inflow Museums</h3>
+              <h3 className="text-sm font-semibold">Top Inflow</h3>
             </div>
             <div className="space-y-1">
               {topInflow.map((s, i) => (
@@ -405,7 +524,7 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
                     <span className="text-xs font-medium text-muted-foreground w-5 shrink-0">{i + 1}</span>
                     <span className="truncate text-xs sm:text-sm">{s.museum_name}</span>
                   </div>
-                  <span className="text-green-700 font-semibold shrink-0 ml-2 tabular-nums">{getFlowValue(s, 'in')}</span>
+                  <span className="text-green-700 dark:text-green-400 font-semibold shrink-0 ml-2 tabular-nums">{getFlowValue(s, 'in')}</span>
                 </div>
               ))}
             </div>
@@ -416,7 +535,7 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <TrendingDown className="h-4 w-4 text-red-600" />
-              <h3 className="text-sm font-semibold">Top Outflow Museums</h3>
+              <h3 className="text-sm font-semibold">Top Outflow</h3>
             </div>
             <div className="space-y-1">
               {topOutflow.map((s, i) => (
@@ -432,7 +551,7 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
                     <span className="text-xs font-medium text-muted-foreground w-5 shrink-0">{i + 1}</span>
                     <span className="truncate text-xs sm:text-sm">{s.museum_name}</span>
                   </div>
-                  <span className="text-red-700 font-semibold shrink-0 ml-2 tabular-nums">{getFlowValue(s, 'out')}</span>
+                  <span className="text-red-700 dark:text-red-400 font-semibold shrink-0 ml-2 tabular-nums">{getFlowValue(s, 'out')}</span>
                 </div>
               ))}
             </div>
@@ -440,49 +559,52 @@ export function MuseumExplorerView({ movements, museumMap, artworks, onArtworkSe
         </Card>
       </div>
 
-      {/* Full Summary Table */}
-      <Card className="border-border/60 overflow-hidden">
-        <CardContent className="p-0">
-          <div className="px-4 py-3 border-b border-border/60">
-            <h3 className="text-sm font-semibold">All Museums</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">{flowStats.length} museums · Click to explore</p>
-          </div>
-          <div className="max-h-[300px] overflow-y-auto">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-card border-b">
-                <tr>
-                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">Museum</th>
-                  <th className="text-right p-3 text-xs font-medium text-green-700">In</th>
-                  <th className="text-right p-3 text-xs font-medium text-red-700">Out</th>
-                  <th className="text-right p-3 text-xs font-medium text-muted-foreground">Net</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {[...flowStats]
-                  .sort((a, b) => Math.abs(getFlowValue(b, 'net')) - Math.abs(getFlowValue(a, 'net')))
-                  .map(s => {
-                    const net = getFlowValue(s, 'net');
-                    const isSelected = selectedMuseum === s.museum_id;
-                    return (
-                      <tr
-                        key={s.museum_id}
-                        className={cn("cursor-pointer transition-colors", isSelected ? 'bg-primary/5' : 'hover:bg-muted/40')}
-                        onClick={() => handleMuseumToggle(s.museum_id)}
-                      >
-                        <td className="p-3 truncate max-w-[200px]">{s.museum_name}</td>
-                        <td className="p-3 text-right text-green-700 tabular-nums">{getFlowValue(s, 'in')}</td>
-                        <td className="p-3 text-right text-red-700 tabular-nums">{getFlowValue(s, 'out')}</td>
-                        <td className={cn("p-3 text-right font-semibold tabular-nums", net > 0 ? 'text-green-700' : net < 0 ? 'text-red-700' : '')}>
-                          {net > 0 ? '+' : ''}{net}
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Full Summary Table (museum level) */}
+      {geoGranularity === 'museum' && (
+        <Card className="border-border/60 overflow-hidden">
+          <CardContent className="p-0">
+            <div className="px-4 py-3 border-b border-border/60">
+              <h3 className="text-sm font-semibold">All Museums</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">{flowStats.length} museums · Click to explore</p>
+            </div>
+            <div className="max-h-[300px] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-card border-b">
+                  <tr>
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">Museum</th>
+                    <th className="text-right p-3 text-xs font-medium text-green-700 dark:text-green-400">In</th>
+                    <th className="text-right p-3 text-xs font-medium text-red-700 dark:text-red-400">Out</th>
+                    <th className="text-right p-3 text-xs font-medium text-muted-foreground">Net</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {[...flowStats]
+                    .sort((a, b) => Math.abs(getFlowValue(b, 'net')) - Math.abs(getFlowValue(a, 'net')))
+                    .map(s => {
+                      const net = getFlowValue(s, 'net');
+                      const isSelected = selectedMuseum === s.museum_id;
+                      return (
+                        <tr
+                          key={s.museum_id}
+                          className={cn("cursor-pointer transition-colors", isSelected ? 'bg-primary/5' : 'hover:bg-muted/40')}
+                          onClick={() => handleMuseumToggle(s.museum_id)}
+                        >
+                          <td className="p-3 truncate max-w-[200px]">{s.museum_name}</td>
+                          <td className="p-3 text-right text-green-700 dark:text-green-400 tabular-nums">{getFlowValue(s, 'in')}</td>
+                          <td className="p-3 text-right text-red-700 dark:text-red-400 tabular-nums">{getFlowValue(s, 'out')}</td>
+                          <td className={cn("p-3 text-right font-semibold tabular-nums",
+                            net > 0 ? 'text-green-700 dark:text-green-400' : net < 0 ? 'text-red-700 dark:text-red-400' : '')}>
+                            {net > 0 ? '+' : ''}{net}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
