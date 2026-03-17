@@ -62,13 +62,9 @@ function FitBounds({ points }: { points: [number, number][] }) {
 
 /** Artwork tray showing works that moved in a specific year */
 function YearArtworkTray({ movements, artworks, year, onArtworkSelect }: {
-  movements: ArtworkMovement[];
-  artworks: EnrichedArtwork[];
-  year: number;
-  onArtworkSelect: (id: string) => void;
+  movements: ArtworkMovement[]; artworks: EnrichedArtwork[]; year: number; onArtworkSelect: (id: string) => void;
 }) {
   const artworkMap = useMemo(() => new Map(artworks.map(a => [a.artwork_id, a])), [artworks]);
-
   const yearArtworks = useMemo(() => {
     const ids = new Set<string>();
     for (const m of movements) {
@@ -94,25 +90,13 @@ function YearArtworkTray({ movements, artworks, year, onArtworkSelect }: {
         {yearArtworks.map(artwork => {
           const imageUrl = getArtworkImageUrl(artwork);
           return (
-            <button
-              key={artwork.artwork_id}
-              onClick={() => onArtworkSelect(artwork.artwork_id)}
-              className="group shrink-0 w-28 text-left rounded-lg border border-border/60 overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
-            >
+            <button key={artwork.artwork_id} onClick={() => onArtworkSelect(artwork.artwork_id)}
+              className="group shrink-0 w-28 text-left rounded-lg border border-border/60 overflow-hidden hover:border-primary/40 hover:shadow-md transition-all">
               <div className="aspect-square bg-muted overflow-hidden">
-                {imageUrl ? (
-                  <img src={imageUrl} alt={artwork.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
-                  </div>
-                )}
+                {imageUrl ? (<img src={imageUrl} alt={artwork.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                ) : (<div className="w-full h-full flex items-center justify-center"><ImageIcon className="h-6 w-6 text-muted-foreground/30" /></div>)}
               </div>
-              <div className="p-1.5">
-                <p className="text-[10px] font-medium line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                  {artwork.title}
-                </p>
-              </div>
+              <div className="p-1.5"><p className="text-[10px] font-medium line-clamp-2 leading-tight group-hover:text-primary transition-colors">{artwork.title}</p></div>
             </button>
           );
         })}
@@ -156,24 +140,45 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
     if (!selectedYear) return timeFilteredMovements;
     return timeFilteredMovements.filter(m => {
       if (!m.start_date) return false;
-      const y = parseInt(m.start_date.substring(0, 4));
-      return y === selectedYear;
+      return parseInt(m.start_date.substring(0, 4)) === selectedYear;
     });
   }, [timeFilteredMovements, selectedYear]);
 
+  // Current-year movements for highlighting
+  const currentYearMovementKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const m of movements) {
+      if (!m.start_date) continue;
+      const y = parseInt(m.start_date.substring(0, 4));
+      if (y === playback.currentYear) {
+        keys.add(`${m.lender_museum_id}__${m.borrower_museum_id}`);
+      }
+    }
+    return keys;
+  }, [movements, playback.currentYear]);
+
+  // Current-year museum endpoints for highlighting
+  const currentYearMuseums = useMemo(() => {
+    const ids = new Set<string>();
+    for (const m of movements) {
+      if (!m.start_date) continue;
+      const y = parseInt(m.start_date.substring(0, 4));
+      if (y === playback.currentYear) {
+        ids.add(m.lender_museum_id);
+        ids.add(m.borrower_museum_id);
+      }
+    }
+    return ids;
+  }, [movements, playback.currentYear]);
+
   const { corridors, allPoints, involvedMuseums, maxEvents, museumEventCounts } = useMemo(() => {
     const src = selectedYear ? yearFocusedMovements : timeFilteredMovements;
-    const corridorMap = new Map<string, {
-      lender_museum_id: string; borrower_museum_id: string;
-      count: number; maxYear: number;
-    }>();
+    const corridorMap = new Map<string, { lender_museum_id: string; borrower_museum_id: string; count: number; maxYear: number }>();
     const museumCounts = new Map<string, number>();
 
     for (const m of src) {
       const key = `${m.lender_museum_id}__${m.borrower_museum_id}`;
-      if (!corridorMap.has(key)) {
-        corridorMap.set(key, { lender_museum_id: m.lender_museum_id, borrower_museum_id: m.borrower_museum_id, count: 0, maxYear: 0 });
-      }
+      if (!corridorMap.has(key)) corridorMap.set(key, { lender_museum_id: m.lender_museum_id, borrower_museum_id: m.borrower_museum_id, count: 0, maxYear: 0 });
       const c = corridorMap.get(key)!;
       c.count++;
       const y = parseInt(m.start_date?.substring(0, 4) || '');
@@ -209,12 +214,8 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
     if (year !== null) playback.setCurrentYear(year);
   }, [playback]);
 
-  // Active year for artwork tray: prefer selected, then playing year
   const artworkTrayYear = selectedYear || (playback.isPlaying ? playback.currentYear : null);
-
-  const activeCount = activeYears.length;
-  const totalEvents = timeFilteredMovements.length;
-  const focusLabel = selectedYear ? `Focused: ${selectedYear}` : `${activeCount} active years`;
+  const isAnimating = playback.isPlaying || (!playback.isAtEnd);
 
   if (movements.length === 0) {
     return (
@@ -227,149 +228,89 @@ export function FlowOverTimeView({ movements, museumMap, artworks, onArtworkSele
 
   return (
     <div className="space-y-6">
-      {/* Summary strip */}
       <div className="flex flex-wrap items-center gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <CalendarRange className="h-4 w-4 text-primary" />
-          <span className="text-muted-foreground">{focusLabel}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <ArrowRightLeft className="h-4 w-4 text-primary" />
-          <span className="text-muted-foreground">
-            <span className="font-semibold text-foreground tabular-nums">{totalEvents}</span> events through {playback.currentYear}
-          </span>
-        </div>
+        <div className="flex items-center gap-2"><CalendarRange className="h-4 w-4 text-primary" /><span className="text-muted-foreground">{selectedYear ? `Focused: ${selectedYear}` : `${activeYears.length} active years`}</span></div>
+        <div className="flex items-center gap-2"><ArrowRightLeft className="h-4 w-4 text-primary" /><span className="text-muted-foreground"><span className="font-semibold text-foreground tabular-nums">{timeFilteredMovements.length}</span> events through {playback.currentYear}</span></div>
       </div>
 
-      {/* Playback */}
       {yearBounds.min < yearBounds.max && (
         <TimePlaybackControl
-          minYear={yearBounds.min}
-          maxYear={yearBounds.max}
-          currentYear={playback.currentYear}
-          onYearChange={playback.setCurrentYear}
-          isPlaying={playback.isPlaying}
-          onPlayPause={playback.toggle}
-          onReset={playback.reset}
-          activeYears={activeYears}
-          onPrev={playback.prev}
-          onNext={playback.next}
-          speed={playback.speed}
-          onSpeedChange={playback.setSpeed}
-          timeMode={playback.timeMode}
-          onTimeModeChange={playback.setTimeMode}
+          minYear={yearBounds.min} maxYear={yearBounds.max} currentYear={playback.currentYear}
+          onYearChange={playback.setCurrentYear} isPlaying={playback.isPlaying}
+          onPlayPause={playback.toggle} onReset={playback.reset} activeYears={activeYears}
+          onPrev={playback.prev} onNext={playback.next} speed={playback.speed}
+          onSpeedChange={playback.setSpeed} timeMode={playback.timeMode} onTimeModeChange={playback.setTimeMode}
         />
       )}
 
-      {/* Artwork Tray for active year */}
       {artworkTrayYear && (
-        <YearArtworkTray
-          movements={movements}
-          artworks={artworks}
-          year={artworkTrayYear}
-          onArtworkSelect={onArtworkSelect}
-        />
+        <YearArtworkTray movements={movements} artworks={artworks} year={artworkTrayYear} onArtworkSelect={onArtworkSelect} />
       )}
 
-      {/* Time-filtered corridor map */}
+      {/* Time-filtered corridor map with strong active-year highlighting */}
       <div className="rounded-xl border border-border/60 overflow-hidden relative" style={{ height: isMobile ? 300 : 420 }}>
         <MapContainer center={center} zoom={4} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          />
+          <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png" />
           {allPoints.length > 1 && <FitBounds points={allPoints} />}
           {corridors.map(c => {
             const intensity = c.count / maxEvents;
-            const weight = 1.5 + intensity * 4;
-            const opacity = 0.15 + intensity * 0.55;
+            const isCurrentYear = isAnimating && currentYearMovementKeys.has(c.key);
+            const weight = isCurrentYear ? 3 + intensity * 5 : 1.5 + intensity * 3;
+            const opacity = isCurrentYear ? 0.9 : isAnimating ? 0.08 : 0.15 + intensity * 0.55;
+            const color = isCurrentYear ? 'hsl(30, 95%, 50%)' : 'hsl(348, 45%, 42%)';
             return (
-              <AnimatedPolyline
-                key={c.key}
-                id={c.key}
+              <AnimatedPolyline key={c.key} id={c.key}
                 positions={createArc(c.from, c.to)}
-                color="hsl(348, 45%, 42%)"
-                weight={weight}
-                opacity={opacity}
-                highlighted={false}
-                animated={playback.isPlaying && c.maxYear === playback.currentYear}
+                color={color} weight={weight} opacity={opacity}
+                highlighted={isCurrentYear} animated={isCurrentYear}
               />
             );
           })}
           {involvedMuseums.map(m => {
             const count = museumEventCounts.get(m.museum_id) || 0;
             const isTop = count > maxEvents * 0.5;
+            const isActiveMuseum = isAnimating && currentYearMuseums.has(m.museum_id);
             return (
-              <CircleMarker
-                key={m.museum_id}
-                center={[m.lat, m.lng]}
-                radius={isTop ? 6 : 4}
+              <CircleMarker key={m.museum_id} center={[m.lat, m.lng]}
+                radius={isActiveMuseum ? 8 : isTop ? 6 : 4}
                 pathOptions={{
-                  color: 'white', weight: 2,
-                  fillColor: isTop ? 'hsl(348, 55%, 38%)' : 'hsl(348, 45%, 48%)',
-                  fillOpacity: isTop ? 0.9 : 0.7,
-                }}
-              >
+                  color: isActiveMuseum ? 'hsl(30, 95%, 45%)' : 'white',
+                  weight: isActiveMuseum ? 3 : 2,
+                  fillColor: isActiveMuseum ? 'hsl(30, 95%, 50%)' : isTop ? 'hsl(348, 55%, 38%)' : 'hsl(348, 45%, 48%)',
+                  fillOpacity: isActiveMuseum ? 1 : isAnimating ? 0.15 : isTop ? 0.9 : 0.7,
+                }}>
                 <Popup><span className="text-xs font-semibold">{getMuseumDisplayName(m.museum_id, museumMap)}</span></Popup>
               </CircleMarker>
             );
           })}
         </MapContainer>
-        {selectedYear && (
+        {isAnimating && (
           <div className="absolute top-3 left-3 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs border border-border/60 shadow-sm">
-            Showing corridors through <span className="font-semibold">{selectedYear}</span>
+            <span className="font-bold text-primary tabular-nums text-sm">{playback.currentYear}</span>
+            <span className="text-muted-foreground ml-1.5">active corridors highlighted</span>
           </div>
         )}
       </div>
 
-      {/* Annual Flow Chart */}
-      <AnnualFlowChart
-        movements={timeFilteredMovements}
-        selectedYear={selectedYear}
-        onYearSelect={handleYearSelect}
-        hoveredYear={hoveredYear}
-        onYearHover={setHoveredYear}
-      />
+      <AnnualFlowChart movements={timeFilteredMovements} selectedYear={selectedYear} onYearSelect={handleYearSelect} hoveredYear={hoveredYear} onYearHover={setHoveredYear} />
+      <YearlyMuseumRankings movements={timeFilteredMovements} museumMap={museumMap} selectedYear={selectedYear} />
 
-      {/* Yearly Museum Rankings */}
-      <YearlyMuseumRankings
-        movements={timeFilteredMovements}
-        museumMap={museumMap}
-        selectedYear={selectedYear}
-      />
-
-      {/* Yearly Artwork Visual Grid (replaces text table) */}
       {selectedYear && (
-        <YearlyArtworkGrid
-          movements={timeFilteredMovements}
-          museumMap={museumMap}
-          artworks={artworks}
-          year={selectedYear}
-          onArtworkSelect={onArtworkSelect}
-        />
+        <YearlyArtworkGrid movements={timeFilteredMovements} museumMap={museumMap} artworks={artworks} year={selectedYear} onArtworkSelect={onArtworkSelect} />
       )}
     </div>
   );
 }
 
-/** Visual artwork grid for a selected year */
 function YearlyArtworkGrid({ movements, museumMap, artworks, year, onArtworkSelect }: {
-  movements: ArtworkMovement[];
-  museumMap: Map<string, MuseumPoint>;
-  artworks: EnrichedArtwork[];
-  year: number;
-  onArtworkSelect: (id: string) => void;
+  movements: ArtworkMovement[]; museumMap: Map<string, MuseumPoint>; artworks: EnrichedArtwork[]; year: number; onArtworkSelect: (id: string) => void;
 }) {
   const artworkMap = useMemo(() => new Map(artworks.map(a => [a.artwork_id, a])), [artworks]);
-
   const yearData = useMemo(() => {
     const items: { movement: ArtworkMovement; artwork: EnrichedArtwork | undefined }[] = [];
     for (const m of movements) {
       if (!m.start_date) continue;
-      const y = parseInt(m.start_date.substring(0, 4));
-      if (y === year) {
-        items.push({ movement: m, artwork: artworkMap.get(m.artwork_id) });
-      }
+      if (parseInt(m.start_date.substring(0, 4)) === year) items.push({ movement: m, artwork: artworkMap.get(m.artwork_id) });
     }
     return items.sort((a, b) => (a.movement.start_date || '').localeCompare(b.movement.start_date || ''));
   }, [movements, year, artworkMap]);
@@ -387,27 +328,15 @@ function YearlyArtworkGrid({ movements, museumMap, artworks, year, onArtworkSele
           {yearData.map(({ movement: m, artwork }, i) => {
             const imageUrl = artwork ? getArtworkImageUrl(artwork) : null;
             return (
-              <button
-                key={`${m.movement_id}-${i}`}
-                onClick={() => onArtworkSelect(m.artwork_id)}
-                className="group text-left rounded-lg border border-border/60 overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
-              >
+              <button key={`${m.movement_id}-${i}`} onClick={() => onArtworkSelect(m.artwork_id)}
+                className="group text-left rounded-lg border border-border/60 overflow-hidden hover:border-primary/40 hover:shadow-md transition-all">
                 <div className="aspect-square bg-muted overflow-hidden">
-                  {imageUrl ? (
-                    <img src={imageUrl} alt={m.artwork_title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ImageIcon className="h-8 w-8 text-muted-foreground/20" />
-                    </div>
-                  )}
+                  {imageUrl ? (<img src={imageUrl} alt={m.artwork_title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                  ) : (<div className="w-full h-full flex items-center justify-center"><ImageIcon className="h-8 w-8 text-muted-foreground/20" /></div>)}
                 </div>
                 <div className="p-2.5 space-y-1">
-                  <p className="text-xs font-medium line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                    {m.artwork_title || m.artwork_id}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground truncate">
-                    {getMuseumDisplayName(m.lender_museum_id, museumMap)} → {getMuseumDisplayName(m.borrower_museum_id, museumMap)}
-                  </p>
+                  <p className="text-xs font-medium line-clamp-2 leading-tight group-hover:text-primary transition-colors">{m.artwork_title || m.artwork_id}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{getMuseumDisplayName(m.lender_museum_id, museumMap)} → {getMuseumDisplayName(m.borrower_museum_id, museumMap)}</p>
                   <p className="text-[10px] text-muted-foreground tabular-nums">{m.start_date?.substring(0, 10)}</p>
                 </div>
               </button>

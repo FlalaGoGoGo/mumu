@@ -2,17 +2,17 @@ import { useMemo, useState, useCallback } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { ArrowRightLeft, MapPin, Landmark, CalendarRange, ChevronRight, Image as ImageIcon, Globe, Building } from 'lucide-react';
+import { ArrowRightLeft, MapPin, Landmark, CalendarRange, ChevronRight, Image as ImageIcon, User } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { AnimatedPolyline } from './AnimatedPolyline';
 import { RouteDetailDrawer, type RouteData } from './RouteDetailDrawer';
 import { getArtworkImageUrl } from '@/types/art';
 import { getMuseumDisplayName } from '@/lib/humanizeMuseumId';
+import { getCountryFlag } from '@/lib/countryFlag';
 import type { ArtworkMovement } from '@/types/movement';
-import type { EnrichedArtwork } from '@/types/art';
+import type { EnrichedArtwork, Artist } from '@/types/art';
 import 'leaflet/dist/leaflet.css';
 
 interface MuseumPoint {
@@ -32,9 +32,8 @@ interface Props {
   museumMap: Map<string, MuseumPoint>;
   artworks: EnrichedArtwork[];
   onDrillDown: (artworkId: string) => void;
+  selectedArtist?: Artist | null;
 }
-
-type GeoLevel = 'museum' | 'country' | 'continent';
 
 function createArc(from: [number, number], to: [number, number], segments = 30): [number, number][] {
   const points: [number, number][] = [];
@@ -79,17 +78,11 @@ function ArtworkStack({ artworkIds, artworks, maxShow = 4 }: { artworkIds: strin
         const artwork = artworkMap.get(id);
         const imageUrl = artwork ? getArtworkImageUrl(artwork) : null;
         return (
-          <div
-            key={id}
-            className="w-9 h-9 rounded-md border-2 border-background bg-muted overflow-hidden shadow-sm"
-            style={{ zIndex: maxShow - i }}
-          >
+          <div key={id} className="w-9 h-9 rounded-md border-2 border-background bg-muted overflow-hidden shadow-sm" style={{ zIndex: maxShow - i }}>
             {imageUrl ? (
               <img src={imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/40" />
-              </div>
+              <div className="w-full h-full flex items-center justify-center"><ImageIcon className="h-3.5 w-3.5 text-muted-foreground/40" /></div>
             )}
           </div>
         );
@@ -103,41 +96,69 @@ function ArtworkStack({ artworkIds, artworks, maxShow = 4 }: { artworkIds: strin
   );
 }
 
-export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown }: Props) {
+/** Artist profile summary card */
+function ArtistProfileCard({ artist }: { artist: Artist }) {
+  const flag = getCountryFlag(artist.nationality);
+  const lifeSpan = [artist.birth_year, artist.death_year].filter(Boolean).join('–');
+
+  return (
+    <Card className="border-border/60 overflow-hidden">
+      <CardContent className="p-4 flex items-start gap-4">
+        {artist.portrait_url ? (
+          <img
+            src={artist.portrait_url}
+            alt={artist.artist_name}
+            className="w-16 h-16 rounded-full object-cover border-2 border-border/60 shrink-0"
+          />
+        ) : (
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center border-2 border-border/60 shrink-0">
+            <User className="h-7 w-7 text-muted-foreground/40" />
+          </div>
+        )}
+        <div className="min-w-0 space-y-1">
+          <h3 className="text-base font-semibold truncate">{flag} {artist.artist_name}</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            {artist.nationality && (
+              <Badge variant="secondary" className="text-[10px]">{artist.nationality}</Badge>
+            )}
+            {lifeSpan && (
+              <span className="text-xs text-muted-foreground tabular-nums">{lifeSpan}</span>
+            )}
+            {artist.movement && (
+              <Badge variant="outline" className="text-[10px]">{artist.movement}</Badge>
+            )}
+          </div>
+          {artist.bio && (
+            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{artist.bio}</p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown, selectedArtist }: Props) {
   const isMobile = useIsMobile();
   const [highlightedCorridor, setHighlightedCorridor] = useState<string | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<RouteData | null>(null);
-  const [geoLevel, setGeoLevel] = useState<GeoLevel>('museum');
 
   const { corridors, allPoints, involvedMuseums, maxEvents, museumEventCounts } = useMemo(() => {
     const corridorMap = new Map<string, {
-      lender_museum_id: string;
-      borrower_museum_id: string;
-      artworkIds: Set<string>;
-      titles: Set<string>;
-      years: number[];
-      count: number;
+      lender_museum_id: string; borrower_museum_id: string;
+      artworkIds: Set<string>; titles: Set<string>; years: number[]; count: number;
     }>();
-
     const museumCounts = new Map<string, number>();
 
     for (const m of movements) {
       const key = `${m.lender_museum_id}__${m.borrower_museum_id}`;
       if (!corridorMap.has(key)) {
-        corridorMap.set(key, {
-          lender_museum_id: m.lender_museum_id,
-          borrower_museum_id: m.borrower_museum_id,
-          artworkIds: new Set(), titles: new Set(), years: [], count: 0,
-        });
+        corridorMap.set(key, { lender_museum_id: m.lender_museum_id, borrower_museum_id: m.borrower_museum_id, artworkIds: new Set(), titles: new Set(), years: [], count: 0 });
       }
       const c = corridorMap.get(key)!;
       c.count++;
       c.artworkIds.add(m.artwork_id);
       if (m.artwork_title) c.titles.add(m.artwork_title);
-      if (m.start_date) {
-        const y = parseInt(m.start_date.substring(0, 4));
-        if (!isNaN(y)) c.years.push(y);
-      }
+      if (m.start_date) { const y = parseInt(m.start_date.substring(0, 4)); if (!isNaN(y)) c.years.push(y); }
       museumCounts.set(m.lender_museum_id, (museumCounts.get(m.lender_museum_id) || 0) + 1);
       museumCounts.set(m.borrower_museum_id, (museumCounts.get(m.borrower_museum_id) || 0) + 1);
     }
@@ -150,46 +171,33 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
     for (const [key, c] of corridorMap) {
       const from = museumMap.get(c.lender_museum_id);
       const to = museumMap.get(c.borrower_museum_id);
-      if (!from || !to) continue;
-      if (from.lat === 0 && from.lng === 0) continue;
-      if (to.lat === 0 && to.lng === 0) continue;
-
+      if (!from || !to || (from.lat === 0 && from.lng === 0) || (to.lat === 0 && to.lng === 0)) continue;
       corridors.push({
-        key,
-        lender_museum_id: c.lender_museum_id,
-        borrower_museum_id: c.borrower_museum_id,
+        key, lender_museum_id: c.lender_museum_id, borrower_museum_id: c.borrower_museum_id,
         lender_name: getMuseumDisplayName(c.lender_museum_id, museumMap),
         borrower_name: getMuseumDisplayName(c.borrower_museum_id, museumMap),
-        from: [from.lat, from.lng],
-        to: [to.lat, to.lng],
-        event_count: c.count,
-        unique_artworks: Array.from(c.artworkIds),
+        from: [from.lat, from.lng], to: [to.lat, to.lng],
+        event_count: c.count, unique_artworks: Array.from(c.artworkIds),
         min_year: c.years.length > 0 ? Math.min(...c.years) : 0,
         max_year: c.years.length > 0 ? Math.max(...c.years) : 0,
         sample_titles: Array.from(c.titles).slice(0, 5),
       });
-
       allPts.push([from.lat, from.lng], [to.lat, to.lng]);
       involved.set(from.museum_id, from);
       involved.set(to.museum_id, to);
       if (c.count > maxEvents) maxEvents = c.count;
     }
-
     return { corridors, allPoints: allPts, involvedMuseums: Array.from(involved.values()), maxEvents, museumEventCounts: museumCounts };
   }, [movements, museumMap]);
 
-  // Summary stats
   const stats = useMemo(() => {
     const artworkIds = new Set(movements.map(m => m.artwork_id));
     const museumIds = new Set<string>();
     movements.forEach(m => { museumIds.add(m.lender_museum_id); museumIds.add(m.borrower_museum_id); });
     const years = movements.map(m => parseInt(m.start_date?.substring(0, 4) || '')).filter(y => !isNaN(y));
     return {
-      totalEvents: movements.length,
-      artworksWithMovements: artworkIds.size,
-      museumsInvolved: museumIds.size,
-      minYear: years.length > 0 ? Math.min(...years) : 0,
-      maxYear: years.length > 0 ? Math.max(...years) : 0,
+      totalEvents: movements.length, artworksWithMovements: artworkIds.size, museumsInvolved: museumIds.size,
+      minYear: years.length > 0 ? Math.min(...years) : 0, maxYear: years.length > 0 ? Math.max(...years) : 0,
     };
   }, [movements]);
 
@@ -197,12 +205,8 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
     ? [allPoints.reduce((s, p) => s + p[0], 0) / allPoints.length, allPoints.reduce((s, p) => s + p[1], 0) / allPoints.length]
     : [48, 2];
 
-  const sortedCorridors = useMemo(
-    () => [...corridors].sort((a, b) => b.event_count - a.event_count),
-    [corridors]
-  );
+  const sortedCorridors = useMemo(() => [...corridors].sort((a, b) => b.event_count - a.event_count), [corridors]);
 
-  // Geography aggregation for inflow/outflow
   const { topInflow, topOutflow } = useMemo(() => {
     const inflowMap = new Map<string, number>();
     const outflowMap = new Map<string, number>();
@@ -212,21 +216,20 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
       outflowMap.set(lenderName, (outflowMap.get(lenderName) || 0) + 1);
       inflowMap.set(borrowerName, (inflowMap.get(borrowerName) || 0) + 1);
     }
-    const toRanked = (map: Map<string, number>) =>
-      Array.from(map.entries())
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5);
+    const toRanked = (map: Map<string, number>) => Array.from(map.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 5);
     return { topInflow: toRanked(inflowMap), topOutflow: toRanked(outflowMap) };
   }, [movements, museumMap]);
 
-  const handleCorridorHover = useCallback((key: string | null) => {
-    setHighlightedCorridor(key);
-  }, []);
+  const handleCorridorHover = useCallback((key: string | null) => setHighlightedCorridor(key), []);
+  const handleRouteClick = useCallback((corridor: CorridorData) => setSelectedRoute(corridor), []);
 
-  const handleRouteClick = useCallback((corridor: CorridorData) => {
-    setSelectedRoute(corridor);
-  }, []);
+  // Get endpoint museum IDs for the highlighted corridor
+  const highlightedEndpoints = useMemo(() => {
+    if (!highlightedCorridor) return new Set<string>();
+    const c = corridors.find(c => c.key === highlightedCorridor);
+    if (!c) return new Set<string>();
+    return new Set([c.lender_museum_id, c.borrower_museum_id]);
+  }, [highlightedCorridor, corridors]);
 
   if (movements.length === 0) {
     return (
@@ -239,68 +242,44 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
 
   return (
     <div className="space-y-6">
+      {/* Artist Profile Card */}
+      {selectedArtist && <ArtistProfileCard artist={selectedArtist} />}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="border-border/60">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <ArrowRightLeft className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tabular-nums">{stats.totalEvents}</p>
-              <p className="text-xs text-muted-foreground">Movement Events</p>
-            </div>
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><ArrowRightLeft className="h-5 w-5 text-primary" /></div>
+            <div><p className="text-2xl font-bold tabular-nums">{stats.totalEvents}</p><p className="text-xs text-muted-foreground">Movement Events</p></div>
           </CardContent>
         </Card>
         <Card className="border-border/60">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <ImageIcon className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tabular-nums">{stats.artworksWithMovements}</p>
-              <p className="text-xs text-muted-foreground">Artworks Moved</p>
-            </div>
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><ImageIcon className="h-5 w-5 text-primary" /></div>
+            <div><p className="text-2xl font-bold tabular-nums">{stats.artworksWithMovements}</p><p className="text-xs text-muted-foreground">Artworks Moved</p></div>
           </CardContent>
         </Card>
         <Card className="border-border/60">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Landmark className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tabular-nums">{stats.museumsInvolved}</p>
-              <p className="text-xs text-muted-foreground">Museums Involved</p>
-            </div>
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><Landmark className="h-5 w-5 text-primary" /></div>
+            <div><p className="text-2xl font-bold tabular-nums">{stats.museumsInvolved}</p><p className="text-xs text-muted-foreground">Museums Involved</p></div>
           </CardContent>
         </Card>
         <Card className="border-border/60">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <CalendarRange className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tabular-nums">
-                {stats.minYear > 0 ? `${stats.minYear}–${stats.maxYear}` : '—'}
-              </p>
-              <p className="text-xs text-muted-foreground">Active Years</p>
-            </div>
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><CalendarRange className="h-5 w-5 text-primary" /></div>
+            <div><p className="text-2xl font-bold tabular-nums">{stats.minYear > 0 ? `${stats.minYear}–${stats.maxYear}` : '—'}</p><p className="text-xs text-muted-foreground">Active Years</p></div>
           </CardContent>
         </Card>
       </div>
 
       {/* Map + Top Routes */}
       <div className={cn(isMobile ? 'space-y-4' : 'grid grid-cols-5 gap-5')}>
-        {/* Corridor Map */}
-        <div className={cn(
-          "rounded-xl border border-border/60 overflow-hidden relative",
-          isMobile ? '' : 'col-span-3'
-        )} style={{ height: isMobile ? 350 : 500 }}>
+        {/* Corridor Map - slightly larger */}
+        <div className={cn("rounded-xl border border-border/60 overflow-hidden relative", isMobile ? '' : 'col-span-3')}
+          style={{ height: isMobile ? 350 : 540 }}>
           <MapContainer center={center} zoom={4} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            />
+            <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png" />
             {allPoints.length > 1 && <FitBounds points={allPoints} />}
 
             {corridors.map(c => {
@@ -310,15 +289,12 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
               const isHighlighted = highlightedCorridor === c.key;
               const isDimmed = highlightedCorridor !== null && !isHighlighted;
               return (
-                <AnimatedPolyline
-                  key={c.key}
-                  id={c.key}
+                <AnimatedPolyline key={c.key} id={c.key}
                   positions={createArc(c.from, c.to)}
-                  color={isHighlighted ? 'hsl(348, 55%, 48%)' : 'hsl(348, 45%, 42%)'}
-                  weight={weight}
-                  opacity={isDimmed ? 0.08 : isHighlighted ? 0.95 : baseOpacity}
-                  highlighted={isHighlighted}
-                  animated={isHighlighted}
+                  color={isHighlighted ? 'hsl(30, 90%, 50%)' : 'hsl(348, 45%, 42%)'}
+                  weight={isHighlighted ? weight + 3 : weight}
+                  opacity={isDimmed ? 0.06 : isHighlighted ? 1 : baseOpacity}
+                  highlighted={isHighlighted} animated={isHighlighted}
                 />
               );
             })}
@@ -326,17 +302,17 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
             {involvedMuseums.map(m => {
               const count = museumEventCounts.get(m.museum_id) || 0;
               const isTopMuseum = count > (maxEvents * 0.5);
+              const isEndpoint = highlightedEndpoints.has(m.museum_id);
+              const isDimmedMuseum = highlightedCorridor !== null && !isEndpoint;
               return (
-                <CircleMarker
-                  key={m.museum_id}
-                  center={[m.lat, m.lng]}
-                  radius={isTopMuseum ? 7 : 5}
+                <CircleMarker key={m.museum_id} center={[m.lat, m.lng]}
+                  radius={isEndpoint ? 10 : isTopMuseum ? 7 : 5}
                   pathOptions={{
-                    color: 'white', weight: isTopMuseum ? 3 : 2,
-                    fillColor: isTopMuseum ? 'hsl(348, 55%, 38%)' : 'hsl(348, 45%, 48%)',
-                    fillOpacity: isTopMuseum ? 0.9 : 0.7,
-                  }}
-                >
+                    color: isEndpoint ? 'hsl(30, 90%, 45%)' : 'white',
+                    weight: isEndpoint ? 3 : isTopMuseum ? 3 : 2,
+                    fillColor: isEndpoint ? 'hsl(30, 90%, 50%)' : isTopMuseum ? 'hsl(348, 55%, 38%)' : 'hsl(348, 45%, 48%)',
+                    fillOpacity: isDimmedMuseum ? 0.12 : isEndpoint ? 1 : isTopMuseum ? 0.9 : 0.7,
+                  }}>
                   <Popup><span className="text-xs font-semibold">{getMuseumDisplayName(m.museum_id, museumMap)}</span></Popup>
                 </CircleMarker>
               );
@@ -360,67 +336,39 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
           <CardContent className="p-0">
             <div className="px-4 py-3 border-b border-border/60">
               <h3 className="text-sm font-semibold">Top Routes</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {corridors.length} corridors · Click to explore
-              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{corridors.length} corridors · Click to explore</p>
             </div>
-            <div className="overflow-y-auto" style={{ maxHeight: isMobile ? 400 : 430 }}>
+            <div className="overflow-y-auto" style={{ maxHeight: isMobile ? 400 : 470 }}>
               {sortedCorridors.map((c) => {
                 const isActive = highlightedCorridor === c.key;
                 return (
-                  <div
-                    key={c.key}
-                    className={cn(
-                      "px-4 py-3.5 border-b border-border/30 cursor-pointer transition-all",
-                      isActive ? 'bg-primary/5' : 'hover:bg-muted/40'
-                    )}
+                  <div key={c.key}
+                    className={cn("px-4 py-3.5 border-b border-border/30 cursor-pointer transition-all", isActive ? 'bg-primary/5' : 'hover:bg-muted/40')}
                     onMouseEnter={() => handleCorridorHover(c.key)}
                     onMouseLeave={() => handleCorridorHover(null)}
-                    onClick={() => handleRouteClick(c)}
-                  >
+                    onClick={() => handleRouteClick(c)}>
                     <div className="flex items-center gap-3">
-                      {/* Artwork thumbnail stack */}
                       <ArtworkStack artworkIds={c.unique_artworks} artworks={artworks} maxShow={4} />
-
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{c.lender_name}</p>
                         <p className="text-xs text-muted-foreground truncate">→ {c.borrower_name}</p>
                         <div className="flex items-center gap-3 mt-1">
-                          <span className="text-xs text-muted-foreground">
-                            <span className="font-semibold text-foreground">{c.event_count}</span> events
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            <span className="font-semibold text-foreground">{c.unique_artworks.length}</span> artworks
-                          </span>
-                          {c.min_year > 0 && (
-                            <span className="text-xs text-muted-foreground ml-auto tabular-nums">
-                              {c.min_year}–{c.max_year}
-                            </span>
-                          )}
+                          <span className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">{c.event_count}</span> events</span>
+                          <span className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">{c.unique_artworks.length}</span> artworks</span>
+                          {c.min_year > 0 && <span className="text-xs text-muted-foreground ml-auto tabular-nums">{c.min_year}–{c.max_year}</span>}
                         </div>
                       </div>
-
                       <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                     </div>
-
-                    {/* Intensity bar */}
                     <div className="mt-2.5 h-1 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-300"
-                        style={{
-                          width: `${Math.max(8, (c.event_count / maxEvents) * 100)}%`,
-                          background: 'hsl(348, 45%, 42%)',
-                          opacity: isActive ? 1 : 0.6,
-                        }}
-                      />
+                      <div className="h-full rounded-full transition-all duration-300"
+                        style={{ width: `${Math.max(8, (c.event_count / maxEvents) * 100)}%`, background: 'hsl(348, 45%, 42%)', opacity: isActive ? 1 : 0.6 }} />
                     </div>
                   </div>
                 );
               })}
               {sortedCorridors.length === 0 && (
-                <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                  No corridors for this period
-                </div>
+                <div className="px-4 py-8 text-center text-sm text-muted-foreground">No corridors for this period</div>
               )}
             </div>
           </CardContent>
@@ -431,17 +379,11 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
       <div className={isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-5'}>
         <Card className="border-border/60">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-2 w-2 rounded-full bg-green-500" />
-              <h3 className="text-sm font-semibold">Top Inflow</h3>
-            </div>
+            <div className="flex items-center gap-2 mb-3"><div className="h-2 w-2 rounded-full bg-green-500" /><h3 className="text-sm font-semibold">Top Inflow</h3></div>
             <div className="space-y-1">
               {topInflow.map((m, i) => (
                 <div key={m.name} className="flex items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-muted/40 transition-colors">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs font-medium text-muted-foreground w-5 shrink-0">{i + 1}</span>
-                    <span className="truncate text-xs sm:text-sm">{m.name}</span>
-                  </div>
+                  <div className="flex items-center gap-2 min-w-0"><span className="text-xs font-medium text-muted-foreground w-5 shrink-0">{i + 1}</span><span className="truncate text-xs sm:text-sm">{m.name}</span></div>
                   <span className="text-green-700 dark:text-green-400 font-semibold tabular-nums shrink-0 ml-2">{m.count}</span>
                 </div>
               ))}
@@ -450,17 +392,11 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
         </Card>
         <Card className="border-border/60">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-2 w-2 rounded-full bg-red-500" />
-              <h3 className="text-sm font-semibold">Top Outflow</h3>
-            </div>
+            <div className="flex items-center gap-2 mb-3"><div className="h-2 w-2 rounded-full bg-red-500" /><h3 className="text-sm font-semibold">Top Outflow</h3></div>
             <div className="space-y-1">
               {topOutflow.map((m, i) => (
                 <div key={m.name} className="flex items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-muted/40 transition-colors">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs font-medium text-muted-foreground w-5 shrink-0">{i + 1}</span>
-                    <span className="truncate text-xs sm:text-sm">{m.name}</span>
-                  </div>
+                  <div className="flex items-center gap-2 min-w-0"><span className="text-xs font-medium text-muted-foreground w-5 shrink-0">{i + 1}</span><span className="truncate text-xs sm:text-sm">{m.name}</span></div>
                   <span className="text-red-700 dark:text-red-400 font-semibold tabular-nums shrink-0 ml-2">{m.count}</span>
                 </div>
               ))}
