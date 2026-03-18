@@ -293,7 +293,9 @@ export default function ArtPage() {
     return pages;
   };
 
-  if (isLoading) {
+  const shouldShowInitialSkeleton = isLoading && artworks.length === 0 && artists.length === 0;
+
+  if (shouldShowInitialSkeleton) {
     return (
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6">

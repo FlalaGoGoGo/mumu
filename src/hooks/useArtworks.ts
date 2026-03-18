@@ -113,35 +113,36 @@ export function useEnrichedArtworks() {
   const { data: artists, isLoading: artistsLoading } = useArtists();
   const { data: artworks, isLoading: artworksLoading } = useArtworksRaw();
   const { data: museums, isLoading: museumsLoading } = useMuseumsForArt();
-  
-  const isLoading = artistsLoading || artworksLoading || museumsLoading;
-  
-  const enrichedArtworks: EnrichedArtwork[] = [];
-  
-  if (artists && artworks && museums) {
-    const artistById = new Map(artists.map(a => [a.artist_id, a]));
-    const museumById = new Map(museums.map(m => [m.museum_id, m]));
-    
-    for (const artwork of artworks) {
-      const artist = artistById.get(artwork.artist_id);
-      const museum = museumById.get(artwork.museum_id);
-      
-      enrichedArtworks.push({
-        ...artwork,
-        artist_name: artist?.artist_name || 'Unknown Artist',
-        artist_portrait_url: artist?.portrait_url || null,
-        museum_name: museum?.name || 'Unknown Museum',
-        museum_address: museum?.address || null,
-        museum_lat: museum?.lat || 0,
-        museum_lng: museum?.lng || 0,
-      });
-    }
-  }
-  
+
+  const artistList = artists || [];
+  const artworkList = artworks || [];
+  const museumList = museums || [];
+
+  const artistById = new Map(artistList.map(a => [a.artist_id, a]));
+  const museumById = new Map(museumList.map(m => [m.museum_id, m]));
+
+  const enrichedArtworks: EnrichedArtwork[] = artworkList.map((artwork) => {
+    const artist = artistById.get(artwork.artist_id);
+    const museum = museumById.get(artwork.museum_id);
+
+    return {
+      ...artwork,
+      artist_name: artist?.artist_name || 'Unknown Artist',
+      artist_portrait_url: artist?.portrait_url || null,
+      museum_name: museum?.name || 'Unknown Museum',
+      museum_address: museum?.address || null,
+      museum_lat: museum?.lat || 0,
+      museum_lng: museum?.lng || 0,
+    };
+  });
+
+  const hasRenderableData = artistList.length > 0 && artworkList.length > 0;
+  const isLoading = (artistsLoading || artworksLoading || museumsLoading) && !hasRenderableData;
+
   return {
     data: enrichedArtworks,
-    artists: artists || [],
-    museums: museums || [],
+    artists: artistList,
+    museums: museumList,
     isLoading,
   };
 }
