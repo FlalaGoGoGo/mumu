@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, Text, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -49,15 +49,13 @@ const GOLD = new THREE.Color('hsl(43, 60%, 45%)');
 const GOLD_GLOW = new THREE.Color('hsl(43, 70%, 65%)');
 const BURGUNDY = new THREE.Color('hsl(348, 45%, 32%)');
 const BURGUNDY_GLOW = new THREE.Color('hsl(348, 50%, 50%)');
-const BG_DEEP = new THREE.Color('hsl(348, 45%, 10%)');
-const BG_MID = new THREE.Color('hsl(348, 30%, 14%)');
 
 /** Force-directed 3D layout */
-function computeLayout(nodes: GraphNode[], edges: GraphEdge[], iterations = 100) {
+function computeLayout(nodes: GraphNode[], edges: GraphEdge[], iterations = 120) {
   const positioned = nodes.map((n, i) => {
     const phi = Math.acos(-1 + (2 * i) / Math.max(1, nodes.length));
     const theta = Math.sqrt(nodes.length * Math.PI) * phi;
-    const r = 35 + Math.random() * 15;
+    const r = 30 + Math.random() * 10;
     return {
       ...n,
       x: r * Math.cos(theta) * Math.sin(phi),
@@ -70,15 +68,16 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[], iterations = 100)
   const nodeIndex = new Map(positioned.map((n, i) => [n.id, i]));
 
   for (let iter = 0; iter < iterations; iter++) {
-    const alpha = 0.3 * (1 - iter / iterations);
+    const alpha = 0.35 * (1 - iter / iterations);
 
+    // Repulsion
     for (let i = 0; i < positioned.length; i++) {
       for (let j = i + 1; j < positioned.length; j++) {
         const dx = positioned[j].x - positioned[i].x;
         const dy = positioned[j].y - positioned[i].y;
         const dz = positioned[j].z - positioned[i].z;
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
-        const force = 800 / (dist * dist);
+        const force = 600 / (dist * dist);
         const fx = (dx / dist) * force * alpha;
         const fy = (dy / dist) * force * alpha;
         const fz = (dz / dist) * force * alpha;
@@ -87,6 +86,7 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[], iterations = 100)
       }
     }
 
+    // Attraction along edges
     for (const e of edges) {
       const si = nodeIndex.get(e.source);
       const ti = nodeIndex.get(e.target);
@@ -97,7 +97,7 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[], iterations = 100)
       const dy = t.y - s.y;
       const dz = t.z - s.z;
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
-      const force = (dist - 20) * 0.03 * alpha;
+      const force = (dist - 18) * 0.04 * alpha;
       const fx = (dx / dist) * force;
       const fy = (dy / dist) * force;
       const fz = (dz / dist) * force;
@@ -105,15 +105,17 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[], iterations = 100)
       t.vx -= fx; t.vy -= fy; t.vz -= fz;
     }
 
+    // Center gravity
     for (const n of positioned) {
-      n.vx -= n.x * 0.008 * alpha;
-      n.vy -= n.y * 0.008 * alpha;
-      n.vz -= n.z * 0.008 * alpha;
+      n.vx -= n.x * 0.01 * alpha;
+      n.vy -= n.y * 0.01 * alpha;
+      n.vz -= n.z * 0.01 * alpha;
     }
 
+    // Apply velocity
     for (const n of positioned) {
       n.x += n.vx * 0.8; n.y += n.vy * 0.8; n.z += n.vz * 0.8;
-      n.vx *= 0.55; n.vy *= 0.55; n.vz *= 0.55;
+      n.vx *= 0.5; n.vy *= 0.5; n.vz *= 0.5;
     }
   }
 
@@ -123,16 +125,17 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[], iterations = 100)
   }));
 }
 
-/** Glowing node sphere with atmospheric shell */
+/** Glowing node with multi-layer atmosphere */
 function NodeSphere({ node, isSelected, isHovered, onPointerOver, onPointerOut, onClick }: {
   node: GraphNode; isSelected: boolean; isHovered: boolean;
   onPointerOver: () => void; onPointerOut: () => void; onClick: () => void;
 }) {
   const meshRef = useRef<THREE.Mesh>(null!);
   const glowRef = useRef<THREE.Mesh>(null!);
+  const outerRef = useRef<THREE.Mesh>(null!);
   const netFlow = node.inflow - node.outflow;
-  const baseScale = Math.max(1, Math.sqrt(node.total) * 0.6);
-  const targetScale = (isSelected || isHovered) ? baseScale * 1.5 : baseScale;
+  const baseScale = Math.max(1.2, Math.sqrt(node.total) * 0.7);
+  const targetScale = (isSelected || isHovered) ? baseScale * 1.6 : baseScale;
 
   const coreColor = netFlow > 0 ? GOLD : BURGUNDY;
   const glowColor = netFlow > 0 ? GOLD_GLOW : BURGUNDY_GLOW;
@@ -142,33 +145,52 @@ function NodeSphere({ node, isSelected, isHovered, onPointerOver, onPointerOut, 
       meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.08);
     }
     if (glowRef.current) {
-      const glowScale = targetScale * 1.6;
+      const glowScale = targetScale * 1.8;
       glowRef.current.scale.lerp(new THREE.Vector3(glowScale, glowScale, glowScale), 0.08);
-      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = (isSelected || isHovered) ? 0.25 : 0.08;
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = (isSelected || isHovered) ? 0.3 : 0.1;
+    }
+    if (outerRef.current) {
+      const outerScale = targetScale * 2.8;
+      outerRef.current.scale.lerp(new THREE.Vector3(outerScale, outerScale, outerScale), 0.06);
+      (outerRef.current.material as THREE.MeshBasicMaterial).opacity = (isSelected || isHovered) ? 0.08 : 0.02;
     }
   });
 
   return (
     <group position={node.position}>
-      {/* Outer glow */}
+      {/* Outermost halo */}
+      <mesh ref={outerRef}>
+        <sphereGeometry args={[1, 12, 12]} />
+        <meshBasicMaterial color={glowColor} transparent opacity={0.02} depthWrite={false} />
+      </mesh>
+      {/* Inner glow shell */}
       <mesh ref={glowRef}>
         <sphereGeometry args={[1, 16, 16]} />
-        <meshBasicMaterial color={glowColor} transparent opacity={0.08} depthWrite={false} />
+        <meshBasicMaterial color={glowColor} transparent opacity={0.1} depthWrite={false} />
       </mesh>
       {/* Core sphere */}
       <mesh ref={meshRef}
         onPointerOver={(e) => { e.stopPropagation(); onPointerOver(); }}
         onPointerOut={(e) => { e.stopPropagation(); onPointerOut(); }}
         onClick={(e) => { e.stopPropagation(); onClick(); }}>
-        <sphereGeometry args={[1, 24, 24]} />
+        <sphereGeometry args={[1, 32, 32]} />
         <meshStandardMaterial
           color={coreColor}
           emissive={coreColor}
-          emissiveIntensity={(isSelected || isHovered) ? 0.6 : 0.2}
-          roughness={0.3}
-          metalness={0.5}
+          emissiveIntensity={(isSelected || isHovered) ? 0.8 : 0.3}
+          roughness={0.2}
+          metalness={0.6}
         />
       </mesh>
+      {/* Label — show on hover/select */}
+      {(isSelected || isHovered) && (
+        <Billboard position={[0, targetScale + 1.5, 0]}>
+          <Text fontSize={1.5} color="white" anchorX="center" anchorY="bottom"
+            outlineWidth={0.08} outlineColor="#000000">
+            {node.name.length > 25 ? node.name.substring(0, 22) + '…' : node.name}
+          </Text>
+        </Billboard>
+      )}
     </group>
   );
 }
@@ -178,7 +200,7 @@ function EdgeLine({ from, to, opacity, isActive }: { from: [number, number, numb
   const lineObj = useMemo(() => {
     const points = [new THREE.Vector3(...from), new THREE.Vector3(...to)];
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const color = isActive ? '#d4a84b' : '#b8860b';
+    const color = isActive ? '#d4a84b' : '#8a6914';
     const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
     return new THREE.Line(geometry, material);
   }, [from, to, opacity, isActive]);
@@ -187,7 +209,7 @@ function EdgeLine({ from, to, opacity, isActive }: { from: [number, number, numb
 }
 
 /** Animated particle flowing along an edge */
-function EdgeParticle({ from, to, speed = 0.12, color }: { from: [number, number, number]; to: [number, number, number]; speed?: number; color: THREE.Color }) {
+function EdgeParticle({ from, to, speed = 0.12, color, size = 0.25 }: { from: [number, number, number]; to: [number, number, number]; speed?: number; color: THREE.Color; size?: number }) {
   const meshRef = useRef<THREE.Mesh>(null!);
   const progressRef = useRef(Math.random());
 
@@ -206,30 +228,32 @@ function EdgeParticle({ from, to, speed = 0.12, color }: { from: [number, number
 
   return (
     <mesh ref={meshRef}>
-      <sphereGeometry args={[0.2, 8, 8]} />
-      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1} />
+      <sphereGeometry args={[size, 8, 8]} />
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.5} />
     </mesh>
   );
 }
 
-/** Slow idle camera drift */
-function IdleDrift() {
-  const { camera } = useThree();
-  const timeRef = useRef(0);
-  const initialPos = useRef<THREE.Vector3 | null>(null);
-
-  useFrame((_, delta) => {
-    if (!initialPos.current) {
-      initialPos.current = camera.position.clone();
+/** Ambient star field for depth */
+function StarField() {
+  const points = useMemo(() => {
+    const positions = new Float32Array(600 * 3);
+    for (let i = 0; i < 600; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 300;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 300;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 300;
     }
-    timeRef.current += delta * 0.15;
-    const drift = 3;
-    camera.position.x = initialPos.current.x + Math.sin(timeRef.current * 0.7) * drift;
-    camera.position.y = initialPos.current.y + Math.cos(timeRef.current * 0.5) * drift * 0.5;
-    camera.lookAt(0, 0, 0);
-  });
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    return geo;
+  }, []);
 
-  return null;
+  return (
+    <points>
+      <primitive object={points} attach="geometry" />
+      <pointsMaterial color="#b8860b" size={0.3} transparent opacity={0.15} sizeAttenuation />
+    </points>
+  );
 }
 
 /** The 3D scene */
@@ -248,13 +272,17 @@ function NetworkScene({ nodes, edges, selectedNodeId, hoveredNodeId, onNodeHover
   return (
     <>
       {/* Deep atmospheric lighting */}
-      <ambientLight intensity={0.15} />
-      <pointLight position={[60, 40, 60]} intensity={1.2} color="#d4a84b" />
-      <pointLight position={[-40, -30, 40]} intensity={0.5} color="#b8860b" />
-      <pointLight position={[0, 60, -30]} intensity={0.3} color="#9b4a58" />
+      <ambientLight intensity={0.1} />
+      <pointLight position={[60, 40, 60]} intensity={1.5} color="#d4a84b" />
+      <pointLight position={[-50, -30, 50]} intensity={0.8} color="#b8860b" />
+      <pointLight position={[0, 70, -40]} intensity={0.4} color="#9b4a58" />
+      <pointLight position={[-30, 20, -60]} intensity={0.3} color="#5a2035" />
 
-      {/* Background fog */}
-      <fog attach="fog" args={['#1a0e12', 80, 250]} />
+      {/* Background fog for depth */}
+      <fog attach="fog" args={['#0d0509', 60, 220]} />
+
+      {/* Star field for spatial depth */}
+      <StarField />
 
       {/* Edges */}
       {edges.map((e, i) => {
@@ -263,12 +291,16 @@ function NetworkScene({ nodes, edges, selectedNodeId, hoveredNodeId, onNodeHover
         if (!from || !to) return null;
         const intensity = e.count / maxCount;
         const isConnectedToActive = activeNodeIds.has(e.source) || activeNodeIds.has(e.target);
-        const opacity = isConnectedToActive ? 0.5 + intensity * 0.4 : 0.06 + intensity * 0.2;
+        const opacity = isConnectedToActive ? 0.5 + intensity * 0.4 : 0.04 + intensity * 0.15;
         return (
           <group key={`edge-${i}`}>
             <EdgeLine from={from} to={to} width={e.width} opacity={opacity} isActive={isConnectedToActive} />
-            {(intensity > 0.25 || isConnectedToActive) && (
-              <EdgeParticle from={from} to={to} speed={0.08 + intensity * 0.12} color={isConnectedToActive ? GOLD_GLOW : GOLD} />
+            {/* Multiple particles for stronger edges */}
+            {(intensity > 0.15 || isConnectedToActive) && (
+              <EdgeParticle from={from} to={to} speed={0.06 + intensity * 0.1} color={isConnectedToActive ? GOLD_GLOW : GOLD} size={isConnectedToActive ? 0.35 : 0.2} />
+            )}
+            {isConnectedToActive && intensity > 0.3 && (
+              <EdgeParticle from={from} to={to} speed={0.04 + intensity * 0.08} color={GOLD_GLOW} size={0.2} />
             )}
           </group>
         );
@@ -285,7 +317,7 @@ function NetworkScene({ nodes, edges, selectedNodeId, hoveredNodeId, onNodeHover
         />
       ))}
 
-      <OrbitControls enableDamping dampingFactor={0.05} minDistance={25} maxDistance={180} autoRotate autoRotateSpeed={0.3} />
+      <OrbitControls enableDamping dampingFactor={0.05} minDistance={20} maxDistance={160} autoRotate autoRotateSpeed={0.2} />
     </>
   );
 }
@@ -316,12 +348,11 @@ export function NetworkGraph3D({ movements, museumMap, artworks, onArtworkSelect
       const museum = museumMap.get(id);
       if (!museum || (museum.lat === 0 && museum.lng === 0)) continue;
       const total = stats.inflow + stats.outflow;
-      const netFlow = stats.inflow - stats.outflow;
       nodes.push({
         id, name: getMuseumDisplayName(id, museumMap), total,
         inflow: stats.inflow, outflow: stats.outflow,
         position: [0, 0, 0],
-        color: netFlow > 0 ? '#b8860b' : '#7a2e3b',
+        color: (stats.inflow - stats.outflow) > 0 ? '#b8860b' : '#7a2e3b',
       });
     }
 
@@ -350,7 +381,7 @@ export function NetworkGraph3D({ movements, museumMap, artworks, onArtworkSelect
     return rawEdges
       .filter(e => e.source === selectedNode.id || e.target === selectedNode.id)
       .sort((a, b) => b.count - a.count)
-      .slice(0, 6);
+      .slice(0, 8);
   }, [selectedNode, rawEdges]);
 
   const nodeArtworks = useMemo(() => {
@@ -387,8 +418,8 @@ export function NetworkGraph3D({ movements, museumMap, artworks, onArtworkSelect
           </Button>
         </div>
 
-        <div className="relative" style={{ height: 560, background: 'linear-gradient(180deg, hsl(348, 45%, 10%) 0%, hsl(348, 30%, 8%) 100%)' }}>
-          <Canvas camera={{ position: [0, 0, 90], fov: 55 }} dpr={[1, 2]}>
+        <div className="relative" style={{ height: 600, background: 'linear-gradient(180deg, hsl(348, 50%, 6%) 0%, hsl(348, 40%, 4%) 50%, hsl(240, 20%, 3%) 100%)' }}>
+          <Canvas camera={{ position: [0, 0, 80], fov: 55 }} dpr={[1, 2]}>
             <NetworkScene nodes={layoutNodes} edges={rawEdges} selectedNodeId={selectedNodeId}
               hoveredNodeId={hoveredNodeId}
               onNodeHover={setHoveredNodeId}
@@ -396,28 +427,45 @@ export function NetworkGraph3D({ movements, museumMap, artworks, onArtworkSelect
           </Canvas>
 
           {/* Legend */}
-          <div className="absolute bottom-3 left-3 z-10 bg-black/60 backdrop-blur-sm rounded-lg p-3 text-[10px] space-y-1.5 border border-white/10">
+          <div className="absolute bottom-3 left-3 z-10 bg-black/70 backdrop-blur-md rounded-xl p-3 text-[10px] space-y-1.5 border border-white/5">
+            <div className="text-[9px] uppercase tracking-widest text-white/30 font-semibold mb-1">Legend</div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(43, 60%, 45%)', boxShadow: '0 0 6px hsl(43, 70%, 55%)' }} />
-              <span className="text-white/70">Net Importer</span>
+              <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(43, 60%, 45%)', boxShadow: '0 0 8px hsl(43, 70%, 55%)' }} />
+              <span className="text-white/60">Net Importer</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(348, 45%, 32%)', boxShadow: '0 0 6px hsl(348, 50%, 45%)' }} />
-              <span className="text-white/70">Net Exporter</span>
+              <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(348, 45%, 32%)', boxShadow: '0 0 8px hsl(348, 50%, 45%)' }} />
+              <span className="text-white/60">Net Exporter</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-[2px] rounded-full" style={{ background: 'hsl(43, 60%, 45%)' }} />
-              <span className="text-white/70">Movement corridor</span>
+              <span className="text-white/60">Movement corridor</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ background: 'hsl(43, 70%, 65%)', boxShadow: '0 0 4px hsl(43, 70%, 65%)' }} />
-              <span className="text-white/70">Flow particle</span>
+              <div className="w-2 h-2 rounded-full" style={{ background: 'hsl(43, 70%, 65%)', boxShadow: '0 0 6px hsl(43, 70%, 65%)' }} />
+              <span className="text-white/60">Flow particle</span>
             </div>
           </div>
 
+          {/* Hover tooltip */}
+          {hoveredNodeId && !selectedNode && (() => {
+            const hNode = layoutNodes.find(n => n.id === hoveredNodeId);
+            if (!hNode) return null;
+            return (
+              <div className="absolute top-3 right-3 z-10 bg-black/80 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl p-3 w-56">
+                <p className="text-xs font-semibold text-white truncate">{hNode.name}</p>
+                <div className="flex gap-2 mt-1.5">
+                  <span className="text-[10px] text-green-400">↓ {hNode.inflow} in</span>
+                  <span className="text-[10px] text-red-400">↑ {hNode.outflow} out</span>
+                  <span className="text-[10px] text-white/50 ml-auto">Net {(hNode.inflow - hNode.outflow) > 0 ? '+' : ''}{hNode.inflow - hNode.outflow}</span>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Node detail panel */}
           {selectedNode && (
-            <div className="absolute top-3 right-3 z-10 bg-black/80 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl w-72 max-h-[500px] overflow-y-auto">
+            <div className="absolute top-3 right-3 z-10 bg-black/85 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl w-72 max-h-[540px] overflow-y-auto">
               <div className="p-4 space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="min-w-0 flex-1">
@@ -449,10 +497,11 @@ export function NetworkGraph3D({ movements, museumMap, artworks, onArtworkSelect
                     {nodeEdges.map((e, i) => {
                       const partner = e.source === selectedNode.id ? e.target : e.source;
                       const partnerName = getMuseumDisplayName(partner, museumMap);
+                      const isOutgoing = e.source === selectedNode.id;
                       return (
-                        <div key={i} className="flex items-center gap-2 text-xs text-white/70">
-                          <ArrowRightLeft className="h-3 w-3 text-amber-400/60 shrink-0" />
-                          <span className="truncate">{partnerName}</span>
+                        <div key={i} className="flex items-center gap-2 text-xs text-white/70 py-0.5">
+                          <span className={isOutgoing ? 'text-red-400' : 'text-green-400'}>{isOutgoing ? '↑' : '↓'}</span>
+                          <span className="truncate flex-1">{partnerName}</span>
                           <span className="ml-auto text-white/50 tabular-nums shrink-0">{e.count}</span>
                         </div>
                       );
