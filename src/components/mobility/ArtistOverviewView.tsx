@@ -89,7 +89,6 @@ function MapHoverFocus({ corridor, allPoints }: { corridor: CorridorData | null;
         L.latLng(corridor.from[0], corridor.from[1]),
         L.latLng(corridor.to[0], corridor.to[1]),
       ]);
-      // For short-distance routes, zoom much more aggressively
       const dist = Math.sqrt(
         Math.pow(corridor.from[0] - corridor.to[0], 2) +
         Math.pow(corridor.from[1] - corridor.to[1], 2)
@@ -131,36 +130,6 @@ function ArtworkStack({ artworkIds, artworks, maxShow = 4 }: { artworkIds: strin
         </div>
       )}
     </div>
-  );
-}
-
-/** Artist profile summary card */
-function ArtistProfileCard({ artist }: { artist: Artist }) {
-  const flag = getCountryFlag(artist.nationality);
-  const lifeSpan = [artist.birth_year, artist.death_year].filter(Boolean).join('–');
-
-  return (
-    <Card className="border-border/60 overflow-hidden">
-      <CardContent className="p-4 flex items-start gap-4">
-        {artist.portrait_url ? (
-          <img src={artist.portrait_url} alt={artist.artist_name}
-            className="w-16 h-16 rounded-full object-cover border-2 border-border/60 shrink-0" />
-        ) : (
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center border-2 border-border/60 shrink-0">
-            <User className="h-7 w-7 text-muted-foreground/40" />
-          </div>
-        )}
-        <div className="min-w-0 space-y-1">
-          <h3 className="text-base font-semibold truncate">{flag} {artist.artist_name}</h3>
-          <div className="flex flex-wrap items-center gap-2">
-            {artist.nationality && <Badge variant="secondary" className="text-[10px]">{artist.nationality}</Badge>}
-            {lifeSpan && <span className="text-xs text-muted-foreground tabular-nums">{lifeSpan}</span>}
-            {artist.movement && <Badge variant="outline" className="text-[10px]">{artist.movement}</Badge>}
-          </div>
-          {artist.bio && <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{artist.bio}</p>}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -258,9 +227,25 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
 
   const handleRouteClick = useCallback((corridor: CorridorData) => {
     try {
-      setSelectedRoute(corridor);
-    } catch {
-      // Prevent crash
+      // Validate corridor data before setting
+      if (!corridor || !corridor.lender_museum_id || !corridor.borrower_museum_id || !Array.isArray(corridor.unique_artworks)) {
+        console.warn('[ArtistOverviewView] Invalid corridor data, skipping route click');
+        return;
+      }
+      setSelectedRoute({
+        key: corridor.key,
+        lender_museum_id: corridor.lender_museum_id,
+        borrower_museum_id: corridor.borrower_museum_id,
+        lender_name: corridor.lender_name,
+        borrower_name: corridor.borrower_name,
+        event_count: corridor.event_count,
+        unique_artworks: [...corridor.unique_artworks],
+        min_year: corridor.min_year,
+        max_year: corridor.max_year,
+        sample_titles: [...corridor.sample_titles],
+      });
+    } catch (e) {
+      console.warn('[ArtistOverviewView] Route click error:', e);
     }
   }, []);
 
@@ -287,8 +272,6 @@ export function ArtistOverviewView({ movements, museumMap, artworks, onDrillDown
 
   return (
     <div className="space-y-6">
-      {selectedArtist && <ArtistProfileCard artist={selectedArtist} />}
-
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="border-border/60">

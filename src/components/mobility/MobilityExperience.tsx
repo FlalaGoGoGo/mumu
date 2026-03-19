@@ -5,20 +5,54 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowLeft, SlidersHorizontal, X, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { MobilityFilters } from './MobilityFilters';
 import { ArtistOverviewView } from './ArtistOverviewView';
 import { FlowOverTimeView } from './FlowOverTimeView';
 import { MuseumExplorerView } from './MuseumExplorerView';
 import { NetworkGraph3D } from './NetworkGraph3D';
 import { ArtworkDetailDrawer } from './ArtworkDetailDrawer';
+import { getCountryFlag } from '@/lib/countryFlag';
 import type { MobilityResearchStatus } from '@/types/movement';
+import type { Artist } from '@/types/art';
 
 type MobilityTab = 'flow' | 'time' | 'museum' | 'network';
 
 interface Props {
   onBack: () => void;
+}
+
+/** Artist profile intro block */
+function ArtistIntro({ artist }: { artist: Artist }) {
+  const flag = getCountryFlag(artist.nationality);
+  const lifeSpan = [artist.birth_year, artist.death_year].filter(Boolean).join('–');
+
+  return (
+    <Card className="border-border/60 overflow-hidden">
+      <CardContent className="p-4 flex items-start gap-4">
+        {artist.portrait_url ? (
+          <img src={artist.portrait_url} alt={artist.artist_name}
+            className="w-16 h-16 rounded-full object-cover border-2 border-border/60 shrink-0" />
+        ) : (
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center border-2 border-border/60 shrink-0">
+            <User className="h-7 w-7 text-muted-foreground/40" />
+          </div>
+        )}
+        <div className="min-w-0 space-y-1">
+          <h3 className="text-base font-semibold truncate">{flag} {artist.artist_name}</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            {artist.nationality && <Badge variant="secondary" className="text-[10px]">{artist.nationality}</Badge>}
+            {lifeSpan && <span className="text-xs text-muted-foreground tabular-nums">{lifeSpan}</span>}
+            {artist.movement && <Badge variant="outline" className="text-[10px]">{artist.movement}</Badge>}
+          </div>
+          {artist.bio && <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{artist.bio}</p>}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function MobilityExperience({ onBack }: Props) {
@@ -101,44 +135,58 @@ export function MobilityExperience({ onBack }: Props) {
 
   return (
     <div className="container mx-auto px-4 py-6 md:py-8 space-y-6">
-      <div className="space-y-5">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <Button variant="ghost" size="sm" onClick={onBack} className="gap-2 shrink-0 -ml-2">
-              <ArrowLeft className="h-4 w-4" />{isMobile ? 'Back' : 'Back to Art Collection'}
-            </Button>
-            <div className="h-6 w-px bg-border hidden sm:block" />
-            <h1 className="font-display text-xl font-bold text-foreground md:text-2xl truncate hidden sm:block">Artwork Mobility</h1>
-          </div>
-          {isMobile && (
-            <Button variant="outline" size="sm" onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)} className="shrink-0 gap-2">
-              <SlidersHorizontal className="h-4 w-4" />Filters
-            </Button>
-          )}
+      {/* 1. Page Header — matches Arts / Exhibitions pattern */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">
+            Artwork Mobility
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Explore how artworks travel between museums worldwide
+          </p>
         </div>
+        <Button variant="outline" className="gap-2 shrink-0" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4" />
+          {isMobile ? 'Back' : 'Back to Art Collection'}
+        </Button>
+      </div>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as MobilityTab)}>
-          <TabsList className={cn("h-10", isMobile ? 'w-full' : '')}>
-            <TabsTrigger value="flow" className={cn("px-5", isMobile && 'flex-1')}>All Works Flow</TabsTrigger>
-            <TabsTrigger value="time" className={cn("px-5", isMobile && 'flex-1')}>Flow Over Time</TabsTrigger>
-            <TabsTrigger value="network" className={cn("px-5", isMobile && 'flex-1')}>3D Network</TabsTrigger>
-            <TabsTrigger value="museum" className={cn("px-5", isMobile && 'flex-1')}>Museum Explorer</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        {!isMobile && filtersContent}
-        {isMobile && mobileFiltersOpen && (
-          <div className="rounded-xl border border-border/60 bg-card p-4 relative">
-            <Button variant="ghost" size="icon" className="absolute top-3 right-3 h-7 w-7" onClick={() => setMobileFiltersOpen(false)}>
-              <X className="h-4 w-4" />
-            </Button>
-            {filtersContent}
-          </div>
+      {/* 2. Artist Selector (mobile filter toggle) */}
+      <div className="flex items-center gap-2">
+        {isMobile && (
+          <Button variant="outline" size="sm" onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)} className="shrink-0 gap-2">
+            <SlidersHorizontal className="h-4 w-4" />Filters
+          </Button>
         )}
       </div>
 
+      {/* Filters — desktop inline, mobile collapsible */}
+      {!isMobile && filtersContent}
+      {isMobile && mobileFiltersOpen && (
+        <div className="rounded-xl border border-border/60 bg-card p-4 relative">
+          <Button variant="ghost" size="icon" className="absolute top-3 right-3 h-7 w-7" onClick={() => setMobileFiltersOpen(false)}>
+            <X className="h-4 w-4" />
+          </Button>
+          {filtersContent}
+        </div>
+      )}
+
+      {/* 3. Artist Profile / Intro */}
+      {selectedArtist && <ArtistIntro artist={selectedArtist} />}
+
+      {/* 4. Mode Tabs */}
+      <Tabs value={tab} onValueChange={(v) => setTab(v as MobilityTab)}>
+        <TabsList className={cn("h-10", isMobile ? 'w-full' : '')}>
+          <TabsTrigger value="flow" className={cn("px-5", isMobile && 'flex-1')}>All Works Flow</TabsTrigger>
+          <TabsTrigger value="time" className={cn("px-5", isMobile && 'flex-1')}>Flow Over Time</TabsTrigger>
+          <TabsTrigger value="network" className={cn("px-5", isMobile && 'flex-1')}>3D Network</TabsTrigger>
+          <TabsTrigger value="museum" className={cn("px-5", isMobile && 'flex-1')}>Museum Explorer</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* 5. Tab Content */}
       {tab === 'flow' && (
-        <ArtistOverviewView movements={filteredMovements} museumMap={museumMap} artworks={artworks} onDrillDown={handleOpenArtworkDetail} selectedArtist={selectedArtist} museums={museums} />
+        <ArtistOverviewView movements={filteredMovements} museumMap={museumMap} artworks={artworks} onDrillDown={handleOpenArtworkDetail} selectedArtist={null} museums={museums} />
       )}
       {tab === 'time' && (
         <FlowOverTimeView movements={filteredMovements} museumMap={museumMap} artworks={artworks} onArtworkSelect={handleOpenArtworkDetail} />

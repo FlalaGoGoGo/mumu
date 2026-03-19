@@ -34,32 +34,7 @@ interface Props {
 type CountMode = 'events' | 'artworks';
 type GeoGranularity = 'museum' | 'city' | 'country' | 'continent';
 
-const CONTINENT_MAP: Record<string, string> = {
-  'United States': 'North America', 'Canada': 'North America', 'Mexico': 'North America',
-  'Brazil': 'South America', 'Argentina': 'South America', 'Chile': 'South America', 'Colombia': 'South America', 'Peru': 'South America',
-  'United Kingdom': 'Europe', 'France': 'Europe', 'Germany': 'Europe', 'Italy': 'Europe', 'Spain': 'Europe',
-  'Netherlands': 'Europe', 'Belgium': 'Europe', 'Austria': 'Europe', 'Switzerland': 'Europe', 'Sweden': 'Europe',
-  'Norway': 'Europe', 'Denmark': 'Europe', 'Finland': 'Europe', 'Poland': 'Europe', 'Czech Republic': 'Europe',
-  'Czechia': 'Europe', 'Hungary': 'Europe', 'Romania': 'Europe', 'Greece': 'Europe', 'Portugal': 'Europe',
-  'Ireland': 'Europe', 'Russia': 'Europe', 'Ukraine': 'Europe', 'Turkey': 'Europe', 'Croatia': 'Europe',
-  'Serbia': 'Europe', 'Bulgaria': 'Europe', 'Slovakia': 'Europe', 'Slovenia': 'Europe', 'Lithuania': 'Europe',
-  'Latvia': 'Europe', 'Estonia': 'Europe', 'Luxembourg': 'Europe', 'Malta': 'Europe', 'Cyprus': 'Europe',
-  'Iceland': 'Europe', 'Montenegro': 'Europe', 'North Macedonia': 'Europe', 'Albania': 'Europe',
-  'Bosnia and Herzegovina': 'Europe', 'Moldova': 'Europe', 'Georgia': 'Europe', 'Armenia': 'Europe',
-  'China': 'Asia', 'Japan': 'Asia', 'South Korea': 'Asia', 'India': 'Asia', 'Indonesia': 'Asia',
-  'Thailand': 'Asia', 'Vietnam': 'Asia', 'Philippines': 'Asia', 'Malaysia': 'Asia', 'Singapore': 'Asia',
-  'Taiwan': 'Asia', 'Israel': 'Asia', 'UAE': 'Asia', 'United Arab Emirates': 'Asia', 'Saudi Arabia': 'Asia',
-  'Qatar': 'Asia', 'Iran': 'Asia', 'Iraq': 'Asia', 'Pakistan': 'Asia', 'Bangladesh': 'Asia',
-  'Sri Lanka': 'Asia', 'Nepal': 'Asia', 'Cambodia': 'Asia', 'Myanmar': 'Asia', 'Mongolia': 'Asia',
-  'Kazakhstan': 'Asia', 'Uzbekistan': 'Asia', 'Azerbaijan': 'Asia',
-  'Australia': 'Oceania', 'New Zealand': 'Oceania', 'Fiji': 'Oceania',
-  'Egypt': 'Africa', 'South Africa': 'Africa', 'Nigeria': 'Africa', 'Kenya': 'Africa', 'Morocco': 'Africa',
-  'Tunisia': 'Africa', 'Ghana': 'Africa', 'Ethiopia': 'Africa', 'Tanzania': 'Africa', 'Senegal': 'Africa',
-};
-
-function getContinent(country: string): string {
-  return CONTINENT_MAP[country] || 'Other';
-}
+import { getContinent } from '@/lib/continentMap';
 
 function getMuseumGeoFromDataset(museumId: string, museumsByIdMap: Map<string, Museum>): { country: string; city: string } {
   const museum = museumsByIdMap.get(museumId);
