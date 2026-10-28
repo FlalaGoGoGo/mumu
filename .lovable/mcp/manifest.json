@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "sdk_version": "3.3.1",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "mumu",
+      "version": "0.1.0",
+      "title": "MuMu"
+    },
+    "tools": [
+      {
+        "name": "search_museums",
+        "title": "Search museums",
+        "description": "Search MuMu's museum catalog by name, city, state or country.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Text matched against museum name or city."
+            },
+            "country": {
+              "type": "string",
+              "description": "Exact country name filter."
+            },
+            "state": {
+              "type": "string",
+              "description": "Exact state/region filter."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Max results (default 20)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_museum",
+        "title": "Get museum",
+        "description": "Get full public details for one museum by its museum_id.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "museum_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Canonical museum id, e.g. art-institute-of-chicago-us."
+            }
+          },
+          "required": [
+            "museum_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_exhibitions",
+        "title": "Search exhibitions",
+        "description": "Find museum exhibitions by keyword or museum, optionally only those on view on a date.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Text matched against the exhibition name."
+            },
+            "museum_id": {
+              "type": "string",
+              "description": "Only exhibitions at this museum."
+            },
+            "on_date": {
+              "type": "string",
+              "description": "YYYY-MM-DD; only exhibitions running on this date."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Max results (default 20)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
